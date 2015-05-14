@@ -182,6 +182,7 @@ sub _member_access_new {
 }
 
 sub _parse_member_access {
+    # wtf?
     my ($self, $head, $member) = @_;
     if ($head->is_variable){
         $self->_assert($head->{fd}->{type} != FD_TYPES->{SEQ},
@@ -189,13 +190,12 @@ sub _parse_member_access {
         return $self->_member_access_new($head, $head->{fd}, $member);
     } elsif ($head->is_member_access){
         return $self->_member_access_new($head, $head->{member}, $member);
-    } elsif ($head->is_binary){
-        $self->_assert($head->{op} != TOKENS->{LQBR}, "trying to get member from type without members");
-        my $left = $head->{left};
+    } elsif ($head->is_array_access){
+        my $left = $head->{head};
         if ($left->is_member_access){
             return $self->_member_access_new($head, $left->{member}, $member);
         } elsif ($left->is_variable){
-            $self->_assert($left->{fd}->type != FD_TYPES->{Seq},
+            $self->_assert($left->{fd}->type != FD_TYPES->{SEQ},
                            "trying to get member from type without members");
             return $self->_member_access_new($head, $left->{fd}, $member);
         }
@@ -213,7 +213,8 @@ sub _parse_access {
         $self->_next_token;
         if ($$token == TOKENS->{LQBR}){
             $self->_assert(!$root->is_access, "square brackets after non variable");
-            $root = CATS::Formal::Expressions::Binary->new(op => TOKENS->{LQBR}, left => $root, right => $self->_parse_factor, is_access => 1);
+            $self->_next_token; #TODO: check this and next line right=>$self->_parse_factor
+            $root = CATS::Formal::Expressions::ArrayAccess->new(head => $root, index => $self->_parse_expr_p(1));
             $self->_expect('RQBR');
             $self->_next_token;
         } else {
