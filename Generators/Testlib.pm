@@ -9,12 +9,8 @@ use Constants qw(FD_TYPES);
 use parent -norequire, 'CATS::Formal::Generators::BaseGenerator';
 
 use constant FD_TYPES => CATS::Formal::Constants::FD_TYPES;
-
-use constant FD_TYPE_TO_CPP_TYPE => {
-    FD_TYPES->{INT} => 'long long',
-    FD_TYPES->{FLOAT} => 'double',
-    FD_TYPES->{STRING} => 'string'
-};
+use constant TOKENS   => CATS::Formal::Constants::TOKENS;
+use constant PRIORS   => CATS::Formal::Constants::PRIORS;
 
 use constant BAD_NAMES => {
     alignas => 1, 
@@ -111,57 +107,26 @@ my $stream_name = '__in__stream__';
 
 sub generate {
     my ($self, $obj) = @_;
+    $self->{names} = {};
+    $self->{type_definitions} = '';
+    $self->{type_declarations} = '';
     $self->{definitions} = {};
-    $self->{reader} = [];
-    $self->{types} = {#%s - name of stream
-        string => {
-            usage  => 'string',
-            name   => 'string',
-            reader => '%s.readString()'
-        },
-        'long long' => {
-            usage  => 'long long',
-            name   => 'long long',
-            reader => '%s.readLong()'
-        },
-        double => {
-            usage  => 'double',
-            name   => 'double',
-            reader => '$s.readDouble()'
-        }
-    };
-    $self->{structs} = {};
+    $self->{reader} = '';
     $self->generate_description($obj);
-    my $types_def = '';
-    my $types_decl = '';
-    foreach my $t (values $self->{types}) {
-        my $def = $t->{definition};
-        my $decl = $t->{declaration};
-        if ($def) {
-            $types_def .= "$def\n";
-            $types_decl .= "$decl;\n";
-        }
-    }
-    
-    my $names = '';
-    foreach my $n (keys $self->{definitions}){
-        my $t = $self->{definitions}->{$n}->{type}->{usage};
-        $names .= "$t $n;\n";
-    }
-    my $readers = $self->{main_reader};
     return <<"END"
 #include "testlib.h"
+#define assert(C) if (!(C)){printf("assert failed at %d", __LINE__); exit(1);}
 
 using namespace std;
 
-$types_decl
+$self->{type_declarations}
 
-$names
+$self->{declarations}
 
-$types_def
+$self->{type_definitions}
 
 void read_all(InStream& $stream_name){
-$readers
+$self->{reader}
 }
 
 int main(){
@@ -176,118 +141,208 @@ END
 
 }
 
+sub generate_int_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $obj = {};
+    my $spaces = '    ' x $deep;
+    $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
+    $obj->{name_for_expr} = $prefix . $obj->{name};
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong();\n";
+    $obj->{declaration} = "long long $obj->{name};\n";
+    $fd->{obj} = $obj;
+    return $obj;
+}
+
+sub generate_float_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $obj = {};
+    my $spaces = '    ' x $deep;
+    $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
+    $obj->{name_for_expr} = $prefix . $obj->{name};
+    $obj->{reader} = $spaces."$obj->{name_for_expr} = $stream_name.readDouble();\n";
+    $obj->{declaration} = "double $obj->{name};\n";
+    $fd->{obj} = $obj;
+    return $obj;
+}
+
+
+sub generate_string_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $obj = {};
+    my $spaces = '    ' x $deep;
+    $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
+    $obj->{name_for_expr} = $prefix . $obj->{name};
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readString();\n";
+    $obj->{declaration} = "string $obj->{name};\n";
+    $fd->{obj} = $obj;
+    return $obj;
+}
+
+sub generate_seq_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $obj = {};
+    my $spaces = '    ' x $deep;
+    $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
+    $obj->{name_for_expr} = $prefix . $obj->{name};
+     
+    my $type = "SEQ_$struct_counter";
+    my $seq_elem = $self->find_good_name($type.'_elem');
+    
+    $struct_counter++;
+    $obj->{declaration} = "vector<$type> $obj->{name};\n";
+    my $members = '';
+    my $len = $fd->{attributes}->{length};
+    if ($len) {
+        my $e = generate_expr($len);
+        $obj->{reader} = $spaces."while($obj->{name_for_expr}.size() < $e){\n";
+    } else {die "not implemented"}
+    
+    $obj->{reader} .= "$spaces    $type $seq_elem;\n";
+    
+    foreach my $child (@{$fd->{children}}){
+        my $child_obj = $self->generate_obj($child, "$seq_elem.", $deep + 1);
+        $obj->{reader} .= $child_obj->{reader};
+        $members .= $child_obj->{declaration};
+    }
+    $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n";
+    $obj->{reader} .= $spaces."}\n";
+    
+    my $struct_definition = <<"END"    
+struct $type {
+    $members
+};
+
+END
+;
+    $self->{type_declarations} .= "struct $type;\n"; 
+    $self->{type_definitions} .= $struct_definition;
+    
+    $fd->{obj} = $obj;
+    return $obj;
+}
+
+sub generate_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $gens = {
+        FD_TYPES->{INT} => \&generate_int_obj,
+        FD_TYPES->{FLOAT} => \&generate_float_obj,
+        FD_TYPES->{STRING} => \&generate_string_obj,
+        FD_TYPES->{SEQ} => \&generate_seq_obj,
+    };
+    my $gen = $gens->{$fd->{type}};
+    return $self->$gen($fd, $prefix, $deep);
+}
 
 sub generate_description {
     my ($self, $fd) = @_;
     if ($fd->{type} == FD_TYPES->{ROOT}) {
         my $input = $fd->find_child_by_type(FD_TYPES->{INPUT});
         foreach my $child (@{$input->{children}}){
-            $self->generate_description($child);
+            my $obj = $self->generate_obj($child, '', 1);
+            $self->{reader} .= $obj->{reader};
+            $self->{declarations} .= $obj->{declaration};
         }
         return;
-    }
-    
-    my $r_name = $fd->{name};
-    my $fd_type = $fd->{type};
-    my $cpp_type_name = FD_TYPE_TO_CPP_TYPE->{$fd_type};
-    my $cpp_type = $cpp_type_name ?
-        $self->{types}->{$cpp_type_name} : $self->gen_cpp_struct($fd);
-    if ($r_name) {
-        my $def_name = $self->find_good_name($r_name);
-        $self->{definitions}->{$def_name} = {real_name => $r_name, type => $cpp_type};
-        $self->{main_reader} .= sprintf "    $def_name = " . $cpp_type->{reader} . ";\n", $stream_name;
-    } else {
-        $self->{main_reader} .= sprintf '    ' . $cpp_type->{reader} . ";\n", $stream_name;
-    }
-}
-
-sub gen_cpp_struct {
-    my ($self, $fd) = @_;
-    my $struct = {name => 'SEQ_' . $struct_counter++, members => {}};
-    $struct->{declaration} = 'struct '. $struct->{name};
-    my $members_definition_code = '';
-    my $members_reading_code = '';
-    foreach my $member (@{$fd->{children}}){
-        my $member_name = $member->{name};
-        my $member_type = $member->{type};
-        my $cpp_type_name = FD_TYPE_TO_CPP_TYPE->{$member_type};
-        my $cpp_type = $cpp_type_name ?
-            $self->{types}->{$cpp_type_name} : $self->gen_cpp_struct($member);
-        my $member_reader = $cpp_type->{reader};
-        if ($member_name) {
-            my $m_name = $self->find_good_member_name($struct, $member_name);
-            $members_definition_code .= '    ' . $cpp_type->{usage} . " $m_name;\n";
-            $struct->{members}->{$m_name} = $cpp_type;
-            $members_reading_code .= sprintf "        $m_name = $member_reader;\n", $stream_name;
-        } else {
-            $members_reading_code .= sprintf "        $member_reader;\n", $stream_name;
-        }
-        #TODO $member_reading_code .= "$constraints_code\n";
-    }
-    my $sname = $struct->{name};
-    my $seq_reading_code = '';
-    
-    $struct->{usage} = "vector<$sname>";
-    $struct->{reader} = "$sname :: read(%s)";
-    $struct->{definition} = <<"END"
-struct $sname {
-$members_definition_code
-    $sname(InStream& $stream_name) : {
-$members_reading_code
-    }
-    static vector<$sname> read(InStream& $stream_name){
-$seq_reading_code
-    }
-};
-END
-;
-    $self->{code}->{declarations} .= $struct->{declaration} . ";\n";
-    $self->{code}->{definitions} .= $struct->{definition} . "\n";
-    $self->{types}->{$struct->{name}} = $struct;
-    #$fd->{gen} = $struct;
-    return $struct;
-}
-
-sub find_good_member_name {
-    my ($self, $struct, $name) = @_;
-    while (BAD_NAMES->{$name} || $struct->{members}->{$name}) {
-        $name = '_' . $name . '_1';
-    }
-    return $name;
-}
-
-sub type_to_str {
-    my $type = shift;
-    return {
-        FD_TYPES->{INT} => 'long long',
-        FD_TYPES->{FLOAT} => 'long double',
-        FD_TYPES->{STRING} => 'string',
-        FD_TYPES->{SEQ} => 'vector',
-        FD_TYPES->{SENTINEL} => 'vector'
-    }
-}
-
-sub generate_expression {
-    
+    } else { die "not implemented" };
 }
 
 sub find_good_name {
     my ($self, $name) = @_;
-    while (BAD_NAMES->{$name} || $self->{definitions}->{$name}) {
-        $name = "_$name" . '_1';
+    while (BAD_NAMES->{$name} || $self->{names}->{$name}) {
+        $name = "_$name" . '_';
     }
+    #$self->{names}->{$name} = 1;
     return $name;
+}
+
+sub op_to_code {
+    my $op = shift;
+    {
+        TOKENS->{NOT}   => '!',
+        #TOKENS->{POW}   => ,
+        TOKENS->{MUL}   => '*',
+        TOKENS->{DIV}   => '/',
+        TOKENS->{MOD}   => '%',
+        TOKENS->{PLUS}  => '+',
+        TOKENS->{MINUS} => '-',
+        TOKENS->{LT}    => '<',
+        TOKENS->{GT}    => '>',
+        TOKENS->{EQ}    => '==',
+        TOKENS->{NE}    => '!=',
+        TOKENS->{LE}    => '<=',
+        TOKENS->{GE}    => '>=',
+        TOKENS->{AND}   => '&&',
+        TOKENS->{OR}    => '||',
+    }
+}
+
+sub generate_expr {
+    my $expr = shift;
+    if ($expr->is_binary) {
+        my $left = generate_expr($expr->{left});
+        my $right = generate_expr($expr->{right});
+        if ($expr->{op} == TOKENS->{POW}) {
+            return "pow($left, $right)";
+        }
+        return "($left " . op_to_code($expr->{op}) . " $right)";
+    } elsif ($expr->is_unary) {
+        my $node = generate_expr($expr->{node});
+        return '('.op_to_code($expr->{op}) . "$node)";
+    } elsif ($expr->is_variable) {
+        return $expr->{fd}->{obj}->{name_for_expr};
+    } elsif ($expr->is_array){
+        die "not implemented";
+    
+    
+    } elsif ($expr->is_string) {
+        my $s = $$expr;
+        return "\"$s\"";
+    } elsif ($expr->is_constant) {
+        return $$expr;
+    } elsif ($expr->is_function) {
+        my $params = join ',' , (map generate_expr($_), @{$expr->{params}});
+        return "$expr->{name}($params)";
+    } elsif ($expr->is_member_access) {
+        die "not implemented";
+    
+    
+    } elsif ($expr->is_array_access) {
+        return generate_expr($expr->{head}) . '[' . generate_expr($expr->{index}) . ']';
+    } else {die "wtf"}
+    
 }
 
 <<END
 
+/**
+int name=A;
+seq name=C, length=A;
+    seq name=B, length=A;
+        int name=A;
+        assert A == length(B);
+    end;
+end;
+*/
+
 #include "testlib.h"
+#defint assert(C) if (!(C)){printf("assert failed at %d, __LINE__); exit(1);}
 
 using namespace std;
 
 long long A = 0;
-long double B = 0.0;
-void readInput(){
+vector<SEQ_1> C;
+void readInput(InStream& stream){
+    A = stream.readLong();
+    while(C.size() < A){
+        SEQ_1 seq_1_elem;
+        while(seq_1_elem.B.size() < A){
+            SEQ_2 seq_2_elem;
+            seq_2_elem.A = stream.readLong();
+            assert(seq_2_elem.A == seq_1_elem.B.size());
+            seq_1_elem.B.push_back(seq_2_elem);
+        }
+        C.push_back(seq_1_elem);
+    }
     inf.readInt(1, 100);
     inf.readEoln();
     inf.readEof();
@@ -296,9 +351,8 @@ void readInput(){
 int main()
 {
     registerValidation();
-    
+    inf.strict = false;
     readInput();
-
     return 0;
 }
 
