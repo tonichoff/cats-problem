@@ -330,9 +330,12 @@ sub _parse_chars {
     $$src =~ /^\s*(!$p2|$p2)/;
     $self->_assert(!$1, "expected chars definition");
     my @chars = split //, $1;
+    $$src = $';
     my $neg = $chars[0] eq '!';
     my @res = ($neg) x 255;
     shift @chars if $neg;
+    shift @chars; #{
+    pop @chars; #}
     my $i = 0;
     my $c = @chars;
     while ($i < $c){
@@ -373,8 +376,8 @@ sub _parse_chars {
     }
     #ENDFUUUUUUUUUUUU
     
-    $fd->{attributes}->{chars} = $str;
-    
+    $fd->{attributes}->{chars} = CATS::Formal::Expressions::String->new($str);
+    $self->_next_token;
 }
 
 sub _parse_attrs {
