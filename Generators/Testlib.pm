@@ -195,8 +195,8 @@ sub generate_string_obj {
     
     $obj->{declaration} = "string $obj->{name};\n";
     $fd->{obj} = $obj;
-    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readString();\n" .
-        $self->generate_constraints($fd, $spaces);
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readWord();\n";
+    $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     return $obj;
 }
 
