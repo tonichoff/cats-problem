@@ -359,11 +359,12 @@ sub generate_expr {
 sub try_generate_function {
     my ($self, $func) = @_;
     my $name = $func->{name};
+    my $params = $func->{params};
     if (!$self->{generated_functions}->{vector_length} &&
         $name eq 'length' &&
-        $#{$func->{params}} == 0 &&
-        $func->{params}->[0]->is_variable &&
-        $func->{params}->[0]->{fd}->{type} == FD_TYPES->{SEQ})
+        $#{$params} == 0 &&
+        $params->[0]->is_variable &&
+        $params->[0]->{fd}->{type} == FD_TYPES->{SEQ})
     {
         my $res = <<"FUNC"
 template <class T>
