@@ -110,12 +110,13 @@ sub generate {
     $self->{names} = {};
     $self->{type_definitions} = '';
     $self->{type_declarations} = '';
+    $self->{functions} = '';
+    $self->{generated_functions} = {};
     $self->{definitions} = {};
     $self->{reader} = '';
     $self->generate_description($obj);
     return <<"END"
 #include "testlib.h"
-#define assert(C) if (!(C)){printf("assert failed at %d", __LINE__); exit(1);}
 
 using namespace std;
 
@@ -124,6 +125,8 @@ $self->{type_declarations}
 $self->{declarations}
 
 $self->{type_definitions}
+
+$self->{functions}
 
 void read_all(InStream& $stream_name){
 $self->{reader}
@@ -147,9 +150,11 @@ sub generate_int_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
     $obj->{name_for_expr} = $prefix . $obj->{name};
-    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong();\n";
     $obj->{declaration} = "long long $obj->{name};\n";
     $fd->{obj} = $obj;
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong();\n" .
+        $self->generate_constraints($fd, $spaces);
+    
     return $obj;
 }
 
@@ -159,9 +164,11 @@ sub generate_float_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
     $obj->{name_for_expr} = $prefix . $obj->{name};
-    $obj->{reader} = $spaces."$obj->{name_for_expr} = $stream_name.readDouble();\n";
     $obj->{declaration} = "double $obj->{name};\n";
     $fd->{obj} = $obj;
+    $obj->{reader} = $spaces."$obj->{name_for_expr} = $stream_name.readDouble();\n" .
+        $self->generate_constraints($fd, $spaces);
+        
     return $obj;
 }
 
@@ -172,9 +179,11 @@ sub generate_string_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
     $obj->{name_for_expr} = $prefix . $obj->{name};
-    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readString();\n";
+    
     $obj->{declaration} = "string $obj->{name};\n";
     $fd->{obj} = $obj;
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readString();\n" .
+        $self->generate_constraints($fd, $spaces);
     return $obj;
 }
 
@@ -184,6 +193,7 @@ sub generate_seq_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
     $obj->{name_for_expr} = $prefix . $obj->{name};
+    $fd->{obj} = $obj; 
      
     my $type = "SEQ_$struct_counter";
     my $seq_elem = $self->find_good_name($type.'_elem');
@@ -193,7 +203,7 @@ sub generate_seq_obj {
     my $members = '';
     my $len = $fd->{attributes}->{length};
     if ($len) {
-        my $e = generate_expr($len);
+        my $e = $self->generate_expr($len);
         $obj->{reader} = $spaces."while($obj->{name_for_expr}.size() < $e){\n";
     } else {die "not implemented"}
     
@@ -205,7 +215,8 @@ sub generate_seq_obj {
         $members .= $child_obj->{declaration};
     }
     $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n";
-    $obj->{reader} .= $spaces."}\n";
+    $obj->{reader} .= $spaces."}\n" . $self->generate_constraints($fd, $spaces);
+    
     
     my $struct_definition = <<"END"    
 struct $type {
@@ -217,7 +228,7 @@ END
     $self->{type_declarations} .= "struct $type;\n"; 
     $self->{type_definitions} .= $struct_definition;
     
-    $fd->{obj} = $obj;
+   
     return $obj;
 }
 
@@ -257,7 +268,7 @@ sub find_good_name {
 
 sub op_to_code {
     my $op = shift;
-    {
+    my $ops = {
         TOKENS->{NOT}   => '!',
         #TOKENS->{POW}   => ,
         TOKENS->{MUL}   => '*',
@@ -273,20 +284,21 @@ sub op_to_code {
         TOKENS->{GE}    => '>=',
         TOKENS->{AND}   => '&&',
         TOKENS->{OR}    => '||',
-    }
+    };
+    return $ops->{$op};
 }
 
 sub generate_expr {
-    my $expr = shift;
+    my ($self, $expr) = @_;
     if ($expr->is_binary) {
-        my $left = generate_expr($expr->{left});
-        my $right = generate_expr($expr->{right});
+        my $left = $self->generate_expr($expr->{left});
+        my $right = $self->generate_expr($expr->{right});
         if ($expr->{op} == TOKENS->{POW}) {
             return "pow($left, $right)";
         }
         return "($left " . op_to_code($expr->{op}) . " $right)";
     } elsif ($expr->is_unary) {
-        my $node = generate_expr($expr->{node});
+        my $node = $self->generate_expr($expr->{node});
         return '('.op_to_code($expr->{op}) . "$node)";
     } elsif ($expr->is_variable) {
         return $expr->{fd}->{obj}->{name_for_expr};
@@ -300,16 +312,55 @@ sub generate_expr {
     } elsif ($expr->is_constant) {
         return $$expr;
     } elsif ($expr->is_function) {
-        my $params = join ',' , (map generate_expr($_), @{$expr->{params}});
+        my $params = join ',' , (map $self->generate_expr($_), @{$expr->{params}});
+        $self->try_generate_function($expr);
         return "$expr->{name}($params)";
     } elsif ($expr->is_member_access) {
         die "not implemented";
     
     
     } elsif ($expr->is_array_access) {
-        return generate_expr($expr->{head}) . '[' . generate_expr($expr->{index}) . ']';
+        return $self->generate_expr($expr->{head}) . '[' . $self->generate_expr($expr->{index}) . ']';
     } else {die "wtf"}
     
+}
+
+sub try_generate_function {
+    my ($self, $func) = @_;
+    my $name = $func->{name};
+    if (!$self->{generated_functions}->{vector_length} &&
+        $name eq 'length' &&
+        $#{$func->{params}} == 0 &&
+        $func->{params}->[0]->is_variable &&
+        $func->{params}->[0]->{fd}->{type} == FD_TYPES->{SEQ})
+    {
+        my $res = <<"FUNC"
+template <class T>
+int length(vector<T> v){
+    return v.size();
+}
+FUNC
+;
+        $self->{functions} .= $res;
+        $self->{generated_functions}->{vector_length} = 1;
+        return;
+    }  
+}
+
+sub generate_constraint {
+    my ($self, $constraint) = @_;
+    my $c = $self->generate_expr($constraint);
+    return "ensure($c);\n"
+}
+
+sub generate_constraints {
+    my ($self, $fd, $spaces) = @_;
+    my $res = '';
+    foreach my $c (@{$fd->{constraints}}){
+        my $code = $self->generate_constraint($c);
+        $res .= "$spaces$code";
+    }
+    return $res;
 }
 
 <<END
