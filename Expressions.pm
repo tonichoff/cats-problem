@@ -14,7 +14,7 @@ sub new {
 
 sub is_access {0;}
 sub is_variable {0;}
-sub is_member_acces {0;}
+sub is_member_access {0;}
 sub is_array_access{0;}
 sub is_binary {0;}
 sub is_unary {0;}
@@ -61,7 +61,7 @@ sub stringify {
 }
 
 package CATS::Formal::Expressions::Access;
-use parent -norequire, 'CATS;;Formal::Expressions::BaseExpression';
+use parent -norequire, 'CATS::Formal::Expressions::BaseExpression';
 sub is_access{1;}
 
 package CATS::Formal::Expressions::MemberAccess;
