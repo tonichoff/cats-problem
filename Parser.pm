@@ -207,17 +207,19 @@ sub _parse_member_access {
 
 sub _parse_access {
     my ($self, $name) = @_;
-    my $root = CATS::Formal::Expressions::Variable->new(fd => $self->find($name));
+    my $root = CATS::Formal::Expressions::Variable->new(fd => $self->{fd}->find($name));
     my $token = \$self->{token};
     while($$token == TOKENS->{LQBR} || $$token == TOKENS->{DOT}){
-        $self->_next_token;
+        #$self->_next_token;
         if ($$token == TOKENS->{LQBR}){
-            $self->_assert(!$root->is_access, "square brackets after non variable");
+            $self->_assert(!$root->is_variable, "square brackets after non variable");
+            #$self->_assert(!$root->is_access, "square brackets after non variable");
             $self->_next_token; #TODO: check this and next line right=>$self->_parse_factor
             $root = CATS::Formal::Expressions::ArrayAccess->new(head => $root, index => $self->_parse_expr_p(1));
             $self->_expect('RQBR');
             $self->_next_token;
         } else {
+            $self->_next_token;
             $self->_expect_identifier;
             $root = $self->_parse_member_access($root, $self->{token_str});
             $self->_next_token;
