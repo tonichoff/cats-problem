@@ -243,7 +243,7 @@ sub generate_seq_obj {
     foreach my $child (@{$fd->{children}}){
         my $child_obj = $self->generate_obj($child, "$seq_elem.", $deep + 1);
         $obj->{reader} .= $child_obj->{reader};
-        $members .= $child_obj->{declaration};
+        $members .= '    ' . $child_obj->{declaration};
     }
     $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n";
     $obj->{reader} .= $spaces."}\n" . $self->generate_constraints($fd, $spaces);
@@ -251,7 +251,7 @@ sub generate_seq_obj {
     
     my $struct_definition = <<"END"    
 struct $type {
-    $members
+$members
 };
 
 END
