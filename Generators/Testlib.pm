@@ -381,7 +381,25 @@ FUNC
         $self->{functions} .= $res;
         $self->{generated_functions}->{vector_length} = 1;
         return;
-    }  
+    } elsif (!$self->{generated_functions}->{string_length} &&
+        $name eq 'length' &&
+        $#{$params} == 0 && (
+            $params->[0]->is_variable &&
+            $params->[0]->{fd}->{type} == FD_TYPES->{STRING}
+        ||
+            $params->[0]->is_string
+        )
+    ) {
+        my $res = <<"END"
+int length(string& str){
+    return str.length();
+}
+END
+;
+        $self->{functions} .= $res;
+        $self->{generated_functions}->{string_length} = 1;
+        return;
+    }
 }
 
 sub generate_constraint {
