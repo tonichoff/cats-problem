@@ -152,8 +152,21 @@ sub generate_int_obj {
     $obj->{name_for_expr} = $prefix . $obj->{name};
     $obj->{declaration} = "long long $obj->{name};\n";
     $fd->{obj} = $obj;
-    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong();\n" .
-        $self->generate_constraints($fd, $spaces);
+    my $range = $fd->{attributes}->{range};
+    if ($range) {
+        my $a = 0;
+        my $b = 0;
+        if ($range->is_array) {
+            $a = $self->generate_expr($range->[0]);
+            $b = $self->generate_expr($range->[1]);
+        } else {
+            $b = $self->generate_expr($range);
+        }
+        $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong($a, $b, \"$obj->{name}\");\n"
+    } else {
+        $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong();\n";
+    }
+    $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     
     return $obj;
 }
