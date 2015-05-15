@@ -347,8 +347,13 @@ sub generate_expr {
         $self->try_generate_function($expr);
         return "$expr->{name}($params)";
     } elsif ($expr->is_member_access) {
-        die "not implemented";
-    
+        my $head = $expr->{head};
+        my $member = $expr->{member};
+        #if ($head->is_array_access) {
+            return $self->generate_expr($head) . '.' . $expr->{member}->{obj}->{name};
+        #} else {
+        #    die "not implemented";
+        #}
     
     } elsif ($expr->is_array_access) {
         return $self->generate_expr($expr->{head}) . '[' . $self->generate_expr($expr->{index}) . ']';
