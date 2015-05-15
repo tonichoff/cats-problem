@@ -195,7 +195,7 @@ sub _parse_member_access {
         if ($left->is_member_access){
             return $self->_member_access_new($head, $left->{member}, $member);
         } elsif ($left->is_variable){
-            $self->_assert($left->{fd}->type != FD_TYPES->{SEQ},
+            $self->_assert($left->{fd}->{type} != FD_TYPES->{SEQ},
                            "trying to get member from type without members");
             return $self->_member_access_new($head, $left->{fd}, $member);
         }
