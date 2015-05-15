@@ -196,6 +196,24 @@ sub generate_string_obj {
     $obj->{declaration} = "string $obj->{name};\n";
     $fd->{obj} = $obj;
     $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readWord();\n";
+    my $lenrange = $fd->{attributes}->{lenrange};
+    if ($lenrange) {
+        if ($lenrange->is_array) {
+            my $a = $self->generate_expr($lenrange->[0]);
+            my $b = $self->generate_expr($lenrange->[1]);
+            $obj->{reader} .= $spaces."ensure($a <= $obj->{name_for_expr}.length() && $obj->{name_for_expr}.length() <= $b);\n";
+        } else {
+            $b = $self->generate_expr($lenrange);
+            $obj->{reader} .= $spaces."ensure($b == $obj->{name_for_expr}.length());\n";
+        }
+    }
+    my $chars = $fd->{attributes}->{chars};
+    if ($chars) {
+        $chars = $self->generate_expr($chars);
+        $obj->{reader} .= $spaces."ensure($obj->{name_for_expr}.find_first_not_of($chars));\n";
+    }
+    
+    
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     return $obj;
 }
