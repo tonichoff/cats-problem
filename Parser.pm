@@ -417,6 +417,16 @@ sub _parse_attrs {
     $self->_next_token;
 }
 
+sub _parse_constraint {
+    my $self = shift;
+    $self->_assert(!@{$self->{curParent}->{children}}, "assert can't be the first element");
+    my $last = $self->{curParent}->{children}->[-1];
+    my $constraint = $self->_parse_expr($last);
+    $last->add_constraint($constraint);
+    $self->_expect('SEMICOLON');
+    $self->_next_token;
+}
+
 sub _parse_obj {
     my $self = shift;
     my @types = (TOKENS->{INT}, TOKENS->{STRING}, TOKENS->{FLOAT}, TOKENS->{SEQ});
@@ -428,7 +438,8 @@ sub _parse_obj {
     } elsif ($self->{token} == TOKENS->{SENTINEL}){
         return $self->_parse_sentinel;
     } elsif ($self->{token} == TOKENS->{CONSTRAINT}) {
-        return $self->_parse_constraint;
+        $self->_parse_constraint;
+        return undef;
     } else {
         $self->error("expected 'int'|'string'|'float'|'seq' got $self->{token_str}");
     }
