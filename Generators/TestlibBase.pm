@@ -1,10 +1,10 @@
-package CATS::Formal::Generators::Testlib;
+package CATS::Formal::Generators::TestlibBase;
 use strict;
 use warnings;
 
 use BaseGenerator; 
 use lib '..';
-use Constants qw(FD_TYPES);
+use Constants;
 
 use parent -norequire, 'CATS::Formal::Generators::BaseGenerator';
 
@@ -114,34 +114,9 @@ sub generate {
     $self->{generated_functions} = {};
     $self->{definitions} = {};
     $self->{reader} = '';
+    $self->{stream_name} = $stream_name;
     $self->generate_description($obj);
-    return <<"END"
-#include "testlib.h"
-
-using namespace std;
-
-$self->{type_declarations}
-
-$self->{declarations}
-
-$self->{type_definitions}
-
-$self->{functions}
-
-void read_all(InStream& $stream_name){
-$self->{reader}
-}
-
-int main(){
-    registerValidation();
-    inf.strict = false;
-    read_all(inf);
-    inf.readEoln();
-    inf.readEof();
-    return 0;
-}
-END
-
+    return $self->pattern;
 }
 
 sub generate_int_obj {
@@ -286,19 +261,6 @@ sub generate_obj {
     };
     my $gen = $gens->{$fd->{type}};
     return $self->$gen($fd, $prefix, $deep);
-}
-
-sub generate_description {
-    my ($self, $fd) = @_;
-    if ($fd->{type} == FD_TYPES->{ROOT}) {
-        my $input = $fd->find_child_by_type(FD_TYPES->{INPUT});
-        foreach my $child (@{$input->{children}}){
-            my $obj = $self->generate_obj($child, '', 1);
-            $self->{reader} .= $obj->{reader};
-            $self->{declarations} .= $obj->{declaration};
-        }
-        return;
-    } else { die "not implemented" };
 }
 
 sub find_good_name {
