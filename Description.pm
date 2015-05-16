@@ -50,7 +50,8 @@ sub find {
     while ($cur) {
         if ($from_output && $cur->{type} == CATS::Formal::Constants::FD_TYPES->{ROOT}) {
             $from_output = 0;
-            $cur = $cur->find_child_by_type('INPUT');
+            $cur = $cur->find_child_by_type(CATS::Formal::Constants::FD_TYPES->{INPUT});
+            return undef unless $cur;
         }
         
         return $cur if $cur->{name} && $cur->{name} eq $name;
