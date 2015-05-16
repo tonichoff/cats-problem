@@ -46,10 +46,20 @@ sub stringify {
 sub find {
     my ($self, $name) = @_;
     my $cur = $self;
+    my $from_output = 0;
     while ($cur) {
+        if ($from_output && $cur->{type} == CATS::Formal::Constants::FD_TYPES->{ROOT}) {
+            $from_output = 0;
+            $cur = $cur->find_child_by_type('INPUT');
+        }
+        
         return $cur if $cur->{name} && $cur->{name} eq $name;
         my $child = $cur->find_child($name);
         return $child if $child;
+        if ($cur->{type} == CATS::Formal::Constants::FD_TYPES->{OUTPUT}) {
+            $from_output = 1;
+        }
+        
         $cur = $cur->{parent};        
     }
     return $cur;    
