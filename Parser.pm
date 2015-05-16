@@ -23,6 +23,16 @@ sub parse {
     $res;
 }
 
+sub parseOutput {
+    my ($self, $fd, $str) = @_;
+    $self->_init($str);
+    my $res;
+    eval {$res = $self->_parse_output($fd);};
+    die $@ if $@;
+    $self->_finish;
+    $res;
+}
+
 sub _init {
     die "called abstract method Parser::parse_start";    
 }
@@ -477,6 +487,20 @@ sub _parse_input {
     
     $self->{curParent} = $fd->{parent};
     
+}
+
+sub _parse_output {
+    my ($self, $root) = @_;
+    $self->_next_token;
+    my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{OUTPUT}, parent => $root});
+    $self->{curParent} = $fd;
+    $self->_parse_params;
+    while ($self->{token} != TOKENS->{EOF}) {
+        $self->_parse_seq;
+    }
+    
+    $self->{curParent} = $fd->{parent};
+    return $root;
 }
 
 sub _parse_fd {
