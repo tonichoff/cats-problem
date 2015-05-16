@@ -277,8 +277,9 @@ sub _parse_prefix {
     my $self = shift;
     my @pref_tokens = (TOKENS->{NOT}, TOKENS->{PLUS}, TOKENS->{MINUS});
     if (grep $_ == $self->{token}, @pref_tokens) {
+        my $op = $self->{token};
         $self->_next_token;
-        return CATS::Formal::Expressions::Unary->new(op => $self->{token}, node => $self->_parse_prefix);
+        return CATS::Formal::Expressions::Unary->new(op => $op, node => $self->_parse_prefix);
     }
     return $self->_parse_factor;
 }
