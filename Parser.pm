@@ -467,9 +467,9 @@ sub _parse_seq {
 
 sub _parse_input {
     my $self = shift;
-    
     my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{INPUT}, parent => $self->{curParent}});
     $self->{curParent} = $fd;
+    $self->_parse_params;
     while ($self->{token} != TOKENS->{EOF}) {
         $self->_parse_seq;
     }
@@ -482,7 +482,6 @@ sub _parse_fd {
     my $self = shift;
     my $fd = CATS::Formal::Description->new({type => FD_TYPES->{ROOT}});
     $self->{curParent} = $fd;
-    $self->_parse_params;
     $self->_parse_input;
     $self->{curParent} = $fd->{parent};
     $fd;
