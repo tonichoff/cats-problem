@@ -33,7 +33,14 @@ void read_all(InStream& $stream_name){
 $self->{reader}
 }
 
-int main(){
+int main(int argc, char** argv){
+    if (argc > 1){
+        /*
+            close up for CATS::Spawner
+            it will be here while spawner can't redirect streams
+        */
+        freopen(argv[1], "r", stdin);
+    }
     registerValidation();
     inf.strict = false;
     read_all(inf);
