@@ -68,7 +68,7 @@ my @patterns = (
     '\d+' => TOKEN_TYPES->{CONSTANT_INT}, 
     '\w+' => TOKEN_TYPES->{WORD},
     "'.*?'" => TOKEN_TYPES->{CONSTANT_STR},
-    '>=|<=|<>|==|!=|&&|\|\||[-.+*\/%\[\]^=()<>!,;]' => TOKEN_TYPES->{OPERATOR},
+    '>=|<=|<>|==|!=|&&|\|\||[-.+*\/%\[\]^=()<>!,;#]' => TOKEN_TYPES->{OPERATOR},
     '$' => TOKEN_TYPES->{EOF},
  #   '[^-+.*\/%\[\]\^&!><=()|0-9A-Za-z]' => TOKENS->{UNKNOWN},
 );
@@ -332,8 +332,6 @@ sub _parse_expr {
     $r;
 }
 
-sub _parse_params {}
-
 sub _parse_chars {
     my $self = shift;
     my $fd = shift;
@@ -475,6 +473,19 @@ sub _parse_seq {
         $self->_next_token if $self->{token} == TOKENS->{SEMICOLON};
     }
     $self->{curParent} = $obj->{parent};
+}
+
+sub _parse_params {
+    my ($self) = @_;
+    while ($self->{token} == TOKENS->{SHARP}){
+        $self->_next_token;
+        $self->_expect_identifier;
+        my $parameter = $self->{token_str};
+        $self->_next_token;
+        $self->_expect('EQ');
+        my $expr = $self->_parse_expr();
+        $self->{curParent}->{attributes}->{$parameter} = $expr;
+    }
 }
 
 sub _parse_input {
