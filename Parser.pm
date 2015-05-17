@@ -264,8 +264,9 @@ sub _parse_factor {
         my $f = CATS::Formal::Expressions::Float->new($self->{token_str});
         $self->_next_token;
         return $f;
-    } elsif ($$ttype == TOKEN_TYPES->{CONSTANT_FLOAT}) {
-        my $s = CATS::Formal::Expressions::String->new($self->{token_str});
+    } elsif ($$ttype == TOKEN_TYPES->{CONSTANT_STR}) {
+        $self->{token_str} =~ /'(.*)'/;
+        my $s = CATS::Formal::Expressions::String->new($1);
         $self->_next_token;
         return $s;
     } elsif ($$token == TOKENS->{LPAREN}){
