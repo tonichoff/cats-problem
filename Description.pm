@@ -56,7 +56,7 @@ sub find {
 }
 
 sub add_child {
-    push $_[0]->{children}, $_[1];
+    push @{$_[0]->{children}}, $_[1];
 }
 
 sub find_child {
@@ -76,7 +76,7 @@ sub find_child_by_type {
 }
 
 sub add_constraint {
-    push $_[0]->{constraints}, $_[1];
+    push @{$_[0]->{constraints}}, $_[1];
 }
 
 1;
