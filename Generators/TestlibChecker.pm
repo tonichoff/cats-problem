@@ -30,6 +30,15 @@ sub generate_description {
     } else { die "not implemented" };
 }
 
+sub generate_constraint {
+    my ($self, $constraint) = @_;
+    if ($self->{mode} ne 'OUTPUT') {
+        return $self->SUPER::generate_constraint($constraint);
+    }
+    my $c = $self->generate_expr($constraint);
+    return "_test_($c, $pe);\n";    
+}
+
 sub pattern {
     my $self = shift;
     my $stream_name = $self->{stream_name};
