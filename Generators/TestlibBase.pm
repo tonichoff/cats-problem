@@ -227,26 +227,29 @@ sub generate_seq_obj {
     } else {die "not implemented"}
     
     $obj->{reader} .= "$spaces    $type $seq_elem;\n";
-    
+    my @compare = ();
     foreach my $child (@{$fd->{children}}){
         my $child_obj = $self->generate_obj($child, "$seq_elem.", $deep + 1);
         $obj->{reader} .= $child_obj->{reader};
         $members .= '    ' . $child_obj->{declaration};
+        push @compare, "f.$child_obj->{name} == s.$child_obj->{name}";
     }
     $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n";
     $obj->{reader} .= $spaces."}\n" . $self->generate_constraints($fd, $spaces);
-    
+    my $compare = join ' && ', @compare;
     
     my $struct_definition = <<"END"    
 struct $type {
 $members
 };
+bool operator==(const $type& f, const $type& s){
+    return $compare;
+}
 
 END
 ;
     $self->{type_declarations} .= "struct $type;\n"; 
     $self->{type_definitions} .= $struct_definition;
-    
    
     return $obj;
 }
