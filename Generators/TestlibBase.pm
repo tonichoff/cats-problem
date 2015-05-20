@@ -2,8 +2,8 @@ package CATS::Formal::Generators::TestlibBase;
 use strict;
 use warnings;
 
-use BaseGenerator; 
 use lib '..';
+use Generators::BaseGenerator;
 use Constants;
 
 use parent -norequire, 'CATS::Formal::Generators::BaseGenerator';
