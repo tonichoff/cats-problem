@@ -30,13 +30,12 @@ sub generate_description {
     } else { die "not implemented" };
 }
 
-sub generate_constraint {
-    my ($self, $constraint) = @_;
+sub constraint_function {
+    my ($self, $constraint_code) = @_;
     if ($self->{mode} ne 'OUTPUT') {
-        return $self->SUPER::generate_constraint($constraint);
+        return $self->SUPER::constraint_function($constraint_code);
     }
-    my $c = $self->generate_expr($constraint);
-    return "_test_($c, $pe);\n";    
+    return "_test_($constraint_code, $pe)";
 }
 
 sub pattern {

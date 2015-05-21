@@ -189,16 +189,22 @@ sub generate_string_obj {
         if ($lenrange->is_array) {
             my $a = $self->generate_expr($lenrange->[0]);
             my $b = $self->generate_expr($lenrange->[1]);
-            $obj->{reader} .= $spaces."ensure($a <= $obj->{name_for_expr}.length() && $obj->{name_for_expr}.length() <= $b);\n";
+            $obj->{reader} .= $spaces . $self->constraint_function(
+                "$a <= $obj->{name_for_expr}.length() && $obj->{name_for_expr}.length() <= $b"
+            );
         } else {
             $b = $self->generate_expr($lenrange);
-            $obj->{reader} .= $spaces."ensure($b == $obj->{name_for_expr}.length());\n";
+            $obj->{reader} .= $spaces . $self->constraint_function(
+                "$b == $obj->{name_for_expr}.length()"
+            );
         }
     }
     my $chars = $fd->{attributes}->{chars};
     if ($chars) {
         $chars = $self->generate_expr($chars);
-        $obj->{reader} .= $spaces."ensure($obj->{name_for_expr}.find_first_not_of($chars));\n";
+        $obj->{reader} .= $spaces . $self->constraint_function(
+            "$obj->{name_for_expr}.find_first_not_of($chars)"
+        );
     }
     
     
@@ -380,10 +386,15 @@ END
     }
 }
 
+sub constraint_function {
+    my ($self, $condition_code) = @_;
+    return "ensure($condition_code);\n";
+}
+
 sub generate_constraint {
     my ($self, $constraint) = @_;
     my $c = $self->generate_expr($constraint);
-    return "ensure($c);\n"
+    return $self->constraint_function($c);
 }
 
 sub generate_constraints {
