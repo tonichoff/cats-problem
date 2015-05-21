@@ -142,6 +142,7 @@ sub generate_int_obj {
         $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong();\n";
     }
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
+    $obj->{space_reader} = 1;
     
     return $obj;
 }
@@ -169,7 +170,7 @@ sub generate_float_obj {
         $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readDouble();\n";
     }
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
-        
+    $obj->{space_reader} = 1;
     return $obj;
 }
 
@@ -207,8 +208,8 @@ sub generate_string_obj {
         );
     }
     
-    
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
+    $obj->{space_reader} = 1;
     return $obj;
 }
 
@@ -230,13 +231,24 @@ sub generate_seq_obj {
     if ($len) {
         my $e = $self->generate_expr($len);
         $obj->{reader} = $spaces."while($obj->{name_for_expr}.size() < $e){\n";
-    } else {die "not implemented"}
+    } else {
+        die "not implemented"
+    }
+    if ($self->{params}->{strict} && $fd->{children}->[-1]->{type} != FD_TYPES->{NEWLINE}) {
+        $obj->{reader} .= "$spaces    if($obj->{name_for_expr}.size() > 0)\n"
+            . $self->generate_readSpace("$spaces        ");
+    }
     
     $obj->{reader} .= "$spaces    $type $seq_elem;\n";
     my @compare = ();
-    foreach my $child (@{$fd->{children}}){
-        my $child_obj = $self->generate_obj($child, "$seq_elem.", $deep + 1);
+    my @child_objects = map $self->generate_obj($_, "$seq_elem.", $deep + 1)
+        => @{$fd->{children}};
+    foreach my $child_obj (@child_objects){
         $obj->{reader} .= $child_obj->{reader};
+        next if $child_obj->{newline_obj};
+        if ($self->{params}->{strict} && $child_obj->{space_reader} && $child_obj != $child_objects[-1]) {
+            $obj->{reader} .= $self->generate_readSpace("$spaces    ");
+        }
         $members .= '    ' . $child_obj->{declaration};
         push @compare, "f.$child_obj->{name} == s.$child_obj->{name}";
     }
@@ -256,8 +268,22 @@ END
 ;
     $self->{type_declarations} .= "struct $type;\n"; 
     $self->{type_definitions} .= $struct_definition;
-   
+    $self->{space_reader} = 1;
     return $obj;
+}
+
+sub generate_new_line_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $spaces = '    ' x $deep;
+    
+    my $obj = {newline_obj => 1, reader => "$spaces$stream_name.seekEoln();\n"};
+    if ($self->{params}->{strict}) {
+        $obj->{reader} = "$spaces$stream_name.readEoln();\n";
+    }
+    if ($self->{last_obj}) {
+        $self->{last_obj}->{space_reader} = undef; 
+    }
+    return $obj;    
 }
 
 sub generate_obj {
@@ -267,9 +293,17 @@ sub generate_obj {
         FD_TYPES->{FLOAT} => \&generate_float_obj,
         FD_TYPES->{STRING} => \&generate_string_obj,
         FD_TYPES->{SEQ} => \&generate_seq_obj,
+        FD_TYPES->{NEWLINE} => \&generate_new_line_obj,
     };
     my $gen = $gens->{$fd->{type}};
-    return $self->$gen($fd, $prefix, $deep);
+    my $obj = $self->$gen($fd, $prefix, $deep);
+    $self->{last_obj} = $obj;
+    return $obj;
+}
+
+sub generate_readSpace {
+    my ($self, $spaces) = @_;
+    return "$spaces$stream_name.readSpace();\n";
 }
 
 sub find_good_name {
