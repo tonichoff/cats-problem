@@ -446,7 +446,10 @@ sub _parse_obj {
     my $self = shift;
     my @types = (TOKENS->{INT}, TOKENS->{STRING}, TOKENS->{FLOAT}, TOKENS->{SEQ});
     if (grep $_ == $self->{token}, @types) {
-        my $fd = CATS::Formal::Description->new({type => $self->{token}, parent => $self->{curParent}});
+        my $fd = CATS::Formal::Description->new({
+            type => $self->{token},
+            parent => $self->{curParent}
+        });
         $self->_next_token;
         $self->_parse_attrs($fd);
         return $fd;
