@@ -24,6 +24,7 @@ use constant {
         STRING      => $enum++,
         SEQ         => $enum++,
         END         => $enum++,
+        NEWLINE     => $enum++,
         NAME        => $enum++,
         CHARS       => $enum++,
         SENTINEL    => $enum++,
@@ -70,6 +71,7 @@ use constant {
         'assert'     => TOKENS->{CONSTRAINT},
         'constraint' => TOKENS->{CONSTRAINT},
         'sentinel'   => TOKENS->{SENTINEL},
+        'newline'    => TOKENS->{NEWLINE},
         'name'       => TOKENS->{NAME},
         'chars'      => TOKENS->{CHARS},
         '#'          => TOKENS->{SHARP},
@@ -105,6 +107,7 @@ use constant {
         FLOAT       => TOKENS->{FLOAT},
         SEQ         => TOKENS->{SEQ},
         SENTINEL    => TOKENS->{SENTINEL},
+        NEWLINE     => TOKENS->{NEWLINE},
         INPUT       => $enum++,
         OUTPUT      => $enum++,
         ROOT        => $enum++

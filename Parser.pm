@@ -455,8 +455,15 @@ sub _parse_obj {
     } elsif ($self->{token} == TOKENS->{CONSTRAINT}) {
         $self->_parse_constraint;
         return undef;
+    } elsif ($self->{token} == TOKENS->{NEWLINE}) {
+        $self->_next_token;
+        $self->_next_token if $self->{token} == TOKENS->{SEMICOLON};
+        return CATS::Formal::Description->new({
+            type => TOKENS->{NEWLINE},
+            parent => $self->{curParent}
+        });
     } else {
-        $self->error("expected 'int'|'string'|'float'|'seq' got $self->{token_str}");
+        $self->error("expected 'int'|'string'|'float'|'seq'|'newline' got $self->{token_str}");
     }
     
 }
