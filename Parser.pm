@@ -78,7 +78,7 @@ sub _next_token {
     $self->{pos} += length $self->{token_str};
     $self->{col} += length $self->{token_str};
     my $src = \$self->{src};
-    if ($$src eq '') {
+    if ($$src =~ /^\s*$/) {
         $self->{token_type} = TOKEN_TYPES->{EOF},
         $self->{token} = TOKENS->{EOF},
         $self->{token_str} = '';
