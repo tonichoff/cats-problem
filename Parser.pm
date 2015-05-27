@@ -137,8 +137,12 @@ sub _init {
     my $self = shift;
     $self->{src}    = shift;
     $self->{pos}    = 0;
-    $self->{col}    = 0;
-    $self->{row}    = 0;
+    $self->{col}    = 1;
+    $self->{row}    = 1;
+    $self->{curParent} = undef;
+    $self->{token} = undef;
+    $self->{token_type} = undef;
+    $self->{token_str} = '';
     $self->{error}  = undef;
 }
 
