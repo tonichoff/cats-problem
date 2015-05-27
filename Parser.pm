@@ -542,8 +542,9 @@ sub _parse_fd {
 }
 
 sub error {
-    $_[0]->{error} = $_[1];
-    die $_[1];
+    my ($self, $msg) = @_;
+    $self->{error} = $msg eq 'empty file' ? $msg : "$msg at line $self->{row} : $self->{col}";
+    die $msg;
 }
 
 
