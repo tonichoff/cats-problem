@@ -36,11 +36,11 @@ sub stringify {
         $a .= "$_=( $e ) ";
     }
     my $t = CATS::Formal::Constants::RFD_TYPES->{$self->{type}};
-    my $res = ' ' x $deep . "<$t $a>\n";
+    my $res = '  ' x $deep . "<$t $a>\n";
     foreach my $child (@{$self->{children}}){
         $res .= $child->stringify($deep + 1);
     }
-    return $res . ' ' x $deep . "<$t/>\n";
+    return $res . '  ' x $deep . "</$t>\n";
 }
 
 sub find {
