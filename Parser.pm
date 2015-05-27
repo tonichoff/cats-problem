@@ -62,6 +62,8 @@ use constant {
     PREF_PRIOR  => CATS::Formal::Constants::PREF_PRIOR,
     CMP_PRIOR   => CATS::Formal::Constants::CMP_PRIOR
 };
+my %tmp = reverse %{STR_TOKENS()};
+use constant TOKENS_STR => \%tmp;
 
 my @patterns = (
     '[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?' => TOKEN_TYPES->{CONSTANT_FLOAT},
@@ -159,7 +161,8 @@ sub _finish {
 
 sub _expect {
     my ($self, $expected) = @_;
-    $self->_assert($self->{token} != TOKENS->{$expected}, "expected '$expected' instead '$self->{token_str}'");
+    my $s = TOKENS_STR->{TOKENS->{$expected}};
+    $self->_assert($self->{token} != TOKENS->{$expected}, "expected '$s' instead '$self->{token_str}'");
 }
 
 sub _expect_identifier {
