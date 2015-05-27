@@ -119,6 +119,13 @@ sub generate {
     return $self->pattern;
 }
 
+sub generate_description {
+    die "call of abstract sub TestlibBase::generate_description";
+}
+sub pattern {
+    die "call of abstract sub TestlibBase::pattern";
+}
+
 sub generate_int_obj {
     my ($self, $fd, $prefix, $deep) = @_;
     my $obj = {};

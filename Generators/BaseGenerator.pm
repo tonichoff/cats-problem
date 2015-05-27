@@ -7,4 +7,7 @@ sub new {
     bless {@_}, $class;
 }
 
+sub generate {
+    die "called abstract method BaseGenerator::generate";
+}
 1;
