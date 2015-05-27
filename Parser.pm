@@ -73,8 +73,6 @@ my @patterns = (
     '>=|<=|<>|==|!=|&&|\|\||[-.+*\/%\[\]^=()<>!,;#]' => TOKEN_TYPES->{OPERATOR},
 );
 
-#sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
-
 sub _next_token {
     my $self = shift;
     $self->{pos} += length $self->{token_str};
@@ -149,9 +147,7 @@ sub _init {
 }
 
 sub _parse_start {
-    my $self = shift;
-    $self->_next_token;
-    $self->_parse_fd;
+    $_[0]->_parse_root;
 }
 
 sub _finish {
@@ -505,40 +501,35 @@ sub _parse_params {
     }
 }
 
-sub _parse_input {
-    my $self = shift;
-    my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{INPUT}, parent => $self->{curParent}});
-    $self->{curParent} = $fd;
-    $self->_parse_params;
-    while ($self->{token} != TOKENS->{EOF}) {
-        $self->_parse_seq;
+sub _parse_to_namespace {
+    my ($self, $root, $namespace) = @_;
+    unless (grep $_ eq $namespace => qw(INPUT OUTPUT ANSWER)) {
+        $self->error("namespace must be one of INPUT OUTPUT ANSWER but got $namespace");
     }
     
-    $self->{curParent} = $fd->{parent};
-    
-}
-
-sub _parse_output {
-    my ($self, $root) = @_;
+    my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{$namespace}, parent => $root});
+    $self->{curParent} = $fd;
     $self->_next_token;
-    my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{OUTPUT}, parent => $root});
-    $self->{curParent} = $fd;
+    if ($self->{token} == TOKENS->{EOF}) {
+        $self->error("empty file");
+    }
+    
     $self->_parse_params;
     while ($self->{token} != TOKENS->{EOF}) {
         $self->_parse_seq;
     }
     
     $self->{curParent} = $fd->{parent};
-    return $root;
 }
 
-sub _parse_fd {
-    my $self = shift;
-    my $fd = CATS::Formal::Description->new({type => FD_TYPES->{ROOT}});
-    $self->{curParent} = $fd;
-    $self->_parse_input;
-    $self->{curParent} = $fd->{parent};
-    $fd;
+sub _parse_root {
+    my ($self, $root, $namespace) = @_;
+    $root ||= CATS::Formal::Description->new({type => FD_TYPES->{ROOT}});
+    $namespace ||= 'INPUT';
+    $self->{curParent} = $root;
+    $self->_parse_to_namespace($root, $namespace);
+    $self->{curParent} = $root->{parent};
+    $root;
 }
 
 sub error {
