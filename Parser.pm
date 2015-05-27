@@ -64,7 +64,7 @@ use constant {
 };
 
 my @patterns = (
-    #float
+    '[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?' => TOKEN_TYPES->{CONSTANT_FLOAT},
     '\d+' => TOKEN_TYPES->{CONSTANT_INT}, 
     '\w+' => TOKEN_TYPES->{WORD},
     "'.*?'" => TOKEN_TYPES->{CONSTANT_STR},
