@@ -75,6 +75,8 @@ my @patterns = (
 
 sub _next_token {
     my $self = shift;
+    $self->{pos} += length $self->{token_str};
+    $self->{col} += length $self->{token_str};
     my $src = \$self->{src};
     if ($$src eq '') {
         $self->{token_type} = TOKEN_TYPES->{EOF},
@@ -96,6 +98,18 @@ sub _next_token {
             $$src = $';
             $token = STR_TOKENS->{$token_str} || TOKENS->{UNKNOWN};
             $type = $patterns[$i + 1];
+            my @spaces = split '' => $spaces;
+            foreach (@spaces) {
+                ++$self->{pos};
+                if ($_ eq "\n") {
+                    $self->{col} = 1;
+                    ++$self->{row};
+                } elsif (/\s/) {
+                    ++$self->{col};
+                } else {
+                    die "BUG in position calc";
+                }
+            }
             last;
         }
     }
