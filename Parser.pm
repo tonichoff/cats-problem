@@ -429,6 +429,7 @@ sub _parse_attrs {
             $need_next = 1;
         } else {
             $need_next = 0;
+            last;
         }
     }
     $self->_expect('SEMICOLON');
