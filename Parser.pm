@@ -18,7 +18,7 @@ sub parse {
     eval {
         $res = $self->_parse_start;
     };
-    die $@ if $@;
+    die $@ if !$self->{error} && $@;
     $self->_finish;
     $res;
 }
