@@ -113,7 +113,10 @@ sub _next_token {
             last;
         }
     }
-    $self->error("unknown token") if $type == TOKEN_TYPES->{UNKNOWN};
+    if ($type == TOKEN_TYPES->{UNKNOWN}) {
+        my $char = substr($$src, 0, 1);;
+        $self->error("unknown token '$char'");    
+    };
     
     #my $rtype = $RTOKEN_TYPES{$type};
     #print "$token $rtype\n";
