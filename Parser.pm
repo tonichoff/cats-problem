@@ -69,8 +69,6 @@ my @patterns = (
     '\w+' => TOKEN_TYPES->{WORD},
     "'.*?'" => TOKEN_TYPES->{CONSTANT_STR},
     '>=|<=|<>|==|!=|&&|\|\||[-.+*\/%\[\]^=()<>!,;#]' => TOKEN_TYPES->{OPERATOR},
-    '$' => TOKEN_TYPES->{EOF},
- #   '[^-+.*\/%\[\]\^&!><=()|0-9A-Za-z]' => TOKENS->{UNKNOWN},
 );
 
 #sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
