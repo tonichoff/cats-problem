@@ -1,6 +1,7 @@
 package CATS::Formal::Generators::TestlibValidator;
 
-use TestlibBase;
+use lib '..';
+use Generators::TestlibBase;
 use parent -norequire, 'CATS::Formal::Generators::TestlibBase';
 
 sub generate_description {
