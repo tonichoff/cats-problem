@@ -153,15 +153,8 @@ sub _parse_start {
 }
 
 sub _finish {
-    my $self = shift;
-    $self->{src}        = undef;
-    $self->{pos}        = undef;
-    $self->{col}        = undef;
-    $self->{row}        = undef;
-    $self->{curParent}  = undef;
-    $self->{token_type} = undef;
-    $self->{token}      = undef;
-    $self->{token_str}  = undef;
+    my ($self) = @_;
+    delete @{$self}{qw(src pos col row curParent token_type token token_str)};
 }
 
 sub _expect {
