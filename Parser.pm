@@ -207,15 +207,8 @@ sub _member_access_new {
 }
 
 sub _parse_member_access {
-    # wtf?
     my ($self, $head, $member) = @_;
-    if ($head->is_variable){
-        $self->_assert($head->{fd}->{type} != FD_TYPES->{SEQ},
-                       "trying to get member from type without members");
-        return $self->_member_access_new($head, $head->{fd}, $member);
-    } elsif ($head->is_member_access){
-        return $self->_member_access_new($head, $head->{member}, $member);
-    } elsif ($head->is_array_access){
+    if ($head->is_array_access){
         my $left = $head->{head};
         if ($left->is_member_access){
             return $self->_member_access_new($head, $left->{member}, $member);
@@ -225,8 +218,7 @@ sub _parse_member_access {
             return $self->_member_access_new($head, $left->{fd}, $member);
         }
     } else {
-        warn "bug in parser";
-        $self->error("BUG");
+        self->error("operator '.' can be only after operator '[]'");
     }
 }
 
