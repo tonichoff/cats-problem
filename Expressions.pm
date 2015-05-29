@@ -24,6 +24,7 @@ sub is_function{0;}
 sub is_float{0;}
 sub is_int{0;}
 sub is_string{0;}
+sub is_number{0;}
 
 ##############################################################################
 package CATS::Formal::Expressions::Binary;
@@ -111,10 +112,12 @@ sub is_string{1;}
 package CATS::Formal::Expressions::Integer;
 use parent -norequire , 'CATS::Formal::Expressions::Constant';
 sub is_int{1;}
+sub is_number{1;}
 
 ##############################################################################
 package CATS::Formal::Expressions::Float;
 use parent -norequire , 'CATS::Formal::Expressions::Constant';
+sub is_number{1;}
 sub is_float{1;}
 
 ##############################################################################
