@@ -1,0 +1,8 @@
+<ROOT >
+  <INPUT >
+    <INT name=A >
+    </INT>
+    <INT range=( A ) >
+    </INT>
+  </INPUT>
+</ROOT>

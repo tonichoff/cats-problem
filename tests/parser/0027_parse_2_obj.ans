@@ -1,0 +1,8 @@
+<ROOT >
+  <INPUT >
+    <INT name=A >
+    </INT>
+    <INT name=B >
+    </INT>
+  </INPUT>
+</ROOT>
