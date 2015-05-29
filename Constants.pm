@@ -139,6 +139,9 @@ use constant PRIORS => {
     TOKENS->{OR}    => 1,
 };
 
+my %tmp = reverse %{STR_TOKENS()};
+use constant TOKENS_STR => \%tmp;
+
 use constant PREF_PRIOR => PRIORS->{TOKENS->{NOT}};
 
 use constant CMP_PRIOR => PRIORS->{TOKENS->{LT}};
@@ -146,4 +149,3 @@ use constant CMP_PRIOR => PRIORS->{TOKENS->{LT}};
 my %RFD_TYPES = reverse %{FD_TYPES()};
 use constant RFD_TYPES => \%RFD_TYPES;
 1;
-

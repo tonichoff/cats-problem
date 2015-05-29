@@ -47,6 +47,7 @@ use constant {
     TOKEN_TYPES => CATS::Formal::Constants::TOKEN_TYPES,
     TOKENS      => CATS::Formal::Constants::TOKENS,
     STR_TOKENS  => CATS::Formal::Constants::STR_TOKENS,
+    TOKENS_STR  => CATS::Formal::Constants::TOKENS_STR,
     PRIORS      => CATS::Formal::Constants::PRIORS,
     FD_TYPES    => CATS::Formal::Constants::FD_TYPES,
     PREF_PRIOR  => CATS::Formal::Constants::PREF_PRIOR,
@@ -213,11 +214,23 @@ sub _parse_access {
     my $root = CATS::Formal::Expressions::Variable->new(fd => $self->{fd}->find($name));
     my $token = \$self->{token};
     while($$token == TOKENS->{LQBR} || $$token == TOKENS->{DOT}){
-        #$self->_next_token;
         if ($$token == TOKENS->{LQBR}){
-            $self->_assert(!$root->is_variable, "square brackets after non variable");
-            #$self->_assert(!$root->is_access, "square brackets after non variable");
-            $self->_next_token; #TODO: check this and next line right=>$self->_parse_factor
+            my $m;
+            if ($root->is_variable) {
+                $m = 'fd';
+            } elsif ($root->is_member_access) {
+                $m = 'member';
+            } else {
+                $self->error("square brackets after non variable");
+            }
+            $self->_assert(
+                $root->{$m}->{type} != FD_TYPES->{SEQ},
+                "square brackers after non sequence"
+            );
+            $self->_next_token;
+            my $index = $self->_parse_expr_p(1);
+            my $t = $index->calc_type;
+            $self->_assert(!$t->is_int, "index must be an integer");
             $root = CATS::Formal::Expressions::ArrayAccess->new(head => $root, index => $self->_parse_expr_p(1));
             $self->_expect('RQBR');
             $self->_next_token;
