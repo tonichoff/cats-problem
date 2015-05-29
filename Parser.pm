@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use Error;
 
 package CATS::Formal::Parser::Base;
 
@@ -9,26 +10,15 @@ sub new {
     bless $self, $class;
     $self;
 }
-
+ 
 sub parse {
-    my $self = shift;
-    my $str = shift;
+    my ($self, $str, $fd, $namespace) = @_;
     $self->_init($str);
     my $res;
     eval {
-        $res = $self->_parse_start;
+        $res = $self->_parse_start($fd, $namespace);
     };
-    die $@ if !$self->{error} && $@;
-    $self->_finish;
-    $res;
-}
-
-sub parseOutput {
-    my ($self, $fd, $str) = @_;
-    $self->_init($str);
-    my $res;
-    eval {$res = $self->_parse_output($fd);};
-    die $@ if $@;
+    die $@ if !CATS::Formal::Error::get() && $@;
     $self->_finish;
     $res;
 }
@@ -62,8 +52,7 @@ use constant {
     PREF_PRIOR  => CATS::Formal::Constants::PREF_PRIOR,
     CMP_PRIOR   => CATS::Formal::Constants::CMP_PRIOR
 };
-my %tmp = reverse %{STR_TOKENS()};
-use constant TOKENS_STR => \%tmp;
+
 
 my @patterns = (
     '[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?' => TOKEN_TYPES->{CONSTANT_FLOAT},
@@ -143,11 +132,12 @@ sub _init {
     $self->{token} = undef;
     $self->{token_type} = undef;
     $self->{token_str} = '';
-    $self->{error}  = undef;
+    CATS::Formal::Error::clear();
 }
 
 sub _parse_start {
-    $_[0]->_parse_root;
+    my ($self, $fd, $namespace) = @_;
+    $self->_parse_root($fd, $namespace);
 }
 
 sub _finish {
@@ -535,8 +525,7 @@ sub _parse_root {
 
 sub error {
     my ($self, $msg) = @_;
-    $self->{error} = $msg eq 'empty file' ? $msg : "$msg at line $self->{row} : $self->{col}";
-    die $msg;
+    CATS::Formal::Error::set($msg eq 'empty file' ? $msg : "$msg at line $self->{row} : $self->{col}");
 }
 
 
