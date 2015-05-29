@@ -18,7 +18,7 @@ sub parse {
     eval {
         $res = $self->_parse_start($fd, $namespace);
     };
-    die $@ if !CATS::Formal::Error::get() && $@;
+    CATS::Formal::Error::propagate_bug_error();
     $self->_finish;
     $res;
 }
@@ -402,6 +402,52 @@ sub _parse_chars {
     $self->_next_token;
 }
 
+sub _propagate_error {
+    my ($self, $col, $row) = @_;
+    CATS::Formal::Error::propagate_bug_error();
+    if (CATS::Formal::Error::get()) {
+        $self->{col} = $col;
+        $self->{row} = $row;
+        $self->error(CATS::Formal::Error::get());
+    }
+}
+
+sub _check_attr_type {
+    my ($self, $attr_name, $attr_val, $col, $row) = @_;
+    eval {
+        my $type = $attr_val->calc_type;
+        if ($attr_name =~ /range|lenrange/) {
+            if ($type->is_array) {
+                my $len = $#{$type} + 1;
+                CATS::Formal::Error::set(
+                    "array in attribute '$attr_name' must contain " .
+                    "exactly 2 elements but got $len"
+                ) if $len != 2;
+                my ($t1, $t2) = ($type->[0]->type_as_str, $type->[1]->type_as_str);
+                CATS::Formal::Error::set(
+                    "array in attribute '$attr_name' must contain " .
+                    "only from numbers " .
+                    "but got [$t1, $t2]"
+                ) if !$type->[0]->is_number || !$type->[1]->is_number;
+            } elsif (!$type->is_int) {
+                my $t = $type->type_as_str;
+                CATS::Formal::Error::set(
+                    "value of attribute '$attr_name' should be " .
+                    "an integer or an array of 2 numbers " .
+                    "but got $t"
+                )
+            }
+        } elsif ($attr_name =~ /length|digits/){
+            my $t = $type->type_as_str;
+            CATS::Formal::Error::set(
+                "value of attribute '$attr_name' should be an integer " .
+                "but got $t"
+            ) unless ($type->is_integer);
+        }
+    };
+    $self->_propagate_error($col, $row);
+}
+
 sub _parse_attrs {
     my ($self, $fd) = @_;
     my $need_next = 0;
@@ -428,8 +474,10 @@ sub _parse_attrs {
             my $attr = $self->{token_str};
             $self->_next_token;
             $self->_expect('EQ');
+            my ($col, $row) = ($self->{col} + 1, $self->{row});
             my $expr = $self->_parse_expr($fd);
             $fd->{attributes}->{$attr} = $expr;
+            $self->_check_attr_type($attr, $expr, $col, $row);
         }
         if ($$token == TOKENS->{COMMA}){
             $self->_next_token;
@@ -447,7 +495,18 @@ sub _parse_constraint {
     my $self = shift;
     $self->_assert(!@{$self->{curParent}->{children}}, "assert can't be the first element");
     my $last = $self->{curParent}->{children}->[-1];
+    my ($col, $row) = ($self->{col}, $self->{row});
     my $constraint = $self->_parse_expr($last, 1);
+    eval {
+        my $type = $constraint->calc_type;
+        unless ($type->is_int){
+            my $t = $type->type_as_string;
+            CATS::Formal::Error::set(
+                "constraint type must be an integer but got $t"
+            );
+        }
+    };
+    $self->_propagate_error($col, $row);
     $last->add_constraint($constraint);
     $self->_expect('SEMICOLON');
     $self->_next_token;

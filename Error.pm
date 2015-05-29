@@ -16,4 +16,8 @@ sub get {
     return $error;
 }
 
+sub propagate_bug_error {
+    die $@ if !get() && $@;
+}
+
 1;
