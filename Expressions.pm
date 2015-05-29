@@ -124,8 +124,7 @@ use parent -norequire , 'CATS::Formal::Expressions::Constant';
 sub is_array{1;}
 
 sub new {
-    my $class = shift;
-    my $arr = shift;
+    my ($class, $arr) = @_;
     return bless $arr, $class;
 }
 
