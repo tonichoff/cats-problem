@@ -211,7 +211,7 @@ sub generate_string_obj {
     if ($chars) {
         $chars = $self->generate_expr($chars);
         $obj->{reader} .= $spaces . $self->constraint_function(
-            "$obj->{name_for_expr}.find_first_not_of($chars)"
+            "$obj->{name_for_expr}.find_first_not_of($chars) == string::npos"
         );
     }
     
