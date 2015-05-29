@@ -3,7 +3,9 @@ use strict;
 use warnings;
 
 use BaseObj;
+use Expressions;
 use Constants;
+BEGIN {CATS::Formal::Constants->import()}
 use parent -norequire, 'CATS::Formal::BaseObj';
 
 sub is_description {1;}
@@ -87,6 +89,23 @@ sub find_child_by_type {
 
 sub add_constraint {
     push @{$_[0]->{constraints}}, $_[1];
+}
+
+sub to_expr_type {
+    my ($self) = @_;
+    my %fd_to_expr = (
+        FD_TYPES()->{INT} => 'CATS::Formal::Expressions::Integer',
+        FD_TYPES()->{STRING} => 'CATS::Formal::Expressions::String',
+        FD_TYPES()->{FLOAT} => 'CATS::Formal::Expressions::Float'
+    );
+    my $type = $fd_to_expr{$self->{type}};
+    unless ($type){
+        my $t = RFD_TYPES()->{$self->{type}}; 
+        CATS::Formal::Error::set(
+            "unable to convert object of type '$t' to expression type"
+        );
+    }
+    return $type;
 }
 
 1;
