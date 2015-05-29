@@ -3,8 +3,12 @@ use strict;
 use warnings;
 
 use Exporter qw(import);
-
-our @EXPORT = qw(RTOKENS TOKENS TOKEN_TYPES STR_TOKENS FD_TYPES PRIORS PREF_PRIOR CMP_PRIOR RFD_TYPES);
+BEGIN {   
+    our @EXPORT = qw(
+        TOKEN_TYPES TOKENS STR_TOKENS FD_TYPES TOKENS_STR RTOKENS
+        PRIORS PREF_PRIOR CMP_PRIOR RFD_TYPES WTF
+    );
+}
 
 my $enum = 0;
 use constant {
