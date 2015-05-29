@@ -414,7 +414,7 @@ sub _parse_attrs {
             $self->_next_token;
             $self->_expect_identifier;
             $self->_assert($fd->{parent}->find_child($self->{token_str}),
-                           "object with name '$self->{token_str}' already defined");
+                           "redefinition of object with name '$self->{token_str}'");
             $fd->{name} = $self->{token_str};
             $self->_next_token;
         } elsif ($$token == TOKENS->{CHARS}) {
@@ -477,7 +477,7 @@ sub _parse_obj {
             parent => $self->{curParent}
         });
     } else {
-        $self->error("expected 'int'|'string'|'float'|'seq'|'newline' got $self->{token_str}");
+        $self->error("expected one of 'int, string, float, seq, newline' got '$self->{token_str}'");
     }
     
 }
