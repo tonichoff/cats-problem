@@ -259,6 +259,9 @@ sub _parse_factor {
         } else {
             my $fd = $self->{fd}->find($name);
             $self->_assert(!$fd, "undefined variable with name '$name'");
+            $self->_assert($fd == $self->{fd} && !$self->{self_reference_enabled},
+                "self reference is forbidden"
+            );
             $res = CATS::Formal::Expressions::Variable->new(fd => $fd);
         }
         return $res;
@@ -330,8 +333,9 @@ sub _parse_expr_p {
 }
 
 sub _parse_expr {
-    my ($self, $fd) = @_;
+    my ($self, $fd, $self_reference_enabled) = @_;
     $self->{fd} = $fd;
+    $self->{self_reference_enabled} = $self_reference_enabled;
     $self->_next_token;
     my $r = $self->_parse_expr_p(1);
     $self->{fd} = undef;
@@ -443,7 +447,7 @@ sub _parse_constraint {
     my $self = shift;
     $self->_assert(!@{$self->{curParent}->{children}}, "assert can't be the first element");
     my $last = $self->{curParent}->{children}->[-1];
-    my $constraint = $self->_parse_expr($last);
+    my $constraint = $self->_parse_expr($last, 1);
     $last->add_constraint($constraint);
     $self->_expect('SEMICOLON');
     $self->_next_token;
