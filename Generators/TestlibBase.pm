@@ -142,7 +142,7 @@ sub generate_int_obj {
             $a = $self->generate_expr($range->[0]);
             $b = $self->generate_expr($range->[1]);
         } else {
-            $b = $self->generate_expr($range);
+            $a = $b = $self->generate_expr($range);
         }
         $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readLong($a, $b, \"$obj->{name}\");\n"
     } else {
