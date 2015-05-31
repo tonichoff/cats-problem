@@ -442,7 +442,7 @@ sub _check_attr_type {
             CATS::Formal::Error::set(
                 "value of attribute '$attr_name' should be an integer " .
                 "but got $t"
-            ) unless ($type->is_integer);
+            ) unless ($type->is_int);
         }
     };
     $self->_propagate_error($col, $row);
