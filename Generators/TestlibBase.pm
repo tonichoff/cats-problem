@@ -239,7 +239,8 @@ sub generate_seq_obj {
         my $e = $self->generate_expr($len);
         $obj->{reader} = $spaces."while($obj->{name_for_expr}.size() < $e){\n";
     } else {
-        die "not implemented"
+        my $eof_reader = $self->{params}->{strict} ? 'eof()' : 'seekEof()';
+        $obj->{reader} = $spaces."while(!$stream_name.$eof_reader){\n";
     }
     if ($self->{params}->{strict} && $fd->{children}->[-1]->{type} != FD_TYPES->{NEWLINE}) {
         $obj->{reader} .= "$spaces    if($obj->{name_for_expr}.size() > 0)\n"
