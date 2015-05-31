@@ -163,20 +163,32 @@ sub generate_float_obj {
     $obj->{declaration} = "double $obj->{name};\n";
     $fd->{obj} = $obj;
     my $range = $fd->{attributes}->{range};
+    my $digits = $fd->{attributes}->{digits};
+    my $a = '-numeric_limits<double>::max()';
+    my $b = 'numeric_limits<double>::max()';
+    my $read_func = "readDouble()";
     if ($range) {
-        my $a = 0;
-        my $b = 0;
         if ($range->is_array) {
             $a = $self->generate_expr($range->[0]);
             $b = $self->generate_expr($range->[1]);
         } else {
-            $b = $self->generate_expr($range);
+            $a = $b = $self->generate_expr($range);
         }
-        $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readDouble($a, $b, \"$obj->{name}\");\n"
-    } else {
-        $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readDouble();\n";
+        $read_func = "readDouble($a, $b, \"$obj->{name}\")";
     }
-    $obj->{reader} .= $self->generate_constraints($fd, $spaces);
+    if ($digits) {
+        my $dmin;
+        my $dmax;
+        if ($digits->is_array) {
+            $dmin = $self->generate_expr($digits->[0]);
+            $dmax = $self->generate_expr($digits->[1]);
+        } else {
+            $dmin = $dmax = $self->generate_expr($digits);
+        }
+        $read_func = "readStrictDouble($a, $b, $dmin, $dmax, \"$obj->{name}\")";
+    }
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.$read_func;\n" . 
+        $self->generate_constraints($fd, $spaces);
     $obj->{space_reader} = 1;
     return $obj;
 }
