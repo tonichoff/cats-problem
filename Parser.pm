@@ -416,7 +416,7 @@ sub _check_attr_type {
     my ($self, $attr_name, $attr_val, $col, $row) = @_;
     eval {
         my $type = $attr_val->calc_type;
-        if ($attr_name =~ /range|lenrange/) {
+        if ($attr_name =~ /range|lenrange|digits/) {
             if ($type->is_array) {
                 my $len = $#{$type} + 1;
                 CATS::Formal::Error::set(
@@ -437,7 +437,7 @@ sub _check_attr_type {
                     "but got $t"
                 )
             }
-        } elsif ($attr_name =~ /length|digits/){
+        } elsif ($attr_name =~ /length/){
             my $t = $type->type_as_str;
             CATS::Formal::Error::set(
                 "value of attribute '$attr_name' should be an integer " .
