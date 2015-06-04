@@ -33,6 +33,10 @@ sub calc_type {
     die "abstract method called BaseExpression::calc_type";
 }
 
+sub evaluate {
+    die "abstract method called BaseExpression::evaluate";    
+}
+
 ##############################################################################
 package CATS::Formal::Expressions::Binary;
 BEGIN {CATS::Formal::Constants->import()}
@@ -73,6 +77,65 @@ sub calc_type {
     CATS::Formal::Error::set("wrong types for operator '$s' got '$t1 $s $t2'");
 }
 
+sub _pow   {$_[0] ** $_[1]}
+sub _mul   {$_[0] *  $_[1]}
+sub _plus  {$_[0] +  $_[1]}
+sub _minus {$_[0] -  $_[1]}
+sub _div   {$_[0] /  $_[1]}
+sub _mod   {$_[0] %  $_[1]}
+sub _eq    {$_[0] == $_[1]}
+sub _gt    {$_[0] >  $_[1]}
+sub _lt    {$_[0] <  $_[1]}
+sub _ne    {$_[0] != $_[1]}
+sub _le    {$_[0] <= $_[1]}
+sub _ge    {$_[0] >= $_[1]}
+
+sub evaluate_and {
+    my ($self) = @_;
+    my $left = $self->{left}->evaluate;
+    return CATS::Formal::Expressions::Integer->new(0) unless ($left);
+    my $res = $self->{right}->evaluate ? 1 : 0;
+    CATS::Formal::Expressions::Integer->new($res);
+}
+
+sub evaluate_or {
+    my ($self) = @_;
+    my $left = $self->{left}->evaluate;
+    return CATS::Formal::Expressions::Integer->new(1) if ($left);
+    my $res = $self->{right}->evaluate ? 1 : 0;
+    CATS::Formal::Expressions::Integer->new($res);
+}
+
+sub evaluate {
+    my ($self, $val) = @_;
+    if (TOKENS()->{AND} == $self->{op}) {
+        return $self->evaluate_and;
+    }
+    if (TOKENS()->{OR} == $self->{op}) {
+        return $self->evaluate_or;
+    }
+    
+    my $left = $self->{left}->evaluate($val);
+    my $right = $self->{right}->evaluate($val);
+    my %op = (
+        TOKENS()->{POW}   => \&_pow,
+        TOKENS()->{MUL}   => \&_mul,
+        TOKENS()->{DIV}   => \&_div,
+        TOKENS()->{MOD}   => \&_mod,
+        TOKENS()->{PLUS}  => \&_plus,
+        TOKENS()->{MINUS} => \&_minus,
+        TOKENS()->{AND}   => \&_and,
+        TOKENS()->{OR}    => \&_or,
+        TOKENS()->{EQ}    => \&_eq,
+        TOKENS()->{LT}    => \&_lt,
+        TOKENS()->{GT}    => \&_gt,
+        TOKENS()->{NE}    => \&_ne,
+        TOKENS()->{GE}    => \&_ge,
+        TOKENS()->{LE}    => \&_le,
+    );
+    return $op{$self->{op}}->($left, $right);
+}
+
 ##############################################################################
 package CATS::Formal::Expressions::Unary;
 BEGIN {CATS::Formal::Constants->import()}
@@ -95,6 +158,21 @@ sub calc_type {
     return $type;
 }
 
+sub _not   {!$_[0]}
+sub _plus  {+$_[0]}
+sub _minus {-$_[0]}
+
+sub evaluate {
+    my ($self, $val) = @_;
+    my $e = $self->{node}->evaluate($val);
+    my %op = (
+        TOKENS()->{NOT} => \&_not,
+        TOKENS()->{PLUS} => \&_plus,
+        TOKENS()->{MINUS} => \&_minus,
+    );
+    return $op{$self->{op}}->($e);
+}
+
 ##############################################################################
 package CATS::Formal::Expressions::Variable;
 #fd - fd
@@ -105,6 +183,12 @@ sub stringify {
 }
 sub calc_type {
     $_[0]->{fd}->to_expr_type;
+}
+
+sub evaluate {
+    my ($self, $val) = @_;
+    $self->{fd}->{val} || CATS::Formal::Error::set("don't know the value of '$self->stringify'");
+    return $self->{fd}->{val}->{val};    
 }
 
 ##############################################################################
@@ -126,6 +210,10 @@ sub calc_type {
     return 'CATS::Formal::Expressions::Integer';
 }
 
+sub evaluate {
+    die "not implemented";
+}
+
 ##############################################################################
 package CATS::Formal::Expressions::Access;
 use parent -norequire, 'CATS::Formal::Expressions::BaseExpression';
@@ -135,6 +223,7 @@ sub is_access{1;}
 package CATS::Formal::Expressions::MemberAccess;
 #head - expr, member - fd
 use parent -norequire , 'CATS::Formal::Expressions::Access';
+use List::Util qw(first);
 sub is_member_access{1;}
 sub stringify {
     $_[0]->{head}->stringify . '.' . $_[0]->{member}->{name};
@@ -142,8 +231,13 @@ sub stringify {
 
 sub calc_type {
     my ($self) = @_;
-    #head check in parser
     return $self->{member}->to_expr_type;
+}
+
+sub evaluate {
+    my ($self) = @_;
+    my $val = $self->{head}->evaluate;
+    return first {$_->{fd} == $self->{member}} @{$val->{children}}; 
 }
 
 ##############################################################################
@@ -161,12 +255,38 @@ sub calc_type {
     CATS::Formal::Error::assert(!$index->is_int, "index must be an integer");
     return 'CATS::Formal::Expressions::Record';
 }
+
+sub evaluate {
+    my ($self) = @_;
+    my $head = $self->{head}->evaluate;
+    my $index = $self->{index}->evaluate;
+    return $head->{children}->[$index]; 
 }
 
 ##############################################################################
 package CATS::Formal::Expressions::Constant;
 #$$self - scalar
+use overload
+    '+'   => \&_plus,
+    '-'   => \&_minus,
+    '*'   => \&_mul,
+    '/'  => \&_div,
+    '%'   => \&_mod,
+    '**'  => \&_pow,
+    #'||'  => \&_or,
+    #'&&'  => \&_and,
+    '=='  => \&_eq,
+    '<'   => \&_lt,
+    '>'   => \&_gt,
+    '!='  => \&_ne,
+    '<='  => \&_le,
+    '>='  => \&_ge,
+    'neg' => \&_neg,
+    '!'   => \&_not,
+    'bool' => \&_bool,
+    '""'  => \&stringify;
 use parent -norequire, 'CATS::Formal::Expressions::BaseExpression';
+
 sub is_constant{1;}
 sub new {
     my $class = shift; 
@@ -178,6 +298,161 @@ sub new {
 sub stringify {
     my $self = shift;
     $$self;
+}
+
+sub evaluate {
+    $_[0];
+}
+
+sub exprs {
+    CATS::Formal::Expressions::;
+}
+
+sub err {
+    CATS::Formal::Error::set(@_);
+}
+
+sub _bool {
+    my ($self) = @_;
+    return $$self;
+}
+
+sub _pow {
+    my ($left, $right) = @_;
+    if ($left->is_int && $right->is_int) {
+        return exprs::Integer->new($$left ** $$right);
+    } elsif ($left->is_number && $right->is_number) {
+        return exprs::Float->new($$left ** $$right);
+    }
+    err("can't to pow $left and $right");
+}
+
+sub _mul {
+    my ($left, $right) = @_;
+    if ($left->is_int && $right->is_int) {
+        return exprs::Integer->new($$left * $$right);
+    } elsif ($left->is_number && $right->is_number) {
+        return exprs::Float->new($$left * $$right);
+    }
+    err("can't to mul $left and $right");
+}
+
+sub _plus {
+    my ($left, $right) = @_;
+    if ($left->is_int && $right->is_int) {
+        return exprs::Integer->new($$left + $$right);
+    } elsif ($left->is_number && $right->is_number) {
+        return exprs::Float->new($$left + $$right);
+    }
+    err("can't to sum $left and $right");
+}
+sub _minus {
+    my ($left, $right) = @_;
+    if ($left->is_int && $right->is_int) {
+        return exprs::Integer->new($$left - $$right);
+    } elsif ($left->is_number && $right->is_number) {
+        return exprs::Float->new($$left - $$right);
+    }
+    err("can't to sub $left and $right");
+}
+
+sub _div {
+    my ($left, $right) = @_;
+    if ($left->is_int && $right->is_int) {
+        return exprs::Integer->new($$left / $$right);
+    } elsif ($left->is_number && $right->is_number) {
+        return exprs::Float->new($$left / $$right);
+    }
+    err("can't to div $left and $right");
+}
+
+sub _mod {
+    my ($left, $right) = @_;
+    if ($left->is_int && $right->is_int) {
+        return exprs::Integer->new($$left % $$right);
+    } elsif ($left->is_number && $right->is_number) {
+        return exprs::Float->new($$left % $$right);
+    }
+    err("can't to mul $left and $right");
+}
+
+#sub _and   {$_[0] && $_[1]}
+#sub _or    {$_[0] || $_[1]}
+sub _eq {
+    my ($left, $right) = @_;
+    if ($left->is_number && $right->is_number) {
+        return exprs::Integer->new($$left == $$right);
+    } elsif ($left->is_string && $right->is_string) {
+        return exprs::Integer->new($$left eq $$right);
+    }
+    err("can't to compare $left and $right");
+}
+
+sub _gt {
+    my ($left, $right) = @_;
+    if ($left->is_number && $right->is_number) {
+        return exprs::Integer->new($$left > $$right);
+    } elsif ($left->is_string && $right->is_string) {
+        return exprs::Integer->new($$left gt $$right);
+    }
+    err("can't to compare $left and $right");
+}
+
+sub _lt {
+    my ($left, $right) = @_;
+    if ($left->is_number && $right->is_number) {
+        return exprs::Integer->new($$left < $$right);
+    } elsif ($left->is_string && $right->is_string) {
+        return exprs::Integer->new($$left lt $$right);
+    }
+    err("can't to compare $left and $right");
+}
+
+sub _ne {
+    my ($left, $right) = @_;
+    if ($left->is_number && $right->is_number) {
+        return exprs::Integer->new($$left != $$right);
+    } elsif ($left->is_string && $right->is_string) {
+        return exprs::Integer->new($$left ne $$right);
+    }
+    err("can't to compare $left and $right");
+}
+
+sub _le  {
+    my ($left, $right) = @_;
+    if ($left->is_number && $right->is_number) {
+        return exprs::Integer->new($$left <= $$right);
+    } elsif ($left->is_string && $right->is_string) {
+        return exprs::Integer->new($$left le $$right);
+    }
+    err("can't to compare $left and $right");
+}
+
+sub _ge {
+    my ($left, $right) = @_;
+    if ($left->is_number && $right->is_number) {
+        return exprs::Integer->new($$left >= $$right);
+    } elsif ($left->is_string && $right->is_string) {
+        return exprs::Integer->new($$left ge $$right);
+    }
+    err("can't to compare $left and $right");
+}
+
+sub _neg {
+    my ($self) = @_;
+    if ($self->is_number) {
+        return exprs::Integer->new(-$$self);
+    }
+    err("can't to negate $self");
+}
+
+sub _not {
+    my ($self) = @_;
+    if ($self->is_int) {
+        my $r = $$self == 0 ? 1 : 0;
+        return exprs::Integer->new($r);
+    }
+    err("can't to not $self");
 }
 
 ##############################################################################
@@ -228,6 +503,12 @@ sub calc_type {
     my ($self) = @_;
     my @arr = map $_->calc_type, @{$self};
     return CATS::Formal::Expressions::Array->new(\@arr);
+}
+
+sub evaluate {
+    my ($self) = @_;
+    my @arr = map $_->evaluate, @{$self};
+    return {children => CATS::Formal::Expressions::Array->new(\@arr)};
 }
 
 sub type_as_str {'array'}
