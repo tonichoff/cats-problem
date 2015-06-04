@@ -103,10 +103,10 @@ my $struct_counter = 0;
 #$self->{description} = {
 #   def_name => {real_name=>'', type=>$self->{types}}    
 #}
-my $stream_name = '__in__stream__';
+my $stream_name = '_in_stream_';
 
-sub generate {
-    my ($self, $obj) = @_;
+sub init {
+    my ($self) = @_;
     $self->{names} = {};
     $self->{type_definitions} = '';
     $self->{type_declarations} = '';
@@ -114,9 +114,20 @@ sub generate {
     $self->{generated_functions} = {};
     $self->{definitions} = {};
     $self->{reader} = '';
-    $self->{stream_name} = $stream_name;
-    $self->generate_description($obj);
-    return $self->pattern;
+    $self->{stream_name} = $stream_name; 
+}
+
+sub generate {
+    my ($self, $obj) = @_;
+    my $res;
+    eval{
+        $self->init;
+        $self->generate_description($obj);
+        $res = $self->pattern;    
+    };
+    CATS::Formal::Error::propagate_bug_error();
+    return $res;
+    
 }
 
 sub generate_description {
@@ -406,8 +417,6 @@ sub generate_expr {
         return $expr->{fd}->{obj}->{name_for_expr};
     } elsif ($expr->is_array){
         die "not implemented";
-    
-    
     } elsif ($expr->is_string) {
         my $s = $$expr;
         return "\"$s\"";
