@@ -189,6 +189,9 @@ sub _member_access_new {
     my ($self, $head, $parent, $name) = @_;
     my $member = $parent->find_child($name);
     $self->_assert(!$member, "cant find member '$name'");
+    $self->_assert($member == $self->{fd} && !$self->{self_reference_enabled},
+        "self reference is forbidden"
+    );
     
     return CATS::Formal::Expressions::MemberAccess->new(head => $head, member => $member);
 }
@@ -200,18 +203,29 @@ sub _parse_member_access {
         if ($left->is_member_access){
             return $self->_member_access_new($head, $left->{member}, $member);
         } elsif ($left->is_variable){
-            $self->_assert($left->{fd}->{type} != FD_TYPES->{SEQ},
-                           "trying to get member from type without members");
+            $self->_assert(
+                $left->{fd}->{type} != FD_TYPES->{SEQ},
+               "trying to get member from type without members"
+            );
             return $self->_member_access_new($head, $left->{fd}, $member);
         }
+    } elsif ($head->is_variable) {
+        my $type = $head->{fd}->{type};
+        $self->_assert(
+            $type != FD_TYPES->{RECORD},
+            "trying to get member from type without members"
+        );
+        return $self->_member_access_new($head, $head->{fd}, $member);
     } else {
-        self->error("operator '.' can be only after operator '[]'");
+        $self->error("trying to get member from type without members");
     }
 }
 
 sub _parse_access {
     my ($self, $name) = @_;
-    my $root = CATS::Formal::Expressions::Variable->new(fd => $self->{fd}->find($name));
+    my $fd = $self->{fd}->find($name);
+    $self->_assert(!$fd, "undefined variable with name '$name'");
+    my $root = CATS::Formal::Expressions::Variable->new(fd => $fd);
     my $token = \$self->{token};
     while($$token == TOKENS->{LQBR} || $$token == TOKENS->{DOT}){
         if ($$token == TOKENS->{LQBR}){
