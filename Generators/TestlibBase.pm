@@ -414,6 +414,9 @@ sub generate_expr {
         my $node = $self->generate_expr($expr->{node});
         return '('.op_to_code($expr->{op}) . "$node)";
     } elsif ($expr->is_variable) {
+        CATS::Formal::Error::set(
+            "wrong generation sequence or undefined external reference"
+        ) unless $expr->{fd}->{obj};
         return $expr->{fd}->{obj}->{name_for_expr};
     } elsif ($expr->is_array){
         die "not implemented";
