@@ -27,6 +27,7 @@ sub is_float{0;}
 sub is_int{0;}
 sub is_string{0;}
 sub is_number{0;}
+sub is_record{0;}
 
 sub calc_type {
     die "abstract method called BaseExpression::calc_type";
@@ -118,8 +119,11 @@ sub stringify {
 
 sub calc_type {
     my ($self) = @_;
+    foreach my $param (@{$self->{params}}){
+        $param->calc_type;
+    }
     #TODO: check params
-    return $self->{return};
+    return 'CATS::Formal::Expressions::Integer';
 }
 
 ##############################################################################
@@ -150,7 +154,13 @@ sub stringify {
     $_[0]->{head}->stringify . '[' . $_[0]->{index}->stringify . ']';
 }
 sub calc_type {
-    die "BUG";
+    my ($self) = @_;
+    my $head = $self->{head}->calc_type;
+    CATS::Fromal::Error::assert(!$head->is_array,"square brackers after non array");
+    my $index = $self->{index}->calc_type;
+    CATS::Formal::Error::assert(!$index->is_int, "index must be an integer");
+    return 'CATS::Formal::Expressions::Record';
+}
 }
 
 ##############################################################################
@@ -193,6 +203,11 @@ sub is_float{1;}
 sub calc_type {'CATS::Formal::Expressions::Float'}
 sub type_as_str{'float'}
 
+package CATS::Formal::Expressions::Record;
+use parent -norequire, 'CATS::Formal::Expressions::Constant';
+sub is_record{1;}
+sub calc_type{'CATS::Formal::Expressions::Record'}
+sub type_as_str{'record'}
 ##############################################################################
 package CATS::Formal::Expressions::Array;
 #@$self

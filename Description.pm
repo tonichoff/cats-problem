@@ -85,7 +85,9 @@ sub to_expr_type {
     my %fd_to_expr = (
         FD_TYPES()->{INT} => 'CATS::Formal::Expressions::Integer',
         FD_TYPES()->{STRING} => 'CATS::Formal::Expressions::String',
-        FD_TYPES()->{FLOAT} => 'CATS::Formal::Expressions::Float'
+        FD_TYPES()->{FLOAT} => 'CATS::Formal::Expressions::Float',
+        FD_TYPES()->{SEQ} => 'CATS::Formal::Expressions::Array',
+        FD_TYPES()->{RECORD} => 'CATS::Formal::Expressions::Record',
     );
     my $type = $fd_to_expr{$self->{type}};
     unless ($type){
