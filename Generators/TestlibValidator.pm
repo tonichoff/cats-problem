@@ -7,21 +7,15 @@ use parent -norequire, 'CATS::Formal::Generators::TestlibBase';
 sub generate_description {
     my ($self, $fd) = @_;
     die "ROOT obj expected" if $fd->{type} != CATS::Formal::Constants::FD_TYPES->{ROOT}; 
-    my $input = $fd->find_child_by_type(CATS::Formal::Constants::FD_TYPES->{INPUT});
+    my $input = $fd->find_child('INPUT');
     $self->{params} = {};
     %{$self->{params}} = %{$input->{attributes}};
     if (!exists $self->{params}->{strict}) {
         $self->{params}->{strict} = 1;
     }
-    my @input_objects = map $self->generate_obj($_, '', 1) => @{$input->{children}};
-    foreach my $obj (@input_objects){
-        $self->{reader} .= $obj->{reader};
-        next if $obj->{newline_obj};
-        if ($self->{params}->{strict} && $obj->{space_reader} && $obj != $input_objects[-1]) {
-            $self->{reader} .= $self->generate_readSpace("    ");
-        }
-        $self->{declarations} .= $obj->{declaration};
-    }
+    my $obj = $self->generate_obj($input, '', 1);
+    $self->{declarations} .= $obj->{declaration};
+    $self->{reader} .= $obj->{reader};
 }
 
 sub pattern {
