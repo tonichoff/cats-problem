@@ -20,4 +20,11 @@ sub propagate_bug_error {
     die $@ if !get() && $@;
 }
 
+sub assert {
+    my ($bool, $msg) = @_;
+    if ($bool) {
+        set($msg);
+    }
+}
+
 1;
