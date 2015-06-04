@@ -12,7 +12,7 @@ sub new {
 }
  
 sub parse {
-    my ($self, $str, $fd, $namespace) = @_;
+    my ($self, $str, $namespace, $fd) = @_;
     $self->_init($str);
     my $res;
     eval {
