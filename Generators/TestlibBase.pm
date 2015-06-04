@@ -245,7 +245,6 @@ sub generate_seq_obj {
     
     $struct_counter++;
     $obj->{declaration} = "vector<$type> $obj->{name};\n";
-    my $members = '';
     my $len = $fd->{attributes}->{length};
     if ($len) {
         my $e = $self->generate_expr($len);
@@ -258,11 +257,32 @@ sub generate_seq_obj {
         $obj->{reader} .= "$spaces    if($obj->{name_for_expr}.size() > 0)\n"
             . $self->generate_readSpace("$spaces        ");
     }
-    
     $obj->{reader} .= "$spaces    $type $seq_elem;\n";
-    my @compare = ();
-    my @child_objects = map $self->generate_obj($_, "$seq_elem.", $deep + 1)
+    my ($members, $compare) = $self->generate_children($fd, $obj, $spaces, $deep);
+    $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n" .
+                      $spaces."}\n" . $self->generate_constraints($fd, $spaces);
+    my $struct_definition = <<"END"    
+struct $type {
+$members
+};
+bool operator==(const $type& f, const $type& s){
+    return $compare;
+}
+
+END
+;
+    $self->{type_declarations} .= "struct $type;\n"; 
+    $self->{type_definitions} .= $struct_definition;
+    $self->{space_reader} = 1;
+    return $obj;
+}
+
+sub generate_children {
+    my ($self, $fd, $obj, $spaces, $deep) = @_;    
+    my @child_objects = map $self->generate_obj($_, "$obj->{name}.", $deep)
         => @{$fd->{children}};
+    my $members = '';
+    my @compare = ();
     foreach my $child_obj (@child_objects){
         $obj->{reader} .= $child_obj->{reader};
         next if $child_obj->{newline_obj};
@@ -272,10 +292,22 @@ sub generate_seq_obj {
         $members .= '    ' . $child_obj->{declaration};
         push @compare, "f.$child_obj->{name} == s.$child_obj->{name}";
     }
-    $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n";
-    $obj->{reader} .= $spaces."}\n" . $self->generate_constraints($fd, $spaces);
     my $compare = join ' && ', @compare;
-    
+    return ($members, $compare);
+}
+
+sub generate_record_obj {
+    my ($self, $fd, $prefix, $deep) = @_;
+    my $obj = {};
+    my $spaces = '    ' x $deep;
+    $obj->{name} = $self->find_good_name(lc($fd->{name} || '_tmp_obj_'));
+    $obj->{name_for_expr} = $prefix . $obj->{name};
+    $fd->{obj} = $obj; 
+    my $type = $obj->{type} = uc "_$obj->{name}_";
+    $obj->{declaration} = "$type $obj->{name};\n";
+    $obj->{reader} = '';
+    my ($members, $compare) = $self->generate_children($fd, $obj, $spaces, $deep);
+    $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     my $struct_definition = <<"END"    
 struct $type {
 $members
@@ -309,11 +341,12 @@ sub generate_new_line_obj {
 sub generate_obj {
     my ($self, $fd, $prefix, $deep) = @_;
     my $gens = {
-        FD_TYPES->{INT} => \&generate_int_obj,
-        FD_TYPES->{FLOAT} => \&generate_float_obj,
-        FD_TYPES->{STRING} => \&generate_string_obj,
-        FD_TYPES->{SEQ} => \&generate_seq_obj,
-        FD_TYPES->{NEWLINE} => \&generate_new_line_obj,
+        FD_TYPES->{INT}     => 'generate_int_obj',
+        FD_TYPES->{FLOAT}   => 'generate_float_obj',
+        FD_TYPES->{STRING}  => 'generate_string_obj',
+        FD_TYPES->{SEQ}     => 'generate_seq_obj',
+        FD_TYPES->{RECORD}  => 'generate_record_obj',
+        FD_TYPES->{NEWLINE} => 'generate_new_line_obj',
     };
     my $gen = $gens->{$fd->{type}};
     my $obj = $self->$gen($fd, $prefix, $deep);

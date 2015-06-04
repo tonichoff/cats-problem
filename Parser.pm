@@ -574,7 +574,7 @@ sub _parse_to_namespace {
         $self->error("namespace must be one of INPUT OUTPUT ANSWER but got $namespace");
     }
     
-    my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{$namespace}, parent => $root});
+    my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{RECORD}, parent => $root, name => $namespace});
     $self->{curParent} = $fd;
     $self->_next_token;
     if ($self->{token} == TOKENS->{EOF}) {

@@ -112,8 +112,7 @@ use constant {
         SEQ         => TOKENS->{SEQ},
         SENTINEL    => TOKENS->{SENTINEL},
         NEWLINE     => TOKENS->{NEWLINE},
-        INPUT       => $enum++,
-        OUTPUT      => $enum++,
+        RECORD      => $enum++,
         ROOT        => $enum++
     }
 };
