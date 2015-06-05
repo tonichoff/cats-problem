@@ -19,15 +19,21 @@ sub new {
 sub validate {
     my ($self, $root, $is_files, %ioa) = @_;
     my @keys = qw(INPUT ANSWER OUTPUT);
-    $self->{cur} = {};
+    my $val = $self->{cur} = {
+        parent => undef,
+        children => [],
+        fd => $root,
+        val=> CATS::Formal::Expressions::Record->new([])
+    };
     foreach my $k (@keys){
-        my $fd = $root->find_child($k);
+        my $fd = $root->find_child($k) || next;
         my $text = $ioa{$k};
         if ($is_files) {
             $text = read_file($text);
         }
-        
-        $self->validate_top($fd, $text);
+        my $v = $self->validate_top($fd, $text);
+        push @{$val->{children}}, $v;
+        push @{$val->{val}}, {fd => $v->{fd}, val => $v->{val}};
     }
 }
 
