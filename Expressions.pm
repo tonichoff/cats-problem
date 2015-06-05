@@ -45,7 +45,7 @@ use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_access { $_[0]->{is_access};}
 sub is_binary{1;}
 sub stringify {
-    $_[0]->{left}->stringify . $_[0]->{op} . $_[0]->{right}->stringify;
+    $_[0]->{left}->stringify .' '. TOKENS_STR()->{$_[0]->{op}} .' '. $_[0]->{right}->stringify;
 }
 #int, float, string, array
 sub calc_type {
@@ -143,7 +143,7 @@ BEGIN {CATS::Formal::Constants->import()}
 use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_unary{1;}
 sub stringify {
-    $_[0]->{op} . $_[0]->{node};
+    TOKENS_STR()->{$_[0]->{op}} . $_[0]->{node};
 }
 sub calc_type {
     my ($self) = @_;
@@ -200,7 +200,7 @@ use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_function{1;}
 sub stringify {
     my $self = shift;
-    return $self->{name} . '(' . (join ',', (map $_->stringify, $self->{params})) . ')';
+    return $self->{name} . '(' . (join ', ', (map $_->stringify, $self->{params})) . ')';
 }
 
 sub calc_type {
