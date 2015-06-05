@@ -60,7 +60,7 @@ sub calc_type {
     }
     
     if (grep $self->{op} == $_ => @{TOKENS()}{qw(AND OR)}) {
-        return 'CATS::Formal::Expressions::Integer' if $left->is_int && right->is_int;
+        return 'CATS::Formal::Expressions::Integer' if $left->is_int && $right->is_int;
         CATS::Formal::Error::set("operands for '&&' and '||' should be integers");
     }
     
@@ -205,11 +205,10 @@ sub stringify {
 
 sub calc_type {
     my ($self) = @_;
-    foreach my $param (@{$self->{params}}){
-        $param->calc_type;
-    }
-    #TODO: check params
-    return 'CATS::Formal::Expressions::Integer';
+    #foreach my $param (@{$self->{params}}){
+    #    $param->calc_type;
+    #}
+    return $self->{func}->{return};
 }
 
 sub evaluate {
@@ -254,10 +253,10 @@ sub stringify {
 }
 sub calc_type {
     my ($self) = @_;
-    my $head = $self->{head}->calc_type;
-    CATS::Fromal::Error::assert(!$head->is_array,"square brackers after non array");
-    my $index = $self->{index}->calc_type;
-    CATS::Formal::Error::assert(!$index->is_int, "index must be an integer");
+    #my $head = $self->{head}->calc_type;
+    #CATS::Fromal::Error::assert(!$head->is_array,"square brackers after non array");
+    #my $index = $self->{index}->calc_type;
+    #CATS::Formal::Error::assert(!$index->is_int, "index must be an integer");
     return 'CATS::Formal::Expressions::Record';
 }
 
