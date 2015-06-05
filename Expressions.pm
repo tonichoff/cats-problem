@@ -91,28 +91,28 @@ sub _le    {$_[0] <= $_[1]}
 sub _ge    {$_[0] >= $_[1]}
 
 sub evaluate_and {
-    my ($self) = @_;
-    my $left = $self->{left}->evaluate;
+    my ($self, $val) = @_;
+    my $left = $self->{left}->evaluate($val);
     return CATS::Formal::Expressions::Integer->new(0) unless ($left);
-    my $res = $self->{right}->evaluate ? 1 : 0;
-    CATS::Formal::Expressions::Integer->new($res);
+    my $res = $self->{right}->evaluate($val) ? 1 : 0;
+    return CATS::Formal::Expressions::Integer->new($res);
 }
 
 sub evaluate_or {
-    my ($self) = @_;
-    my $left = $self->{left}->evaluate;
-    return CATS::Formal::Expressions::Integer->new(1) if ($left);
-    my $res = $self->{right}->evaluate ? 1 : 0;
-    CATS::Formal::Expressions::Integer->new($res);
+    my ($self, $val) = @_;
+    my $left = $self->{left}->evaluate($val);
+    return CATS::Formal::Expressions::Integer->new(1) if $left;
+    my $res = $self->{right}->evaluate($val) ? 1 : 0;
+    return CATS::Formal::Expressions::Integer->new($res);
 }
 
 sub evaluate {
     my ($self, $val) = @_;
     if (TOKENS()->{AND} == $self->{op}) {
-        return $self->evaluate_and;
+        return $self->evaluate_and($val);
     }
     if (TOKENS()->{OR} == $self->{op}) {
-        return $self->evaluate_or;
+        return $self->evaluate_or($val);
     }
     
     my $left = $self->{left}->evaluate($val);
@@ -187,8 +187,10 @@ sub calc_type {
 
 sub evaluate {
     my ($self, $val) = @_;
-    $self->{fd}->{val} || CATS::Formal::Error::set("don't know the value of '$self->stringify'");
-    return $self->{fd}->{val}->{val};    
+    my $v = $self->{fd}->find_self_val($val);
+    $v ||
+      CATS::Formal::Error::set("don't know the value of '$self->{fd}->{name}'");
+    return $v->{val};    
 }
 
 ##############################################################################
@@ -211,7 +213,9 @@ sub calc_type {
 }
 
 sub evaluate {
-    die "not implemented";
+    my ($self, $val) = @_;
+    my @params = map $_->evaluate($val), @{$self->{params}};
+    return $self->{func}->{calc}->(@params);
 }
 
 ##############################################################################
@@ -235,9 +239,10 @@ sub calc_type {
 }
 
 sub evaluate {
-    my ($self) = @_;
-    my $val = $self->{head}->evaluate;
-    return first {$_->{fd} == $self->{member}} @{$val->{children}}; 
+    my ($self, $val) = @_;
+    my $v = $self->{head}->evaluate($val);
+    my $p = first {$_->{fd} == $self->{member}} @{$v};
+    return $p->{val}; 
 }
 
 ##############################################################################
@@ -257,15 +262,17 @@ sub calc_type {
 }
 
 sub evaluate {
-    my ($self) = @_;
-    my $head = $self->{head}->evaluate;
-    my $index = $self->{index}->evaluate;
-    return $head->{children}->[$index]; 
+    my ($self, $val) = @_;
+    my $head = $self->{head}->evaluate($val);
+    my $index = $self->{index}->evaluate($val);
+    return $head->[$$index]; 
 }
 
 ##############################################################################
 package CATS::Formal::Expressions::Constant;
 #$$self - scalar
+
+use parent -norequire, 'CATS::Formal::Expressions::BaseExpression';
 use overload
     '+'   => \&_plus,
     '-'   => \&_minus,
@@ -285,7 +292,6 @@ use overload
     '!'   => \&_not,
     'bool' => \&_bool,
     '""'  => \&stringify;
-use parent -norequire, 'CATS::Formal::Expressions::BaseExpression';
 
 sub is_constant{1;}
 sub new {
@@ -304,9 +310,8 @@ sub evaluate {
     $_[0];
 }
 
-sub exprs {
-    CATS::Formal::Expressions::;
-}
+use constant Integer => 'CATS::Formal::Expressions::Integer';
+use constant Float   => 'CATS::Formal::Expressions::Float';
 
 sub err {
     CATS::Formal::Error::set(@_);
@@ -314,15 +319,19 @@ sub err {
 
 sub _bool {
     my ($self) = @_;
+    if ($self->is_array || $self->is_record) {
+        return @$self;
+    }
+       
     return $$self;
 }
 
 sub _pow {
     my ($left, $right) = @_;
     if ($left->is_int && $right->is_int) {
-        return exprs::Integer->new($$left ** $$right);
+        return Integer->new($$left ** $$right);
     } elsif ($left->is_number && $right->is_number) {
-        return exprs::Float->new($$left ** $$right);
+        return Float->new($$left ** $$right);
     }
     err("can't to pow $left and $right");
 }
@@ -330,9 +339,9 @@ sub _pow {
 sub _mul {
     my ($left, $right) = @_;
     if ($left->is_int && $right->is_int) {
-        return exprs::Integer->new($$left * $$right);
+        return Integer->new($$left * $$right);
     } elsif ($left->is_number && $right->is_number) {
-        return exprs::Float->new($$left * $$right);
+        return Float->new($$left * $$right);
     }
     err("can't to mul $left and $right");
 }
@@ -340,18 +349,18 @@ sub _mul {
 sub _plus {
     my ($left, $right) = @_;
     if ($left->is_int && $right->is_int) {
-        return exprs::Integer->new($$left + $$right);
+        return Integer->new($$left + $$right);
     } elsif ($left->is_number && $right->is_number) {
-        return exprs::Float->new($$left + $$right);
+        return Float->new($$left + $$right);
     }
     err("can't to sum $left and $right");
 }
 sub _minus {
     my ($left, $right) = @_;
     if ($left->is_int && $right->is_int) {
-        return exprs::Integer->new($$left - $$right);
+        return Integer->new($$left - $$right);
     } elsif ($left->is_number && $right->is_number) {
-        return exprs::Float->new($$left - $$right);
+        return Float->new($$left - $$right);
     }
     err("can't to sub $left and $right");
 }
@@ -359,9 +368,9 @@ sub _minus {
 sub _div {
     my ($left, $right) = @_;
     if ($left->is_int && $right->is_int) {
-        return exprs::Integer->new($$left / $$right);
+        return Integer->new($$left / $$right);
     } elsif ($left->is_number && $right->is_number) {
-        return exprs::Float->new($$left / $$right);
+        return Float->new($$left / $$right);
     }
     err("can't to div $left and $right");
 }
@@ -369,9 +378,9 @@ sub _div {
 sub _mod {
     my ($left, $right) = @_;
     if ($left->is_int && $right->is_int) {
-        return exprs::Integer->new($$left % $$right);
+        return Integer->new($$left % $$right);
     } elsif ($left->is_number && $right->is_number) {
-        return exprs::Float->new($$left % $$right);
+        return Float->new($$left % $$right);
     }
     err("can't to mul $left and $right");
 }
@@ -381,9 +390,9 @@ sub _mod {
 sub _eq {
     my ($left, $right) = @_;
     if ($left->is_number && $right->is_number) {
-        return exprs::Integer->new($$left == $$right);
+        return Integer->new($$left == $$right);
     } elsif ($left->is_string && $right->is_string) {
-        return exprs::Integer->new($$left eq $$right);
+        return Integer->new($$left eq $$right);
     }
     err("can't to compare $left and $right");
 }
@@ -391,9 +400,9 @@ sub _eq {
 sub _gt {
     my ($left, $right) = @_;
     if ($left->is_number && $right->is_number) {
-        return exprs::Integer->new($$left > $$right);
+        return Integer->new($$left > $$right);
     } elsif ($left->is_string && $right->is_string) {
-        return exprs::Integer->new($$left gt $$right);
+        return Integer->new($$left gt $$right);
     }
     err("can't to compare $left and $right");
 }
@@ -401,9 +410,9 @@ sub _gt {
 sub _lt {
     my ($left, $right) = @_;
     if ($left->is_number && $right->is_number) {
-        return exprs::Integer->new($$left < $$right);
+        return Integer->new($$left < $$right);
     } elsif ($left->is_string && $right->is_string) {
-        return exprs::Integer->new($$left lt $$right);
+        return Integer->new($$left lt $$right);
     }
     err("can't to compare $left and $right");
 }
@@ -411,9 +420,9 @@ sub _lt {
 sub _ne {
     my ($left, $right) = @_;
     if ($left->is_number && $right->is_number) {
-        return exprs::Integer->new($$left != $$right);
+        return Integer->new($$left != $$right);
     } elsif ($left->is_string && $right->is_string) {
-        return exprs::Integer->new($$left ne $$right);
+        return Integer->new($$left ne $$right);
     }
     err("can't to compare $left and $right");
 }
@@ -421,9 +430,9 @@ sub _ne {
 sub _le  {
     my ($left, $right) = @_;
     if ($left->is_number && $right->is_number) {
-        return exprs::Integer->new($$left <= $$right);
+        return Integer->new($$left <= $$right);
     } elsif ($left->is_string && $right->is_string) {
-        return exprs::Integer->new($$left le $$right);
+        return Integer->new($$left le $$right);
     }
     err("can't to compare $left and $right");
 }
@@ -431,9 +440,9 @@ sub _le  {
 sub _ge {
     my ($left, $right) = @_;
     if ($left->is_number && $right->is_number) {
-        return exprs::Integer->new($$left >= $$right);
+        return Integer->new($$left >= $$right);
     } elsif ($left->is_string && $right->is_string) {
-        return exprs::Integer->new($$left ge $$right);
+        return Integer->new($$left ge $$right);
     }
     err("can't to compare $left and $right");
 }
@@ -441,7 +450,7 @@ sub _ge {
 sub _neg {
     my ($self) = @_;
     if ($self->is_number) {
-        return exprs::Integer->new(-$$self);
+        return Integer->new(-$$self);
     }
     err("can't to negate $self");
 }
@@ -450,7 +459,7 @@ sub _not {
     my ($self) = @_;
     if ($self->is_int) {
         my $r = $$self == 0 ? 1 : 0;
-        return exprs::Integer->new($r);
+        return Integer->new($r);
     }
     err("can't to not $self");
 }
@@ -465,6 +474,13 @@ sub type_as_str{'string'}
 ##############################################################################
 package CATS::Formal::Expressions::Integer;
 use parent -norequire , 'CATS::Formal::Expressions::Constant';
+use POSIX qw(floor);
+sub new {
+    my ($class, $val) = @_; 
+    $val = floor($val);
+    my $self = \$val;
+    return bless $self, $class;
+}
 sub is_int{1;}
 sub is_number{1;}
 sub calc_type {'CATS::Formal::Expressions::Integer'}
@@ -478,8 +494,24 @@ sub is_float{1;}
 sub calc_type {'CATS::Formal::Expressions::Float'}
 sub type_as_str{'float'}
 
+##############################################################################
+#[{fd=> fd, val=>expr}]
 package CATS::Formal::Expressions::Record;
 use parent -norequire, 'CATS::Formal::Expressions::Constant';
+sub new {
+    my ($class, $arr) = @_;
+    return bless $arr, $class;
+}
+sub stringify {
+    my ($self) = @_;
+    return '{' . (join ', ', (map $_->stringify, @{$self})) . '}';
+}
+sub evaluate {
+    my ($self, $val) = @_;
+    my @arr = map {fd => $_, val => $_->{val}->evaluate($val)}, @{$self};
+    return CATS::Formal::Expressions::Record->new(\@arr);
+}
+
 sub is_record{1;}
 sub calc_type{'CATS::Formal::Expressions::Record'}
 sub type_as_str{'record'}
@@ -506,9 +538,9 @@ sub calc_type {
 }
 
 sub evaluate {
-    my ($self) = @_;
-    my @arr = map $_->evaluate, @{$self};
-    return {children => CATS::Formal::Expressions::Array->new(\@arr)};
+    my ($self, $val) = @_;
+    my @arr = map $_->evaluate($val), @{$self};
+    return CATS::Formal::Expressions::Array->new(\@arr);
 }
 
 sub type_as_str {'array'}

@@ -99,4 +99,23 @@ sub to_expr_type {
     return $type;
 }
 
+sub find_self_val {
+    my ($self, $val) = @_;
+    for (my $cur = $val; $cur; $cur = $cur->{parent}) {
+        #if not seq record
+        if ($cur->{fd} == $self && $cur->{fd} != $cur->{parent}->{fd}) {
+            return $cur;
+        }
+        #if seq
+        $cur->{fd}->{type} == FD_TYPES()->{SEQ} &&
+            $cur->{parent}->{fd} != $cur->{fd}  &&
+            next;
+        
+        foreach my $c (@{$cur->{children}}){
+            return $c if $c->{fd} == $self;
+        }        
+    }
+    return undef;
+}
+
 1;
