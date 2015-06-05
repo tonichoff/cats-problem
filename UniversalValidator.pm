@@ -266,6 +266,17 @@ sub validate_newline {
     $self->get_and_read_token;
     $self->{newline} = 1;
     return {fd => $fd, parent => $self->{cur}, val=>''};
+sub validate_constraints {
+    my ($self, $fd, $val) = @_;
+    foreach my $c (@{$fd->{constraints}}){
+        my $r = $c->evaluate($val);
+        unless ($r) {
+            my $s = $c->stringify;
+            CATS::Formal::Error::set(
+                "constraint '$s' failed"
+            );   
+        }
+    }
 }
 
 sub validate_obj {
@@ -280,7 +291,8 @@ sub validate_obj {
     );
     my $validator = $validators{$fd->{type}};
     my $val = $self->$validator($fd);
-    $fd->{val} = $val;
+    $self->validate_constraints($fd, $val);
+    return $val;
 }
 
 1;
