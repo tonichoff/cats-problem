@@ -35,8 +35,8 @@ sub pattern {
 using namespace std;
 
 $self->{type_declarations}
-$self->{declarations}
 $self->{type_definitions}
+$self->{declarations}
 $self->{functions}
 
 void read_all(InStream& $stream_name){
