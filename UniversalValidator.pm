@@ -88,24 +88,24 @@ sub get_and_read_token {
 
 sub to_int {
     my ($self, $token) = @_;
-    my $p = '\d+';
+    my $p = '-?\d+';
     if ($token =~ /^$p$/) {
-        return CATS::Formal::Expressions::Integer($token);
+        return CATS::Formal::Expressions::Integer->new($token);
     }
     CATS::Formal::Error::set("integer expected but '$token' given");
 }
 
 sub to_float {
     my ($self, $token) = @_;
-    my $p = '[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?';
+    my $p = '-?[0-9]+(\.[0-9]+([eE][-+]?[0-9]+)?)?';
     if ($token =~ /^$p$/) {
-        return CATS::Formal::Expressions::Float($token);
+        return CATS::Formal::Expressions::Float->new($token);
     }
     CATS::Formal::Error::set("float expected but '$token' given");
 }
 
 sub to_string {
-    CATS::Formal::Expressions::String($_[1]);
+    CATS::Formal::Expressions::String->new($_[1]);
 }
 
 sub check_range {
