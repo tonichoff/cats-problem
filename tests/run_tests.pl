@@ -13,6 +13,7 @@ use File::Compare;
 use File::Slurp;
 use File::Basename;
 use Getopt::Long;
+use File::Spec;
 
 chdir($curdir);
 my $tests_count = 0;
@@ -77,10 +78,12 @@ sub new_test {
 sub parser_test_run {
     my ($self) = @_;
     my ($file, $idx) = ($self->{file}, $self->{idx});
-    my $basename = basename($file, '.fd');
-    CATS::Formal::Formal::generate_from_file_to_file($file, "./parser/$basename.out", 'xml', 1);
+    my ($name, $dir, $suffix) = fileparse($file, '.fd');
+    CATS::Formal::Formal::generate_and_write(
+        "$dir/$name.out", 'xml', 'INPUT' => $file 
+    );
     my $res = compare_and_construct_status(
-        $file, "./parser/$basename", $idx, $cur_test, $tests_count, \&construct_status
+        $file, "$dir/$name", $idx, $cur_test, $tests_count, \&construct_status
     );
     update_counters($res->{status}, $res->{msg});
     print $res->{msg};
@@ -89,60 +92,85 @@ sub parser_test_run {
 sub validator_test_run {
     my ($self) = @_;
     my ($file, $idx) = ($self->{file}, $self->{idx});
-    my $basename = basename($file, '.fd');
-    CATS::Formal::Formal::generate_from_file_to_file(
-        $file, "./testlib_validator/$basename.cpp", 'testlib_validator', 1
+    my ($name, $dir, $suffix) = fileparse($file, '.fd');
+    my $prepared  = $self->{prepare}->($dir, $name, $file, $idx)||return;
+    my @ok_tests = <$dir$name.ok.*.in>;
+    my @fail_tests = <$dir$name.fail.*.in>;
+    my @tests = (@ok_tests, @fail_tests);
+    my $local_tests_count = @tests;
+    my $local_idx = 0;
+    my @res = ();
+    my $res = 'ok';
+    foreach my $test_file (@tests){
+        ++$local_idx;
+        my $in_name = $dir . basename($test_file, '.in');
+        $in_name =~ /.*(fail|ok)\.\d+$/;
+        my $should_be_ok = $1 eq 'ok';
+        my $output = $self->{test}->(
+            $test_file, $prepared
+        ) || '';
+        my $s = $output && !$should_be_ok || !$output && $should_be_ok ?
+           'ok' : 'fail';
+        my $msg = construct_substatus($s, $idx, $local_idx, $local_tests_count, "$dir$in_name.in"),
+        write_file("$in_name.out", $output);
+        unlink "$in_name.out" if $clear;
+        push @res, $msg;
+        if ($s eq 'fail') {
+            $res = 'fail';
+        }
+        update_counters($s, $msg, 'total');
+    }
+    
+    my $msg = construct_status($res, $idx, $cur_test, $tests_count, $file) . join "", @res; 
+    update_counters($res, $msg, 'main');
+    $self->{clear}->($dir, $name);
+    print $msg;
+}
+
+sub compile_testlib_validator {
+    my ($dir, $name, $file, $idx) = @_;
+    CATS::Formal::Formal::generate_and_write(
+        "$dir$name.cpp", 'testlib_validator', 'INPUT' => $file  
     );
     my $compile = 
-        "g++ -enable-auto-import -o ./testlib_validator/$basename.exe ./testlib_validator/$basename.cpp";
+        "g++ -enable-auto-import -o $dir$name.exe $dir$name.cpp";
     print "compiling... $file\n";
     system($compile);
     if ($? >> 8) {
         my $msg = construct_status ("not compiled", $idx, $cur_test, $tests_count, $file);
         update_counters('not compiled', $msg, 'both');
-        return;
+        return ;
     }
-    
-    my @ok_tests = <./testlib_validator/$basename.ok.*.in>;
-    my @fail_tests = <./testlib_validator/$basename.fail.*.in>;
-    my @tests = (@ok_tests, @fail_tests);
-    my $tests = @tests;
-    my $local_idx = 0;
-    my @res = ();
-    my $res = 'ok';
-    foreach my $t (@tests){
-        ++$local_idx;
-        my $b = basename($t, '.in');
-        my ($name, $path, $suffix) = fileparse($t, qw(.in));
-        $name =~ /.*(fail|ok)\.\d+$/;
-        my $should_be_ok = $1 eq 'ok';
-        chdir 'testlib_validator';
-        my $output = `$basename.exe < $name.in 2>&1`;
-        chdir '..';
-        my $s = $output && !$should_be_ok || !$output && $should_be_ok ?
-               'ok' : 'fail';
-        my $local_res = {
-            status => $s,
-            msg => construct_substatus($s, $idx, $local_idx, $tests, "./testlib_validator/$b.in")
-        };
-        
-        write_file("./testlib_validator/$b.out", $output);
-        unlink "./testlib_validator/$b.out" if $clear;
-        #my $local_res = compare_and_construct_status(
-        #    "./testlib_validator/$b.in", "./testlib_validator/$b", $idx, $local_idx, $tests, \&construct_substatus
-        #);
-        push @res, $local_res->{msg};
-        if ($local_res->{status} eq 'fail') {
-            $res = 'fail';
-        }
-        update_counters($local_res->{status}, $local_res->{msg}, 'total');
-    }
-    
-    my $msg = construct_status($res, $idx, $cur_test, $tests_count, $file) . join "", @res; 
-    update_counters($res, $msg, 'main');
-    unlink "./testlib_validator/$basename.exe" if $clear;
-    unlink "./testlib_validator/$basename.cpp" if $clear;
-    print $msg;
+    return "$dir$name.exe";
+}
+
+sub test_testlib_validator {
+    my ($test_file, $executable) = @_;
+    $executable = File::Spec->canonpath($executable);
+    $test_file = File::Spec->canonpath($test_file);
+    return `$executable < $test_file 2>&1`;
+}
+
+sub clear_testlib_validator {
+    my ($dir, $name) = @_;
+    unlink "$dir$name.exe" if $clear;
+    unlink "$dir$name.cpp" if $clear;
+}
+
+sub prepare_universal_validator {
+    my ($dir, $name, $file, $idx) = @_;
+    return {
+        INPUT => $file 
+    };
+};
+
+sub test_universal_validator {
+    my ($test_file, $from) = @_;
+    return CATS::Formal::Formal::validate(1, 1, $from, {INPUT => $test_file});
+}
+
+sub clear_universal_validator {
+    1;
 }
 
 sub get_parser_tests {
@@ -152,9 +180,15 @@ sub get_parser_tests {
 }
 
 sub get_validator_tests {
-    my ($dir) = @_;
+    my ($dir, $compile_func, $test_func, $clear_func) = @_;
     my @files = <$dir/*fd>;
-    map new_test({file=> $_, run => \&validator_test_run}) => @files;
+    map new_test({
+        file=> $_,
+        run => \&validator_test_run,
+        prepare => $compile_func,
+        test => $test_func,
+        clear => $clear_func,
+    }) => @files;
 }
 
 my $group = 'all';
@@ -168,12 +202,35 @@ sub uniq {
 
 if ($group eq 'all') {
     push @tests, get_parser_tests('parser');
-    push @tests, get_validator_tests('testlib_validator');
+    push @tests, get_validator_tests(
+        'testlib_validator',
+        \&compile_testlib_validator,
+        \&test_testlib_validator,
+        \&clear_testlib_validator
+    );
+    push @tests, get_validator_tests(
+        'testlib_validator',
+        \&prepare_universal_validator,
+        \&test_universal_validator,
+        \&clear_universal_validator
+    );
     #push @tests, testlib_validator_tests;
 } elsif ($group eq 'parser') {
     push @tests, get_parser_tests('parser');
 } elsif ($group eq 'validator') {
-    push @tests, get_validator_tests('testlib_validator');
+    push @tests, get_validator_tests(
+        'testlib_validator',
+        \&compile_testlib_validator,
+        \&test_testlib_validator,
+        \&clear_testlib_validator
+    );
+} elsif ($group eq 'universal_validator'){
+    push @tests, get_validator_tests(
+        'testlib_validator',
+        \&prepare_universal_validator,
+        \&test_universal_validator,
+        \&clear_universal_validator
+    );
 } else {
     die "unknown group";
 }
@@ -193,7 +250,7 @@ if (@indexes) {
     @tests = @tmp;
 }
 $tests_count = @tests;
-
+CATS::Formal::Formal::disable_file_name_in_errors();
 foreach (@tests){
     ++$cur_test;
     $_->{run}($_);
