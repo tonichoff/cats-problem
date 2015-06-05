@@ -269,7 +269,7 @@ sub generate_seq_obj {
             . $self->generate_readSpace("$spaces        ");
     }
     $obj->{reader} .= "$spaces    $type $seq_elem;\n";
-    my ($members, $compare) = $self->generate_children($fd, $obj, $spaces, $deep);
+    my ($members, $compare) = $self->generate_children($fd, $obj, "$seq_elem.", $spaces, $deep);
     $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n" .
                       $spaces."}\n" . $self->generate_constraints($fd, $spaces);
     my $struct_definition = <<"END"    
@@ -289,8 +289,8 @@ END
 }
 
 sub generate_children {
-    my ($self, $fd, $obj, $spaces, $deep) = @_;    
-    my @child_objects = map $self->generate_obj($_, "$obj->{name}.", $deep)
+    my ($self, $fd, $obj, $prefix, $spaces, $deep) = @_;    
+    my @child_objects = map $self->generate_obj($_, $prefix, $deep)
         => @{$fd->{children}};
     my $members = '';
     my @compare = ();
@@ -317,7 +317,7 @@ sub generate_record_obj {
     my $type = $obj->{type} = uc "_$obj->{name}_";
     $obj->{declaration} = "$type $obj->{name};\n";
     $obj->{reader} = '';
-    my ($members, $compare) = $self->generate_children($fd, $obj, $spaces, $deep);
+    my ($members, $compare) = $self->generate_children($fd, $obj, "$obj->{name}.", $spaces, $deep);
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     my $struct_definition = <<"END"    
 struct $type {
