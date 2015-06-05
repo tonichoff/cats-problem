@@ -40,6 +40,7 @@ package CATS::Formal::Parser;
 use Description;
 use Expressions;
 use Constants;
+use Functions;
 
 use parent -norequire, 'CATS::Formal::Parser::Base';
 
@@ -182,7 +183,14 @@ sub _parse_func {
     my ($self, $name) = @_;
     $self->_next_token;
     my $params = $self->_parse_comma_delimeted_exprs('RPAREN');
-    return CATS::Formal::Expressions::Function->new(name => $name, params => $params);
+    my @types  = map $_->calc_type, @{$params}; 
+    my $func = CATS::Formal::Functions::find($name, \@types);
+    unless ($func) {
+        my $t = join ', ' => map $_->type_to_str, @types;
+        $self->error("unknown function '$name($t)'");
+    }
+    
+    return CATS::Formal::Expressions::Function->new(name => $name, params => $params, func => $func);
 }
 
 sub _member_access_new {
