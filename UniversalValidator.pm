@@ -42,20 +42,33 @@ sub validate_top {
     unless ($self->{params}->{strict}) {
         $self->{params}->{strict} = CATS::Formal::Expressions::Integer->new(1); 
     }
-    
-    $self->read_token;
-    $self->validate_record($fd);
+    my $v = $self->validate_record($fd);
+    my $t = $self->{params}->{strict} ?
+        substr $self->{data}, 0, 1 :
+        $self->peek_token;
+    assert ($t ne '', "EOF expected but '$t' found");
+    return $v;
 }
 
 sub read_space {
     my ($self) = @_;
     $self->{data} =~ /^( |\t)/;
+    if ($self->{params}->{strict} && $1 ne ' ') {
+        my $s = substr $self->{data}, 0, 1;
+        assert(1, "space expected but '$s' given");
+    }
+    $self->{need_space} = 0;
     $self->{data} = $';
 }
 
 sub read_newline {
     my ($self) = @_;
     $self->{data} =~ /^(\n)/;
+    if ($self->{params}->{strict} && $1 ne "\n") {
+        my $s = substr $self->{data}, 0, 1;
+        assert(1, "EOLN expected but '$s' given");
+    }
+    
     $self->{data} = $';
 }
 
@@ -67,6 +80,10 @@ sub read_spaces {
 
 sub read_token {
     my ($self) = @_;
+    if ($self->{need_space}) {
+        $self->read_space;
+    }
+    
     unless ($self->{params}->{strict}) {
         $self->read_spaces;
     }
@@ -77,6 +94,14 @@ sub read_token {
         return $self->{token};
     }
     return $self->{token} = '';
+}
+
+sub peek_token {
+    my ($self) = @_;
+    if ($self->{data} =~ /(\S+)/) {
+        return $1;
+    }
+    return '';
 }
 
 sub get_and_read_token {
@@ -126,7 +151,7 @@ sub check_range {
 
 sub validate_int {
     my ($self, $fd) = @_;
-    my $token = $self->get_and_read_token;
+    my $token = $self->read_token;
     my $int = $self->to_int($token);
     my $val = {
         val => $int,
@@ -141,7 +166,7 @@ sub validate_int {
 
 sub validate_float {
     my ($self, $fd) = @_;
-    my $token = $self->get_and_read_token;
+    my $token = $self->read_token;
     my $float = $self->to_float($token);
     my $val = {
         val => $float,
@@ -178,7 +203,7 @@ sub validate_float {
 
 sub validate_string {
     my ($self, $fd) = @_;
-    my $token = $self->get_and_read_token;
+    my $token = $self->read_token;
     my $string = $self->to_string($token);
     my $val = {
         val => $string,
@@ -253,7 +278,7 @@ sub validate_record {
             push @{$val->{val}}, {fd => $v->{fd}, val => $v->{val}};
         }
         if ($child != $record->{children}->[-1] && !$self->{newline}) {
-            $self->read_space;
+            $self->{need_space} = 1;
         }
     }
     $self->{cur} = $val->{parent};
@@ -263,9 +288,11 @@ sub validate_record {
 sub validate_newline {
     my ($self, $fd) = @_;
     $self->read_newline;
-    $self->get_and_read_token;
     $self->{newline} = 1;
-    return {fd => $fd, parent => $self->{cur}, val=>''};
+    $self->{need_space} = 0;
+    return {fd => $fd, parent => $self->{cur}};
+}
+
 sub validate_constraints {
     my ($self, $fd, $val) = @_;
     foreach my $c (@{$fd->{constraints}}){
