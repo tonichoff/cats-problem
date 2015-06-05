@@ -1,6 +1,6 @@
 <ROOT >
-  <INPUT >
+  <RECORD name=INPUT >
     <INT name=A >
     </INT>
-  </INPUT>
+  </RECORD>
 </ROOT>

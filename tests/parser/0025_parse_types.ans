@@ -1,5 +1,5 @@
 <ROOT >
-  <INPUT >
+  <RECORD name=INPUT >
     <INT >
     </INT>
     <INT >
@@ -156,5 +156,5 @@
     </INT>
     <INT >
     </INT>
-  </INPUT>
+  </RECORD>
 </ROOT>

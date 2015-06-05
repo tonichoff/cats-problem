@@ -1,8 +1,8 @@
 <ROOT >
-  <INPUT >
+  <RECORD name=INPUT >
     <INT name=A >
     </INT>
     <INT range=( [A, 0] ) >
     </INT>
-  </INPUT>
+  </RECORD>
 </ROOT>

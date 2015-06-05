@@ -1,5 +1,5 @@
 <ROOT >
-  <INPUT >
+  <RECORD name=INPUT >
     <INT >
     </INT>
     <INT >
@@ -10,5 +10,5 @@
     </FLOAT>
     <FLOAT >
     </FLOAT>
-  </INPUT>
+  </RECORD>
 </ROOT>

@@ -1,8 +1,8 @@
 <ROOT >
-  <INPUT >
+  <RECORD name=INPUT >
     <INT name=A >
     </INT>
     <FLOAT name=B >
     </FLOAT>
-  </INPUT>
+  </RECORD>
 </ROOT>
