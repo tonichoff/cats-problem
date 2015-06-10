@@ -186,7 +186,7 @@ sub _parse_func {
     my @types  = map $_->calc_type, @{$params}; 
     my $func = CATS::Formal::Functions::find($name, \@types);
     unless ($func) {
-        my $t = join ', ' => map $_->type_to_str, @types;
+        my $t = join ', ' => map $_->type_as_str, @types;
         $self->error("unknown function '$name($t)'");
     }
     
