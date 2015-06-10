@@ -27,6 +27,9 @@ my $acotanh_function;
 my $pi_function;
 my $str_length_function;
 my $seq_length_function;
+my $abs_int_function;
+my $abs_float_function;
+
 BEGIN {
 
 $cos_function = {
@@ -200,6 +203,24 @@ $seq_length_function = {
     return => Integer
 };
 
+$abs_int_function = {
+    name => 'abs',
+    params => ['is_int'],
+    calc => sub {
+        Integer->new(abs ${$_[0]});
+    },
+    return => Integer,
+};
+
+$abs_float_function = {
+    name => 'abs',
+    params => ['is_float'],
+    calc => sub {
+        Float->new(abs ${$_[0]});
+    },
+    return Float
+};
+
 };
 
 use constant FUNCTIONS => [
@@ -222,6 +243,8 @@ use constant FUNCTIONS => [
     $pi_function,
     $str_length_function,
     $seq_length_function,
+    $abs_int_function,
+    $abs_float_function
 ];
 
 sub find {
