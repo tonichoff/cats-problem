@@ -269,7 +269,7 @@ sub generate_seq_obj {
             . $self->generate_readSpace("$spaces        ");
     }
     $obj->{reader} .= "$spaces    $type $seq_elem;\n";
-    my ($members, $compare) = $self->generate_children($fd, $obj, "$seq_elem.", $spaces, $deep);
+    my ($members, $compare) = $self->generate_children($fd, $obj, "$seq_elem.", $deep+1);
     $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n" .
                       $spaces."}\n" . $self->generate_constraints($fd, $spaces);
     my $struct_definition = <<"END"    
@@ -289,16 +289,17 @@ END
 }
 
 sub generate_children {
-    my ($self, $fd, $obj, $prefix, $spaces, $deep) = @_;    
+    my ($self, $fd, $obj, $prefix, $deep) = @_;    
     my @child_objects = map $self->generate_obj($_, $prefix, $deep)
         => @{$fd->{children}};
+    my $spaces = '    ' x $deep;
     my $members = '';
     my @compare = ();
     foreach my $child_obj (@child_objects){
         $obj->{reader} .= $child_obj->{reader};
         next if $child_obj->{newline_obj};
         if ($self->{params}->{strict} && $child_obj->{space_reader} && $child_obj != $child_objects[-1]) {
-            $obj->{reader} .= $self->generate_readSpace("$spaces    ");
+            $obj->{reader} .= $self->generate_readSpace("$spaces");
         }
         $members .= '    ' . $child_obj->{declaration};
         push @compare, "f.$child_obj->{name} == s.$child_obj->{name}";
@@ -317,7 +318,7 @@ sub generate_record_obj {
     my $type = $obj->{type} = uc "_$obj->{name}_";
     $obj->{declaration} = "$type $obj->{name};\n";
     $obj->{reader} = '';
-    my ($members, $compare) = $self->generate_children($fd, $obj, "$obj->{name}.", $spaces, $deep);
+    my ($members, $compare) = $self->generate_children($fd, $obj, "$obj->{name}.", $deep);
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     my $struct_definition = <<"END"    
 struct $type {
