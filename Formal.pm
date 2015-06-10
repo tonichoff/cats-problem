@@ -89,7 +89,7 @@ sub generate_and_write {
     my ($out, $gen_id, %files) = @_;
     my $res = generate_source_from_files($gen_id, %files);
     write_res_to_file($res, $out);
-    return $res;
+    return $res->{error};
 }
 
 sub validate {

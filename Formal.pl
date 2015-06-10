@@ -26,6 +26,6 @@ if (keys %to_validate) {
 }
 
 if ($generator) {
-    my $res = CATS::Formal::Formal::generate_and_write($to, $generator, %from)->{error};
+    print CATS::Formal::Formal::generate_and_write($to, $generator, %from) || "generation completed";
 }
 
