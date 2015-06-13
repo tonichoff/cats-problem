@@ -17,7 +17,6 @@ sub new
 {
     my ($class, $fname, $logger) = @_;
     $fname or die('No filename!');
-    $logger or die('No logger!');
     my %opts = (
         zip => undef,
         fname => $fname,
@@ -30,7 +29,7 @@ sub get_zip
 {
     my $self = shift;
     my $zip;
-    CATS::BinaryFile::load($self->{fname}, \$zip) or $self->{logger}->error("open '$self->{fname}' failed: $!");
+    CATS::BinaryFile::load($self->{fname}, \$zip) or $self->error("open '$self->{fname}' failed: $!");
     return $zip;
 }
 
@@ -39,7 +38,7 @@ sub init
     my $self = shift;
     $self->{zip} = Archive::Zip->new();
     $self->{zip}->read($self->{fname}) == AZ_OK
-        or $self->{logger}->error("read '$self->{fname}' failed -- probably not a zip archive");
+        or $self->error("read '$self->{fname}' failed -- probably not a zip archive");
 }
 
 sub find_members
@@ -51,11 +50,11 @@ sub find_members
 sub read_member
 {
     my ($self, $name, $msg) = @_;
-    my $member = $self->{zip}->memberNamed($name) or $self->{logger}->error($msg);
+    my $member = $self->{zip}->memberNamed($name) or $self->error($msg);
 
     $member->desiredCompressionMethod(COMPRESSION_STORED);
     my $status = $member->rewindData();
-    $status == AZ_OK or $self->{logger}->error("code $status");
+    $status == AZ_OK or $self->error("code $status");
 
     my $data = '';
     while (!$member->readIsDone()) {

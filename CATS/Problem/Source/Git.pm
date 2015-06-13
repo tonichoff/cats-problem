@@ -17,7 +17,6 @@ sub new
 {
     my ($class, $link, $logger) = @_;
     defined $link or die('No remote url specified!');
-    defined $logger or die('No logger!');
     my %opts = (
         dir => undef,
         repo => undef,
@@ -32,7 +31,7 @@ sub get_zip
     my $self = shift;
     my ($fname, $tree_id) = $self->{repo}->archive;
     my $zip;
-    CATS::BinaryFile::load($fname, \$zip) or $self->{logger}->error("getting zip archive failed: $!");
+    CATS::BinaryFile::load($fname, \$zip) or $self->error("getting zip archive failed: $!");
     return $zip;
 }
 
@@ -42,7 +41,7 @@ sub init
     my $tmpdir = tempdir($tmp_repo_template, TMPDIR => 1, CLEANUP => 1);
     $self->{dir} = $tmpdir;
     ($self->{repo}, my @log) = CATS::Problem::Repository::clone($self->{link}, "$tmpdir/");
-    $self->{logger}->note(join "\n", @log);
+    $self->note(join "\n", @log);
 }
 
 sub find_members
