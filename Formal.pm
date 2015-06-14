@@ -86,14 +86,14 @@ sub write_res_to_file {
 }
 
 sub generate_and_write {
-    my ($out, $gen_id, %files) = @_;
-    my $res = generate_source_from_files($gen_id, %files);
+    my ($files, $gen_id, $out) = @_;
+    my $res = generate_source_from_files($gen_id, %$files);
     write_res_to_file($res, $out);
     return $res->{error};
 }
 
 sub validate {
-    my ($d_is_files, $v_is_files, $descriptions, $to_validate) = @_;
+    my ($descriptions, $to_validate, $d_is_files, $v_is_files) = @_;
     my $fd_root = parse_descriptions($d_is_files, %$descriptions);
     unless ($fd_root) {
         my $error = CATS::Formal::Error::get();
