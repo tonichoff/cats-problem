@@ -57,19 +57,35 @@ use strict;
 use warnings;
 use base qw(CATS::Problem::ImportSource::Base);
 
+sub new
+{
+    my ($class, %opts) = @_;
+    $opts{modulesdir} or die 'You must specify modules folder';
+    bless \%opts => $class;
+}
+
 sub get_source
 {
-    die 'Method ImportSource::Local::get_source not implement yet';
+    my ($self, $guid) = @_;
+    my $source = CATS::SourceManager::load($guid, $self->{modulesdir});
+    $source->{id} && $source->{stype} ? ($source->{id}, $source->{stype}) : (undef, undef);
 }
 
 sub get_guids
 {
-    die 'Method ImportSource::Local::get_guids not implement yet';
+    my ($self, $guid) = @_;
+    CATS::SourceManager::get_guids_by_regexp($guid, $self->{modulesdir});
 }
 
 sub get_sources_info
 {
-    die 'Method ImportSource::Local::get_sources_info not implement yet';
+    my ($self, $sources) = @_;
+    $sources and @$sources or return ();
+
+    use Data::Dumper;
+    my @result = ();
+    push @result, CATS::SourceManager::load($_->{guid}, $self->{modulesdir}) for @$sources;
+    @result;
 }
 
 
