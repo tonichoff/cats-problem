@@ -64,10 +64,48 @@ my @patterns = (
     '>=|<=|<>|==|!=|&&|\|\||[-.+*\/%\[\]^=()<>!,;#]' => TOKEN_TYPES->{OPERATOR},
 );
 
+sub _calc_pos {
+    my ($self, $str) = @_;
+    my @str = split '' => $str;
+    foreach (@str) {
+        ++$self->{pos};
+        if ($_ eq "\n") {
+            $self->{col} = 1;
+            ++$self->{row};
+        } else {
+            ++$self->{col};
+        } 
+    }
+}
+
+sub _skip_spaces {
+    my ($self) = @_;
+    if ($self->{src} =~ /^(\s+)/) {
+        $self->{src} = $';
+        $self->_calc_pos($1);
+        return 1;
+    }
+    return 0;
+}
+
+sub _skip_comments {
+    my ($self) = @_;
+    if ($self->{src} =~ /^(\/\*.*?\*\/)/s) {
+        $self->{src} = $';
+        $self->_calc_pos($1);
+        return 1;
+    } elsif ($self->{src} =~ /^(\/\*)/s) {
+        $self->error("unclosed comment");
+    }
+    return 0;
+}
+
 sub _next_token {
     my $self = shift;
     $self->{pos} += length $self->{token_str};
     $self->{col} += length $self->{token_str};
+    
+    while ($self->_skip_spaces || $self->_skip_comments) {}
     my $src = \$self->{src};
     if ($$src =~ /^\s*$/) {
         $self->{token_type} = TOKEN_TYPES->{EOF},
@@ -80,7 +118,10 @@ sub _next_token {
     my $spaces;
     my $token_str;
     my $token;
-    #TODO:float?
+    if ($$src =~ /^(\/\/.*?\n)/) {
+        #code
+    }
+    
     for(my $i = 0; $i < $#patterns; $i += 2){
         my $pat = $patterns[$i];
         if ($$src =~ /^(\s*)($pat)/s) {
@@ -89,18 +130,7 @@ sub _next_token {
             $$src = $';
             $token = STR_TOKENS->{$token_str} || TOKENS->{UNKNOWN};
             $type = $patterns[$i + 1];
-            my @spaces = split '' => $spaces;
-            foreach (@spaces) {
-                ++$self->{pos};
-                if ($_ eq "\n") {
-                    $self->{col} = 1;
-                    ++$self->{row};
-                } elsif (/\s/) {
-                    ++$self->{col};
-                } else {
-                    die "BUG in position calc";
-                }
-            }
+            $self->_calc_pos($spaces);
             last;
         }
     }
