@@ -23,7 +23,7 @@ sub validate {
         parent => undef,
         children => [],
         fd => $root,
-        val=> CATS::Formal::Expressions::Record->new([])
+        val => CATS::Formal::Expressions::Record->new([])
     };
     foreach my $k (@keys){
         my $fd = $root->find_child($k) || next;
