@@ -6,7 +6,9 @@ use Math::Trig;
 use Expressions;
 
 use constant Integer => 'CATS::Formal::Expressions::Integer';
-use constant Float => 'CATS::Formal::Expressions::Float';
+use constant Float   => 'CATS::Formal::Expressions::Float';
+use constant String  => 'CATS::Formal::Expressions::String';
+use constant Record  => 'CATS::Formal::Expressions::Record';
 
 my $cos_function;
 my $sin_function;
@@ -29,6 +31,14 @@ my $str_length_function;
 my $seq_length_function;
 my $abs_int_function;
 my $abs_float_function;
+my $substr_function;
+my $str_to_int_function;
+my $str_to_float_function;
+my $int_to_float_function;
+my $int_to_str_function;
+my $float_to_int_function;
+my $float_to_str_function;
+my $seq_last_function;
 
 BEGIN {
 
@@ -203,6 +213,15 @@ $seq_length_function = {
     return => Integer
 };
 
+$seq_last_function = {
+    name => 'last',
+    params => ['is_array'],
+    calc => sub {
+        $_[0]->[-1];
+    },
+    return => Record
+};
+
 $abs_int_function = {
     name => 'abs',
     params => ['is_int'],
@@ -218,7 +237,71 @@ $abs_float_function = {
     calc => sub {
         Float->new(abs ${$_[0]});
     },
-    return Float
+    return => Float
+};
+
+$substr_function = {
+    name => 'substr',
+    params => ['is_string', 'is_int', 'is_int'],
+    calc => sub {
+        String->new(substr ${$_[0]}, ${$_[1]}, ${$_[2]});
+    },
+    return => String,
+};
+
+$str_to_int_function = {
+    name => 'int',
+    params => ['is_string'],
+    calc => sub {
+        Integer->new(${$_[0]});
+    },
+    return => Integer 
+};
+
+$float_to_int_function = {
+    name => 'int',
+    params => ['is_float'],
+    calc => sub {
+        Integer->new(${$_[0]});
+    },
+    return => Integer
+};
+
+$str_to_float_function = {
+    name => 'float',
+    params => ['is_string'],
+    calc => sub {
+        Float->new(${$_[0]});
+    },
+    return => Float
+};
+
+$int_to_float_function = {
+    name => 'float',
+    params => ['is_int'],
+    calc => sub {
+        Float->new(${$_[0]});
+    },
+    return => Float
+};
+
+
+$int_to_str_function = {
+    name => 'string',
+    params => ['is_int'],
+    calc => sub {
+        String->new(${$_[0]});
+    },
+    return => String
+};
+
+$float_to_str_function = {
+    name =>  'string',
+    params => ['is_float'],
+    calc => sub {
+        String->new(${$_[0]});
+    },
+    return => String
 };
 
 };
@@ -244,7 +327,15 @@ use constant FUNCTIONS => [
     $str_length_function,
     $seq_length_function,
     $abs_int_function,
-    $abs_float_function
+    $abs_float_function,
+    $substr_function,
+    $str_to_int_function,
+    $str_to_float_function,
+    $int_to_float_function,
+    $int_to_str_function,
+    $float_to_int_function,
+    $float_to_str_function,
+    $seq_last_function,
 ];
 
 sub find {
