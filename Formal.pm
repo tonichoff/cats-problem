@@ -109,4 +109,17 @@ sub validate {
     CATS::Formal::Error::get();
 }
 
+sub generate {
+    my ($fds, $gen_id, $out, $is_files) = @_;
+    $out ||= \*STDOUT;
+    my $f = $is_files ?
+        \&generate_source_from_files :
+        \&generate+source_from_text;
+    my $res = $f->($gen_id, %$fds);
+    unless ($res->{error}) {
+        write_res_to_file($res, $out);
+    }
+    return $res->{error};
+}
+
 1;
