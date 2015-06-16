@@ -34,6 +34,8 @@ sub get_source
 sub get_guids
 {
     my ($self, $guid) = @_;
+    $guid =~ s/%/\\%/g;
+    $guid =~ s/\*/%/g;
     @{$dbh->selectcol_arrayref(qq~SELECT guid FROM problem_sources WHERE guid LIKE ? ESCAPE '\\'~, undef, $guid)};
 }
 

@@ -467,8 +467,6 @@ sub start_tag_Import
 
     my ($guid, @nt) = @$atts{qw(guid name type)};
     if ($guid =~ /\*/) {
-        $guid =~ s/%/\\%/g;
-        $guid =~ s/\*/%/g;
         $self->import_one_source($_, @nt) for $self->{import_source}->get_guids($guid);
     } else {
         $self->import_one_source($guid, @nt);
