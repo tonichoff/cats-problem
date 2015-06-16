@@ -40,7 +40,7 @@ sub note
 sub warning
 {
     my CATS::Problem::Parser $self = shift;
-    $self->{source}->note(@_);
+    $self->{source}->warning(@_);
 }
 
 sub get_zip
