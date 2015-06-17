@@ -250,7 +250,7 @@ $substr_function = {
 };
 
 $str_to_int_function = {
-    name => 'int',
+    name => 'integer',
     params => ['is_string'],
     calc => sub {
         Integer->new(${$_[0]});
@@ -259,7 +259,7 @@ $str_to_int_function = {
 };
 
 $float_to_int_function = {
-    name => 'int',
+    name => 'integer',
     params => ['is_float'],
     calc => sub {
         Integer->new(${$_[0]});
