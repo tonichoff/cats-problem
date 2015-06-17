@@ -1,0 +1,8 @@
+<ROOT >
+  <RECORD name=INPUT >
+    <INT name=A >
+    </INT>
+    <INT range=( [0, 0] ) >
+    </INT>
+  </RECORD>
+</ROOT>

@@ -1,0 +1,14 @@
+<ROOT >
+  <RECORD name=INPUT >
+    <INT >
+    </INT>
+    <INT >
+    </INT>
+    <STRING >
+    </STRING>
+    <FLOAT >
+    </FLOAT>
+    <FLOAT >
+    </FLOAT>
+  </RECORD>
+</ROOT>
