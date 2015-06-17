@@ -37,7 +37,7 @@ sub parse_descriptions {
         my $text = $descriptions{$namespace};
         $text || next;
         $file_name = 'unnamed';
-        if ($is_files) {
+        if ($is_files->{$namespace} eq 'file') {
             $file_name = $text;
             $text = read_file($text);
         }        
@@ -66,14 +66,9 @@ sub generate_source {
     return {ok => $res};
 }
 
-sub generate_source_from_texts {
-    my ($gen_id, %descriptions) = @_;
-    return generate_source($gen_id, 0, %descriptions);
-}
-
 sub generate_source_from_files {
     my ($gen_id, %files) = @_;
-    return generate_source($gen_id, 1, %files);
+    return generate_source($gen_id, default_v, %files);
 }
 
 sub write_res_to_file {
@@ -92,9 +87,21 @@ sub generate_and_write {
     return $res->{error};
 }
 
+sub part_copy {
+    my ($h1, $h2, $keys1, $keys2) = @_;
+    @{$h2->{@$keys2}} = @{$h1->{@$keys1}};
+}
+
+sub default_v {
+    {INPUT => 'file', OUTPUT => 'file', ANSWER => 'file'}    
+}
+
 sub validate {
-    my ($descriptions, $to_validate, $d_is_files, $v_is_files) = @_;
-    my $fd_root = parse_descriptions($d_is_files, %$descriptions);
+    my ($descriptions, $to_validate, $opt) = @_;
+    $opt ||= {};
+    my $fd_is = default_v;
+    part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
+    my $fd_root = parse_descriptions($fd_is, %$descriptions);
     unless ($fd_root) {
         my $error = CATS::Formal::Error::get();
         if ($write_file_name_in_errors) {
@@ -102,8 +109,10 @@ sub validate {
         }
         return $error;
     }
+    my $data_is = default_v;
+    part_copy($opt, $data_is, ['input_data', 'output_data', 'answer_data'], ['INPUT', 'OUTPUT', 'ANSWER']);
     eval {
-        CATS::Formal::UniversalValidator->new()->validate($fd_root, $v_is_files, %$to_validate);
+        CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$to_validate);
     };
     CATS::Formal::Error::propagate_bug_error();
     CATS::Formal::Error::get();
@@ -112,10 +121,9 @@ sub validate {
 sub generate {
     my ($fds, $gen_id, $out, $is_files) = @_;
     $out ||= \*STDOUT;
-    my $f = $is_files ?
-        \&generate_source_from_files :
-        \&generate+source_from_text;
-    my $res = $f->($gen_id, %$fds);
+    my $fd_is = default_v;
+    part_copy($is_files, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
+    my $res = generate_source($gen_id, $fd_is, %$fds);
     unless ($res->{error}) {
         write_res_to_file($res, $out);
     }

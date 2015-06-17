@@ -28,7 +28,7 @@ sub validate {
     foreach my $k (@keys){
         my $fd = $root->find_child($k) || next;
         my $text = $ioa{$k};
-        if ($is_files) {
+        if ($is_files->{$k} eq 'file') {
             $text = read_file($text);
         }
         my $v = $self->validate_top($fd, $text);
