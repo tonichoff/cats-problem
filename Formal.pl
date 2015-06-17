@@ -22,10 +22,10 @@ GetOptions(
 );
 
 if (keys %to_validate) {
-    print CATS::Formal::Formal::validate(\%from, \%to_validate, 1, 1) || "validation ok";
-}
+    print CATS::Formal::Formal::validate(\%from, \%to_validate) || "validation ok";
+} 
 
 if ($generator) {
-    print CATS::Formal::Formal::generate(\%from, $generator, $to, 1) || "generation ok";
+    print CATS::Formal::Formal::generate(\%from, $generator, $to) || "generation ok";
 }
 
