@@ -97,7 +97,7 @@ sub default_v {
 }
 
 sub validate {
-    my ($descriptions, $to_validate, $opt) = @_;
+    my ($descriptions, $validate, $opt) = @_;
     $opt ||= {};
     my $fd_is = default_v;
     part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
@@ -112,7 +112,7 @@ sub validate {
     my $data_is = default_v;
     part_copy($opt, $data_is, ['input_data', 'output_data', 'answer_data'], ['INPUT', 'OUTPUT', 'ANSWER']);
     eval {
-        CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$to_validate);
+        CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$validate);
     };
     CATS::Formal::Error::propagate_bug_error();
     CATS::Formal::Error::get();
