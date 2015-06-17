@@ -80,8 +80,11 @@ sub load {
 
 sub get_guids_by_regexp {
     my ($guid, $dir) = @_;
+    $guid =~ s/\./\\./;
+    $guid =~ s/\*/\.\*/;
+    $guid = qr/$guid/;
     opendir my $dh, $dir or die "Cannot open directory: $!";
-    map { /^(.*)\.xml$/; $1 } grep { /$guid/ and not /^\.+$/ } readdir $dh;
+    map { /^(.*)\.xml$/; $1 } grep /$guid/, readdir $dh;
 }
 
 
