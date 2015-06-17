@@ -16,7 +16,7 @@ GetOptions(
         $from{$_[1]} = $_[2];
     },
     "to=s" => \$to,
-    "to_validate=s%{1,}" => sub {
+    "validate=s%{1,}" => sub {
         $to_validate{$_[1]} = $_[2];
     }
 );
