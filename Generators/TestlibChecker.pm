@@ -61,7 +61,7 @@ sub generate_description {
 
 sub constraint_function {
     my ($self, $constraint_code) = @_;
-    return "_test_($constraint_code, $pe)";
+    return "_test_($constraint_code, $pe);\n";
 }
 
 sub pattern {
