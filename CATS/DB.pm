@@ -62,16 +62,15 @@ sub new_id
 
 sub sql_connect
 {
+    my ($db_options) = @_;
     $dbh ||= DBI->connect(
         $CATS::Config::db_dsn, $CATS::Config::db_user, $CATS::Config::db_password,
         {
             AutoCommit => 0,
             LongReadLen => 1024*1024*20,
             FetchHashKeyName => 'NAME_lc',
-            ib_timestampformat => '%d.%m.%Y %H:%M',
-            ib_dateformat => '%d.%m.%Y',
-            ib_timeformat => '%H:%M:%S',
             ib_enable_utf8 => 1,
+            %$db_options,
         }
     );
 
