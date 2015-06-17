@@ -70,7 +70,7 @@ sub get_source
 {
     my ($self, $guid) = @_;
     my $source = CATS::SourceManager::load($guid, $self->{modulesdir});
-    $source->{id} && $source->{stype} ? ($source->{id}, $source->{stype}) : (undef, undef);
+    ($source->{id}, $source->{stype});
 }
 
 sub get_guids
@@ -84,10 +84,7 @@ sub get_sources_info
     my ($self, $sources) = @_;
     $sources and @$sources or return ();
 
-    use Data::Dumper;
-    my @result = ();
-    push @result, CATS::SourceManager::load($_->{guid}, $self->{modulesdir}) for @$sources;
-    @result;
+    map CATS::SourceManager::load($_->{guid}, $self->{modulesdir}), @$sources;
 }
 
 
