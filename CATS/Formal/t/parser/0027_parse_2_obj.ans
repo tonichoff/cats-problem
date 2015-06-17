@@ -1,0 +1,8 @@
+<ROOT >
+  <RECORD name=INPUT >
+    <INT name=A >
+    </INT>
+    <INT name=B >
+    </INT>
+  </RECORD>
+</ROOT>
