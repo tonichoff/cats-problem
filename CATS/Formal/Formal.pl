@@ -7,7 +7,7 @@ use Data::Dumper;
 
 my $generator = '';
 my %from;
-my %to_validate;
+my %validate;
 my $counter = 0;
 my $to = \*STDOUT;
 GetOptions(
@@ -17,12 +17,12 @@ GetOptions(
     },
     "to=s" => \$to,
     "validate=s%{1,}" => sub {
-        $to_validate{$_[1]} = $_[2];
+        $validate{$_[1]} = $_[2];
     }
 );
 
-if (keys %to_validate) {
-    print CATS::Formal::Formal::validate(\%from, \%to_validate) || "validation ok";
+if (keys %validate) {
+    print CATS::Formal::Formal::validate(\%from, \%validate) || "validation ok";
 } 
 
 if ($generator) {

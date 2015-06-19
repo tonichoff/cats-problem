@@ -85,7 +85,7 @@ sub prepare_universal_validator {
 
 sub universal_validate {
     my ($test_file, $from) = @_;
-    return CATS::Formal::Formal::validate($from, {INPUT => $test_file}, 1, 1);
+    return CATS::Formal::Formal::validate($from, {INPUT => $test_file});
 }
 
 sub run_parser_test {
@@ -93,7 +93,7 @@ sub run_parser_test {
     my $file = $test_obj->{file};
     my ($name, $dir, $suffix) = fileparse($file, '.fd');
     CATS::Formal::Formal::generate_and_write(
-        {'INPUT' => $file}, 'xml', "$dir$name.out", 1 
+        {'INPUT' => $file}, 'xml', "$dir$name.out"
     );
     compare_files_ok("$dir$name.ans", "$dir$name.out", $file);
 }

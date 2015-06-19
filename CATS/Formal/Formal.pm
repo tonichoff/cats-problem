@@ -17,17 +17,10 @@ use constant GENERATORS => {
     'testlib_validator'   => CATS::Formal::Generators::TestlibValidator,
 };
 
-my $write_file_name_in_errors = 1;
-
-sub enable_file_name_in_errors {
-    $write_file_name_in_errors = 1;
+sub default_v {
+    {INPUT => 'file', OUTPUT => 'file', ANSWER => 'file'}    
 }
 
-sub disable_file_name_in_errors {
-    $write_file_name_in_errors = 0;
-}
-
-my $file_name;
 sub parse_descriptions {
     my ($is_files, %descriptions) = @_;
     my $parser = CATS::Formal::Parser->new();
@@ -36,9 +29,7 @@ sub parse_descriptions {
     foreach my $namespace (@keys) {
         my $text = $descriptions{$namespace};
         $text || next;
-        $file_name = 'unnamed';
         if ($is_files->{$namespace} eq 'file') {
-            $file_name = $text;
             $text = read_file($text);
         }        
         $fd = $parser->parse($text, $namespace, $fd);
@@ -52,9 +43,6 @@ sub generate_source {
     my $fd_root = parse_descriptions($is_files, %descriptions);
     unless ($fd_root) {
         my $error = CATS::Formal::Error::get();
-        if ($write_file_name_in_errors) {
-            $error .= " : $file_name";
-        }
         return {error => $error};
     }
     my $generator = GENERATORS->{$gen_id} ||
@@ -92,27 +80,20 @@ sub part_copy {
     @{$h2->{@$keys2}} = @{$h1->{@$keys1}};
 }
 
-sub default_v {
-    {INPUT => 'file', OUTPUT => 'file', ANSWER => 'file'}    
-}
-
 sub validate {
-    my ($descriptions, $to_validate, $opt) = @_;
+    my ($descriptions, $validate, $opt) = @_;
     $opt ||= {};
     my $fd_is = default_v;
     part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
     my $fd_root = parse_descriptions($fd_is, %$descriptions);
     unless ($fd_root) {
         my $error = CATS::Formal::Error::get();
-        if ($write_file_name_in_errors) {
-            $error .= " : $file_name";
-        }
         return $error;
     }
     my $data_is = default_v;
     part_copy($opt, $data_is, ['input_data', 'output_data', 'answer_data'], ['INPUT', 'OUTPUT', 'ANSWER']);
     eval {
-        CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$to_validate);
+        CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$validate);
     };
     CATS::Formal::Error::propagate_bug_error();
     CATS::Formal::Error::get();
