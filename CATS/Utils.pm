@@ -25,6 +25,7 @@ BEGIN {
         date_to_iso
         encodings
         source_encodings
+        redirect_url_function
     );
 
     %EXPORT_TAGS = (all => [@EXPORT]);
@@ -354,10 +355,16 @@ sub gen_url_params
 }
 
 
+sub redirect_url_function
+{
+    my ($u, %p) = @_;
+    "$u?" . join ';', gen_url_params(%p);
+}
+
+
 sub url_function
 {
-  my ($f, %p) = @_;
-  join ';', "main.pl?f=$f", gen_url_params(%p);
+    redirect_url_function('main.pl', f => @_)
 }
 
 
