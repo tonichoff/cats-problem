@@ -20,6 +20,7 @@ package CATS::Problem::Repository;
 use strict;
 use warnings;
 
+use Encode;
 use Fcntl ':mode';
 use File::Path;
 use File::Spec;
@@ -989,7 +990,7 @@ sub move_history
 sub get_remote_url
 {
     my $self = shift;
-    my ($remote_url) = eval { $self->git('config remote.origin.url'); };
+    my ($remote_url) = eval { $self->git('config remote.origin.url'); } or return undef;
     chomp $remote_url;
     return $remote_url;
 }
