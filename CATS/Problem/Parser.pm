@@ -51,13 +51,13 @@ sub get_zip
 sub tag_handlers()
 {{
     CATS => { s => sub {}, r => ['version'] },
-    ProblemStatement => { stml_handlers('statement') },
+    ProblemStatement => { stml_src_handlers('statement') },
     ProblemConstraints => { stml_handlers('constraints') },
     InputFormat => { stml_handlers('input_format') },
     OutputFormat => { stml_handlers('output_format') },
-    FormalInput => { stml_handlers('formal_input'), e => \&end_tag_FormalInput },
-    JsonData => { stml_handlers('json_data'), e => \&end_tag_JsonData },
-    Explanation => { stml_handlers('explanation') },
+    FormalInput => { s => start_stml('formal_input'), e => \&end_tag_FormalInput },
+    JsonData => { s => start_stml('json_data'), e => \&end_tag_JsonData },
+    Explanation => { stml_src_handlers('explanation') },
     Problem => {
         s => \&start_tag_Problem, e => \&end_tag_Problem,
         r => ['title', 'lang', 'tlimit', 'inputFile', 'outputFile'], },
@@ -228,8 +228,8 @@ sub on_start_tag
         $el ne 'img' || $atts{picture} or
             $self->error('Picture not defined in img element');
 
-        $self->inc_object_ref_count(
-            $atts{{ img => 'picture', a => 'attachment', object => 'attachment' }->{$el}});
+        my $attr = { img => 'picture', a => 'attachment', object => 'attachment' }->{$el};
+        $self->inc_object_ref_count($atts{$attr}) if $attr;
         return;
     }
 
@@ -261,32 +261,35 @@ sub on_end_tag
     }
 }
 
-sub stml_handlers
+sub start_stml {
+    my ($v) = @_;
+    sub { $_[0]->{stml} = \$_[0]->{problem}->{$v} };
+}
+
+sub end_stml { undef $_[0]->{stml} }
+
+sub stml_handlers { return (s => start_stml(@_), e => \&end_stml); }
+
+sub stml_src_handlers
 {
-    my $field = $_[0];
+    my $start = start_stml(@_);
+    my ($field) = @_;
     (
         s => sub {
             (my CATS::Problem::Parser $self, my $atts) = @_;
-            my $problem = $self->{problem};
-            $self->{stml} = \$problem->{$field};
-            $field =~ /^(statement|explanation)$/ or return;
+            $start->(@_);
+            my $problem = $self->{problem}->{description};
             for my $src (qw(attachment url)) {
                 my $n = $atts->{$src} or next;
                 my $url_field = "${field}_url";
-                $problem->{description}->{$url_field} and
-                    $self->error("Several $url_field resources");
-                $problem->{description}->{$url_field} = { url => 'http', attachment => 'file' }->{$src} . "://$n";
+                $problem->{$url_field} and $self->error("Several $url_field resources");
+                $problem->{$url_field} = { url => 'http', attachment => 'file' }->{$src} . "://$n";
                 $self->inc_object_ref_count($n) if $src eq 'attachment';
                 $self->note("$url_field set to $src '$n'");
             }
         },
         e => \&end_stml
     );
-}
-
-sub end_stml
-{
-    undef $_[0]->{stml}
 }
 
 sub end_tag_FormalInput
