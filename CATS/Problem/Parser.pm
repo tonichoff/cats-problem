@@ -206,11 +206,7 @@ sub validate
 sub inc_object_ref_count
 {
     (my CATS::Problem::Parser $self, my $name) = @_;
-
-    defined $name or return undef;
-    my $obj = $self->get_named_object($name);
-    $obj->{refcount}++;
-    return $obj;
+    defined $name and $self->get_named_object($name)->{refcount}++;
 }
 
 sub on_start_tag
@@ -222,10 +218,11 @@ sub on_start_tag
         if ($el eq 'include') {
             my $name = $atts{src} or
                 return $self->error(q~Missing required 'src' attribute of 'include' tag~);
-            ${$stml} .= Encode::decode($self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'"));
+            $$stml .= Encode::decode(
+                $self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'"));
             return;
         }
-        ${$stml} .=
+        $$stml .=
             "<$el" . join ('', map qq~ $_="$atts{$_}"~, keys %atts) . '>';
 
         $el ne 'img' || $atts{picture} or
@@ -266,23 +263,21 @@ sub on_end_tag
 
 sub stml_handlers
 {
-    my $v = $_[0];
+    my $field = $_[0];
     (
         s => sub {
             (my CATS::Problem::Parser $self, my $atts) = @_;
             my $problem = $self->{problem};
-            $self->{stml} = \$problem->{$v};
-            if ({ statement => 1, explanation => 1 }->{$v}) {
-                for (qw(Attachment Url)) {
-                    if (my $n = $atts->{$_}) {
-                        my $un = "${v}_url";
-                        $problem->{description}->{$un} and
-                            $self->error("Several $un resources");
-                        $problem->{description}->{$un} = { Url => 'http', Attachment => 'file' }->{$_} . "://$n" if $n;
-                        $self->inc_object_ref_count($n) if $_ eq 'Attachment';
-                        $self->note("$un set to $_ '$n'");
-                    }
-                }                
+            $self->{stml} = \$problem->{$field};
+            $field =~ /^(statement|explanation)$/ or return;
+            for my $src (qw(attachment url)) {
+                my $n = $atts->{$src} or next;
+                my $url_field = "${field}_url";
+                $problem->{description}->{$url_field} and
+                    $self->error("Several $url_field resources");
+                $problem->{description}->{$url_field} = { url => 'http', attachment => 'file' }->{$src} . "://$n";
+                $self->inc_object_ref_count($n) if $src eq 'attachment';
+                $self->note("$url_field set to $src '$n'");
             }
         },
         e => \&end_stml
