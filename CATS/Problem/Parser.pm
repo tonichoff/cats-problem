@@ -231,8 +231,8 @@ sub on_start_tag
         $el ne 'img' || $atts{picture} or
             $self->error('Picture not defined in img element');
 
-        $self->inc_object_ref_count({
-            img => 'picture', a => 'attachment', object => 'attachment' }->{$el});
+        $self->inc_object_ref_count(
+            $atts{{ img => 'picture', a => 'attachment', object => 'attachment' }->{$el}});
         return;
     }
 
