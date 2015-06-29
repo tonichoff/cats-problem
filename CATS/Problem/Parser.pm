@@ -197,8 +197,20 @@ sub validate
 
     $problem->{run_method} ||= $cats::rm_default;
 
+    $problem->{$_} && $problem->{description}->{"${_}_url"}
+        and $self->error("Both stml and url for $_") for qw(statement explanation);
     # insert_problem_content
     $problem->{has_checker} or $self->error('No checker specified');
+}
+
+sub inc_object_ref_count
+{
+    (my CATS::Problem::Parser $self, my $name) = @_;
+
+    defined $name or return undef;
+    my $obj = $self->get_named_object($name);
+    $obj->{refcount}++;
+    return $obj;
 }
 
 sub on_start_tag
@@ -206,22 +218,21 @@ sub on_start_tag
     my CATS::Problem::Parser $self = shift;
     my ($p, $el, %atts) = @_;
 
-    if ($self->{stml}) {
+    if (my $stml = $self->{stml}) {
         if ($el eq 'include') {
             my $name = $atts{src} or
                 return $self->error(q~Missing required 'src' attribute of 'include' tag~);
-            ${$self->{stml}} .= Encode::decode($self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'"));
+            ${$stml} .= Encode::decode($self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'"));
             return;
         }
-        ${$self->{stml}} .=
+        ${$stml} .=
             "<$el" . join ('', map qq~ $_="$atts{$_}"~, keys %atts) . '>';
-        if ($el eq 'img') {
-            $atts{picture} or $self->error('Picture not defined in img element');
-            $self->get_named_object($atts{picture})->{refcount}++;
-        }
-        elsif ($el =~ /^a|object$/) {
-            $self->get_named_object($atts{attachment})->{refcount}++ if $atts{attachment};
-        }
+
+        $el ne 'img' || $atts{picture} or
+            $self->error('Picture not defined in img element');
+
+        $self->inc_object_ref_count({
+            img => 'picture', a => 'attachment', object => 'attachment' }->{$el});
         return;
     }
 
@@ -256,7 +267,26 @@ sub on_end_tag
 sub stml_handlers
 {
     my $v = $_[0];
-    ( s => sub { $_[0]->{stml} = \$_[0]->{problem}->{$v} }, e => \&end_stml );
+    (
+        s => sub {
+            (my CATS::Problem::Parser $self, my $atts) = @_;
+            my $problem = $self->{problem};
+            $self->{stml} = \$problem->{$v};
+            if ({ statement => 1, explanation => 1 }->{$v}) {
+                for (qw(Attachment Url)) {
+                    if (my $n = $atts->{$_}) {
+                        my $un = "${v}_url";
+                        $problem->{description}->{$un} and
+                            $self->error("Several $un resources");
+                        $problem->{description}->{$un} = { Url => 'http', Attachment => 'file' }->{$_} . "://$n" if $n;
+                        $self->inc_object_ref_count($n) if $_ eq 'Attachment';
+                        $self->note("$un set to $_ '$n'");
+                    }
+                }                
+            }
+        },
+        e => \&end_stml
+    );
 }
 
 sub end_stml
