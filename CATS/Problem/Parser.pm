@@ -10,7 +10,9 @@ use JSON::XS;
 use CATS::Utils qw(escape_xml);
 use CATS::Problem;
 use CATS::Constants;
-use FormalInput;
+
+my $has_formal_input;
+BEGIN { $has_formal_input = eval { require FormalInput; 1; } }
 
 use CATS::Problem::TestsParser;
 
@@ -295,6 +297,7 @@ sub stml_src_handlers
 sub end_tag_FormalInput
 {
     (my CATS::Problem::Parser $self, my $atts) = @_;
+    $has_formal_input or $self->error('Parsing FormalInput tag requires FormalInput module');
     my $parser_err = FormalInput::parserValidate(${$self->{stml}});
     if ($parser_err) {
         my $s = FormalInput::errorMessageByCode(FormalInput::getErrCode($parser_err));
