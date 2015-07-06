@@ -10,9 +10,8 @@ BEGIN
     our @EXPORT = qw($dbh $sql new_id _u);
 }
 
-
 use Carp;
-use DBD::Firebird;
+use DBI;
 
 use CATS::Config;
 
