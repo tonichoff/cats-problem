@@ -603,7 +603,7 @@ sub parse
     my $self = shift;
     $self->{source}->init;
 
-    my @xml_members = $self->{source}->find_members('.*\.xml$');
+    my @xml_members = $self->{source}->find_members('\.xml$');
     $self->error('*.xml not found') if !@xml_members;
     $self->error('found several *.xml in archive') if @xml_members > 1;
 
