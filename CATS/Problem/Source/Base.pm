@@ -39,5 +39,26 @@ sub warning
     $self->{logger}->warning($msg) if exists $self->{logger} && defined $self->{logger};
 }
 
+package CATS::Problem::Source::Mockup;
+
+use strict;
+use warnings;
+use base qw(CATS::Problem::Source::Base);
+
+sub get_zip { die 'Mockup'; }
+
+sub find_members
+{
+    my ($self, $regexp) = @_;
+    grep /$regexp/, keys %{$self->{data}};
+}
+
+sub read_member
+{
+    my ($self, $name, $msg) = @_;
+    $self->{data}->{$name} or $self->error($msg);
+}
+
+sub finalize { die 'Mockup'; }
 
 1;
