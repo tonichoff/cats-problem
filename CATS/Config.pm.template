@@ -6,8 +6,7 @@ BEGIN {
     no strict;
     @ISA = qw(Exporter);
     @EXPORT = qw(cats_dir);
-
-    %EXPORT_TAGS = (all => [@EXPORT]);
+    %EXPORT_TAGS = (all => [ @EXPORT ]);
 }
 
 # This is a template file, you should adjust parameters below
@@ -18,6 +17,8 @@ BEGIN {
 # db_user - username, used in connection to DB
 # db_password - password, used in connection to DB
 
+use File::Spec;
+
 our $db_dsn = 'dbi:Firebird:dbname=<path-to-your-database>;host=<your-host>;ib_charset=UTF8;';
 our $db_user = '<your-username>';
 our $db_password = '<your-password>';
@@ -27,7 +28,10 @@ our $proxy = '<your-proxy-server>';
 our $cats_dir;
 sub cats_dir()
 {
-    $cats_dir ||= $ENV{CATS_DIR} || '/usr/local/apache/CATS/cgi-bin/';
+    $cats_dir ||=
+        $ENV{CATS_DIR} ||
+        File::Spec->catdir((File::Spec->splitpath(File::Spec->rel2abs($0)))[0, 1]) ||
+        '/usr/local/apache/CATS/cgi-bin/';
 }
 
 our $repos_dir = cats_dir() . 'repos/';
