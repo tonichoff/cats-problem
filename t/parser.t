@@ -11,7 +11,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -99,4 +99,21 @@ subtest 'rename', sub {
 </Problem>~),
         'checker.pp' => 'begin end.',
     }, { old_title => 'Old Title' })->{description}->{title}, 'Old Title', 'expected rename';
+};
+
+subtest 'sources', sub {
+    plan tests => 2;
+    is parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Old Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<Checker src="checker.pp"/>
+</Problem>~),
+        'checker.pp' => 'checker1',
+    })->{checker}->{src}, 'checker1', 'checker';
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Old Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<Checker src="chk.pp"/>
+</Problem>~),
+    }) } qr/checker.*chk\.pp/, 'no checker';
 };
