@@ -5,6 +5,7 @@ use warnings;
 
 use File::Temp qw(tempdir);
 use File::Copy::Recursive qw(dirmove);
+use File::stat;
 use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 
 use CATS::BinaryFile;
@@ -39,6 +40,7 @@ sub init
     $self->{zip} = Archive::Zip->new();
     $self->{zip}->read($self->{fname}) == AZ_OK
         or $self->error("read '$self->{fname}' failed -- probably not a zip archive");
+    $self->{last_modified} = stat($self->{fname})->mtime;
 }
 
 sub find_members
@@ -101,5 +103,6 @@ sub finalize
     }
 }
 
+sub last_modified { $_[0]->{last_modified} }
 
 1;

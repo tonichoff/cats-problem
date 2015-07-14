@@ -21,6 +21,8 @@ sub read_member { 0 }
 
 sub finalize { 0 }
 
+sub last_modified { 0 }
+
 sub error
 {
     my ($self, $msg) = @_;
