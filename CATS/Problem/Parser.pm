@@ -259,15 +259,12 @@ sub on_end_tag
 
     my $h = tag_handlers()->{$el};
     $h->{e}->($self, \%atts, $el) if $h && $h->{e};
-    pop @{$self->{tag_stack}};
-
     if ($self->{stml}) {
-        return if $el eq 'include';
-        ${$self->{stml}} .= "</$el>";
+        ${$self->{stml}} .= "</$el>" if $el ne 'include';
+        return;
     }
-    elsif (!$h) {
-        $self->error("Unknown tag $el");
-    }
+    $h or $self->error("Unknown tag $el");
+    pop @{$self->{tag_stack}};
 }
 
 sub start_stml {
