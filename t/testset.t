@@ -27,6 +27,7 @@ sub h { my %h; @h{@_} = undef; \%h; }
 plan tests => 3;
 
 subtest 'basic', sub {
+    plan tests => 7;
     is_deeply(ptr('1'), h(1));
     is_deeply(ptr('1,3'), h(1, 3));
     is_deeply(ptr('2-4'), h(2 .. 4));
@@ -38,6 +39,7 @@ subtest 'basic', sub {
 };
 
 subtest 'testsets', sub {
+    plan tests => 4;
     is_deeply(ptr('t1'), h(1 .. 3));
     is_deeply(ptr('t2'), h(1 .. 3));
     throws_ok { ptr('x') } qr/unknown testset/i;
@@ -45,6 +47,7 @@ subtest 'testsets', sub {
 };
 
 subtest 'scoring groups', sub {
+    plan tests => 6;
     my %t1 = map { $_ => $testsets->{sc1} } 1..5;
     is_deeply(ptr('sc1'), \%t1);
     is_deeply(ptr('sc'), \%t1);
@@ -53,5 +56,3 @@ subtest 'scoring groups', sub {
     throws_ok { ptr('sc1,sc2') } qr/ambiguous/i;
     throws_ok { ptr('sca') } qr/ambiguous/i;
 };
-
-done_testing;
