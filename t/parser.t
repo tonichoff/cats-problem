@@ -118,14 +118,59 @@ subtest 'rename', sub {
 };
 
 subtest 'sources', sub {
-    plan tests => 2;
+    plan tests => 8;
+
     is parse({
         'test.xml' => wrap_problem(q~<Checker src="checker.pp"/>~),
         'checker.pp' => 'checker1',
     })->{checker}->{src}, 'checker1', 'checker';
+
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Checker src="chk.pp"/>~),
     }) } qr/checker.*chk\.pp/, 'no checker';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="chk.pp"/>
+<Checker src="chk.pp"/>
+~),
+        'chk.pp' => 'checker1',
+    }) } qr/checker/, 'duplicate checker';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Solution/>~),
+    }) } qr/Solution.src/, 'no solution src';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Solution src="zzz"/>~),
+    }) } qr/Solution.name/, 'no solution nme';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="chk.pp"/>
+<Solution name="sol1" src="sol"/>
+~),
+        'chk.pp' => 'checker1',
+    }) } qr/sol/, 'missing solution';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="chk.pp"/>
+<Solution name="sol1" src="chk.pp"/>
+<Solution name="sol1" src="chk.pp"/>
+~),
+        'chk.pp' => 'checker1',
+    }) } qr/sol1/, 'duplicate solution';
+
+    my $sols = parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="chk.pp"/>
+<Solution name="sol1" src="chk.pp"/>
+<Solution name="sol2" src="chk.pp"/>
+~),
+        'chk.pp' => 'checker1',
+    })->{solutions};
+    is_deeply [ map $_->{path}, @$sols ], [ 'chk.pp', 'chk.pp' ], 'two solutions';
 };
 
 subtest 'text', sub {
