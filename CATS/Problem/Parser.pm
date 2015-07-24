@@ -58,7 +58,7 @@ sub get_zip
 
 sub tag_handlers()
 {{
-    CATS => { s => sub {}, r => ['version'] },
+    CATS => { s => sub {}, r => ['version'], in => [] },
     ProblemStatement => { stml_src_handlers('statement') },
     ProblemConstraints => { stml_handlers('constraints') },
     InputFormat => { stml_handlers('input_format') },
@@ -68,7 +68,7 @@ sub tag_handlers()
     Explanation => { stml_src_handlers('explanation') },
     Problem => {
         s => \&start_tag_Problem, e => \&end_tag_Problem,
-        r => ['title', 'lang', 'tlimit', 'inputFile', 'outputFile'], },
+        r => ['title', 'lang', 'tlimit', 'inputFile', 'outputFile'], in => ['CATS']},
     Attachment => { s => \&start_tag_Attachment, r => ['src', 'name'] },
     Picture => { s => \&start_tag_Picture, r => ['src', 'name'] },
     Solution => { s => \&start_tag_Solution, r => ['src', 'name'] },
@@ -243,10 +243,9 @@ sub on_start_tag
     }
 
     my $h = tag_handlers()->{$el} or $self->error("Unknown tag $el");
-    if (my $in = $h->{in}) {
-        $self->check_top_tag($in)
-            or $self->error("Tag '$el' must be inside of " . join(' or ', @$in));
-    }
+    my $in = $h->{in} // ['Problem'];
+    !@$in || $self->check_top_tag($in)
+        or $self->error_stack("Tag '$el' must be inside of " . join(' or ', @$in));
     $self->required_attributes($el, \%atts, $h->{r}) if $h->{r};
     push @{$self->{tag_stack}}, $el;
     $h->{s}->($self, \%atts, $el);
