@@ -11,7 +11,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -167,4 +167,79 @@ statement</ProblemStatement>
 <Checker src="checker.pp"/>~),
         'checker.pp' => 'z',
     }) } qr/qqq/, 'bad incude src';
+};
+
+subtest 'picture-attachment', sub {
+    plan tests => 19;
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<ProblemStatement><img/></ProblemStatement>~),
+    }) } qr/picture/i, 'img without picture';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<ProblemStatement><img picture="qqq"/></ProblemStatement>~),
+    }) } qr/qqq/, 'img with bad picture';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<ProblemStatement><a attachment="zzz"/></ProblemStatement>~),
+    }) } qr/zzz/, 'a with bad attachment';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<ProblemStatement><object attachment="zzz"/></ProblemStatement>~),
+    }) } qr/zzz/, 'object with bad attachment';
+
+    for my $tag (qw(Picture Attachment)) {
+        throws_ok { parse({
+            'test.xml' => wrap_problem(qq~<$tag/>~),
+        }) } qr/src/, "$tag without src";
+
+        throws_ok { parse({
+            'test.xml' => wrap_problem(qq~<$tag src="test"/>~),
+        }) } qr/name/, "$tag without name";
+
+        throws_ok { parse({
+            'test.xml' => wrap_problem(qq~<$tag src="xxxx" name="yyyy"/>~),
+        }) } qr/xxxx/, "$tag with bad src";
+    }
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Picture src="p1" name="p1" />~),
+        'p1' => 'p1data',
+    }) } qr/extension/, 'bad picture extension';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Attachment src="a1.txt" name="a1" />
+<ProblemStatement><img picture="a1"/></ProblemStatement>
+~),
+        'a1.txt' => 'a1data',
+    }) } qr/a1/, 'img references attachment';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Picture src="p1.txt" name="p1" />
+<ProblemStatement><a attachment="p1"/></ProblemStatement>
+~),
+        'p1.txt' => 'p1data',
+    }) } qr/p1/, 'a references picture';
+
+    my $p = parse({
+        'test.xml' => wrap_problem(q~
+<Picture src="p1.img" name="p1" />
+<Attachment src="a1.txt" name="a1" />
+<ProblemStatement>
+text <img picture="p1"/> <a attchment="a1"/>
+</ProblemStatement>
+<Checker src="checker.pp"/>
+~),
+        'checker.pp' => 'z',
+        'p1.img' => 'p1data',
+        'a1.txt' => 'a1data',
+    });
+
+    is scalar @{$p->{pictures}}, 1, 'pictures count';
+    is $p->{pictures}->[0]->{name}, 'p1', 'picture 1 name';
+    is $p->{pictures}->[0]->{src}, 'p1data', 'picture 1 data';
+    is scalar @{$p->{attachments}}, 1, 'attachments count';
+    is $p->{attachments}->[0]->{name}, 'a1', 'attachment 1 name';
+    is $p->{attachments}->[0]->{src}, 'a1data', 'attachment 1 data';
 };
