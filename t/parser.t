@@ -31,6 +31,14 @@ sub parse
 
 sub wrap_xml { qq~<?xml version="1.0" encoding="Utf-8"?><CATS version="1.0">$_[0]</CATS>~ }
 
+sub wrap_problem {
+    wrap_xml(qq~
+<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+$_[0]
+</Problem>
+~)
+}
+
 subtest 'trivial errors', sub {
     plan tests => 3;
     throws_ok { parse({ 'text.x' => 'zzz' }); } qr/xml not found/, 'no xml';
@@ -104,33 +112,25 @@ subtest 'rename', sub {
 subtest 'sources', sub {
     plan tests => 2;
     is parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Old Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
-<Checker src="checker.pp"/>
-</Problem>~),
+        'test.xml' => wrap_problem(q~<Checker src="checker.pp"/>~),
         'checker.pp' => 'checker1',
     })->{checker}->{src}, 'checker1', 'checker';
     throws_ok { parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Old Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
-<Checker src="chk.pp"/>
-</Problem>~),
+        'test.xml' => wrap_problem(q~<Checker src="chk.pp"/>~),
     }) } qr/checker.*chk\.pp/, 'no checker';
 };
 
 subtest 'text', sub {
     plan tests => 10;
     my $p = parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Some Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+        'test.xml' => wrap_problem(q~
 <Checker src="checker.pp"/>
 <ProblemStatement>problem
 statement</ProblemStatement>
 <ProblemConstraints>$N = 0$</ProblemConstraints>
 <InputFormat>x, y, z</InputFormat>
 <OutputFormat>single number</OutputFormat>
-<Explanation>easy</Explanation>
-</Problem>~),
+<Explanation>easy</Explanation>~),
         'checker.pp' => 'z',
     });
     is $p->{statement}, "problem\nstatement", 'statement';
@@ -140,13 +140,10 @@ statement</ProblemStatement>
     is $p->{explanation}, 'easy', 'explanation';
 
     my $p1 = parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Some Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+        'test.xml' => wrap_problem(q~
 <Checker src="checker.pp"/>
 <ProblemStatement>outside<b  class="  z  " > inside </b></ProblemStatement>
-<ProblemConstraints>before<include src="incl"/>after</ProblemConstraints>
-
-</Problem>~),
+<ProblemConstraints>before<include src="incl"/>after</ProblemConstraints>~),
         'checker.pp' => 'z',
         'incl' => 'included'
     });
@@ -154,27 +151,20 @@ statement</ProblemStatement>
     is $p1->{constraints}, 'beforeincludedafter', 'include';
 
     throws_ok { parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
-<ZZZ></ZZZ>
-</Problem>~),
+        'test.xml' => wrap_problem(q~<ZZZ></ZZZ>~),
     }) } qr/ZZZ/, 'unknown tag';
 
     throws_ok { parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+        'test.xml' => wrap_problem(q~
 <ProblemStatement><include/></ProblemStatement>
-<Checker src="checker.pp"/>
-</Problem>~),
+<Checker src="checker.pp"/>~),
         'checker.pp' => 'z',
     }) } qr/include/, 'no incude src';
 
     throws_ok { parse({
-        'test.xml' => wrap_xml(q~
-<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+        'test.xml' => wrap_problem(q~
 <ProblemStatement><include src="qqq"/></ProblemStatement>
-<Checker src="checker.pp"/>
-</Problem>~),
+<Checker src="checker.pp"/>~),
         'checker.pp' => 'z',
     }) } qr/qqq/, 'bad incude src';
 };
