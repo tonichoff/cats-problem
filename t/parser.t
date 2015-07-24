@@ -11,7 +11,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -50,13 +50,13 @@ subtest 'header', sub {
 </Problem>~),
     'checker.pp' => 'begin end.',
     })->{description};
-    is $d->{title}, 'Title';
-    is $d->{author}, 'A. Uthor';
-    is $d->{lang}, 'en';
-    is $d->{time_limit}, 5;
-    is $d->{memory_limit}, 6;
-    is $d->{input_file}, 'input.txt';
-    is $d->{output_file}, 'output.txt';
+    is $d->{title}, 'Title', 'title';
+    is $d->{author}, 'A. Uthor', 'author';
+    is $d->{lang}, 'en', 'lang';
+    is $d->{time_limit}, 5, 'time';
+    is $d->{memory_limit}, 6, 'memory';
+    is $d->{input_file}, 'input.txt', 'input';
+    is $d->{output_file}, 'output.txt', 'output';
 };
 
 subtest 'missing', sub {
@@ -116,4 +116,65 @@ subtest 'sources', sub {
 <Checker src="chk.pp"/>
 </Problem>~),
     }) } qr/checker.*chk\.pp/, 'no checker';
+};
+
+subtest 'text', sub {
+    plan tests => 10;
+    my $p = parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Some Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<Checker src="checker.pp"/>
+<ProblemStatement>problem
+statement</ProblemStatement>
+<ProblemConstraints>$N = 0$</ProblemConstraints>
+<InputFormat>x, y, z</InputFormat>
+<OutputFormat>single number</OutputFormat>
+<Explanation>easy</Explanation>
+</Problem>~),
+        'checker.pp' => 'z',
+    });
+    is $p->{statement}, "problem\nstatement", 'statement';
+    is $p->{constraints}, '$N = 0$', 'constraints';
+    is $p->{input_format}, 'x, y, z', 'input';
+    is $p->{output_format}, 'single number', 'output';
+    is $p->{explanation}, 'easy', 'explanation';
+
+    my $p1 = parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Some Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<Checker src="checker.pp"/>
+<ProblemStatement>outside<b  class="  z  " > inside </b></ProblemStatement>
+<ProblemConstraints>before<include src="incl"/>after</ProblemConstraints>
+
+</Problem>~),
+        'checker.pp' => 'z',
+        'incl' => 'included'
+    });
+    is $p1->{statement}, 'outside<b class="  z  "> inside </b>', 'tag reconstruction';
+    is $p1->{constraints}, 'beforeincludedafter', 'include';
+
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<ZZZ></ZZZ>
+</Problem>~),
+    }) } qr/ZZZ/, 'unknown tag';
+
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<ProblemStatement><include/></ProblemStatement>
+<Checker src="checker.pp"/>
+</Problem>~),
+        'checker.pp' => 'z',
+    }) } qr/include/, 'no incude src';
+
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="Title" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt">
+<ProblemStatement><include src="qqq"/></ProblemStatement>
+<Checker src="checker.pp"/>
+</Problem>~),
+        'checker.pp' => 'z',
+    }) } qr/qqq/, 'bad incude src';
 };
