@@ -1,4 +1,6 @@
 package Logger;
+
+#use Carp;
 sub new { bless {}, $_[0]; }
 sub note {}
 sub warning {}
@@ -11,7 +13,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -40,9 +42,15 @@ $_[0]
 }
 
 subtest 'trivial errors', sub {
-    plan tests => 3;
+    plan tests => 5;
     throws_ok { parse({ 'text.x' => 'zzz' }); } qr/xml not found/, 'no xml';
     throws_ok { parse({ 'text.xml' => 'zzz' }); } qr/error/, 'bad xml';
+    throws_ok { parse({
+        'text.xml' => '<?xml version="1.0" encoding="Utf-8"?><ZZZ/>',
+    }); } qr/ZZZ/, 'no CATS 1';
+    throws_ok { parse({
+        'text.xml' => '<?xml version="1.0" encoding="Utf-8"?><Problem/>',
+    }); } qr/Problem.+CATS/, 'no CATS 2';
     TODO: {
         local $TODO = 'Should validate on end_CATS, not end_Problem';
         throws_ok { parse({ 'text.xml' => wrap_xml('') }) } qr/error/, 'missing Problem';
@@ -242,4 +250,29 @@ text <img picture="p1"/> <a attchment="a1"/>
     is scalar @{$p->{attachments}}, 1, 'attachments count';
     is $p->{attachments}->[0]->{name}, 'a1', 'attachment 1 name';
     is $p->{attachments}->[0]->{src}, 'a1data', 'attachment 1 data';
+};
+
+subtest 'tag stack', sub {
+    plan tests => 7;
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~<ProblemStatement/>~),
+    }) } qr/ProblemStatement.+Problem/, 'ProblemStatement outside Problem';
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~<Checker/>~),
+    }) } qr/Checker.+Problem/, 'Checker outside Problem';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Problem/>~),
+    }) } qr/Problem.+CATS/, 'Problem inside Problem';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<In/>~),
+    }) } qr/In.+Test/, 'In outside Test';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Out/>~),
+    }) } qr/Out.+Test/, 'Out outside Test';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<SampleIn/>~),
+    }) } qr/SampleIn.+Sample/, 'SampleIn outside Sample';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<SampleOut/>~),
+    }) } qr/SampleOut.+Sample/, 'SampleOut outside SampleTest';
 };
