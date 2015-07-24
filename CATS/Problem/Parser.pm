@@ -33,6 +33,12 @@ sub error
     $self->{source}->error(@_);
 }
 
+sub error_stack
+{
+    (my CATS::Problem::Parser $self, my $msg) = @_;
+    $self->error("$msg in " . join '/', @{$self->{tag_stack}});
+}
+
 sub note
 {
     my CATS::Problem::Parser $self = shift;
@@ -108,14 +114,14 @@ sub set_named_object
 
 sub get_named_object
 {
-    (my CATS::Problem::Parser $self, my $name) = @_;
+    (my CATS::Problem::Parser $self, my $name, my $kind) = @_;
 
     defined $name or return undef;
-    defined $self->{objects}->{$name}
-        or $self->error(
-            "Undefined object reference: '$name' in " . join '/', @{$self->{tag_stack}}
-        );
-    return $self->{objects}->{$name};
+    defined(my $result = $self->{objects}->{$name})
+        or $self->error_stack("Undefined object reference: '$name'");
+    defined $kind && $result->{kind} ne $kind
+        and $self->error_stack("Object '$name' is '$result->{kind}' instead of '$kind'");
+    $result;
 }
 
 sub get_imported_id
@@ -134,7 +140,8 @@ sub read_member_named
 
     return (
         src => $self->{source}->read_member($p{name}, "Invalid $p{kind} reference: '$p{name}'"),
-        path => $p{name}
+        path => $p{name},
+        kind => $p{kind},
     );
 }
 
@@ -207,8 +214,8 @@ sub validate
 
 sub inc_object_ref_count
 {
-    (my CATS::Problem::Parser $self, my $name) = @_;
-    defined $name and $self->get_named_object($name)->{refcount}++;
+    (my CATS::Problem::Parser $self, my $name, my $kind) = @_;
+    defined $name and $self->get_named_object($name, $kind)->{refcount}++;
 }
 
 sub on_start_tag
@@ -231,7 +238,7 @@ sub on_start_tag
             $self->error('Picture not defined in img element');
 
         my $attr = { img => 'picture', a => 'attachment', object => 'attachment' }->{$el};
-        $self->inc_object_ref_count($atts{$attr}) if $attr;
+        $self->inc_object_ref_count($atts{$attr}, $attr) if $attr;
         return;
     }
 
@@ -286,7 +293,7 @@ sub stml_src_handlers
                 my $url_field = "${field}_url";
                 $problem->{$url_field} and $self->error("Several $url_field resources");
                 $problem->{$url_field} = { url => 'http', attachment => 'file' }->{$src} . "://$n";
-                $self->inc_object_ref_count($n) if $src eq 'attachment';
+                $self->inc_object_ref_count($n, 'attachment') if $src eq 'attachment';
                 $self->note("$url_field set to $src '$n'");
             }
         },
