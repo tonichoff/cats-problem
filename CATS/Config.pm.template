@@ -10,12 +10,7 @@ BEGIN {
 }
 
 # This is a template file, you should adjust parameters below
-# and copy this file to the same folder, but with .template extenison removed
-
-# The parameters are:
-# db_dsn - string, that tells DBI how to connect to your database
-# db_user - username, used in connection to DB
-# db_password - password, used in connection to DB
+# and copy this file to the same folder, but with .template extenison removed.
 
 use File::Spec;
 
@@ -24,6 +19,16 @@ our $db_user = '<your-username>';
 our $db_password = '<your-password>';
 
 our $proxy = '<your-proxy-server>';
+
+
+our $smtp = {
+    server => '<your-smtp-server>',
+    port => '<your-smtp-port>',
+    login => '<your-smtp-login>',
+    password => '<your-smtp-password>',
+    email => '<your-smtp-email>',
+};
+our $health_report_email = '<your-health-report-email>';
 
 our $cats_dir;
 sub cats_dir()
