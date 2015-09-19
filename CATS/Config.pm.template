@@ -30,6 +30,9 @@ our $smtp = {
 };
 our $health_report_email = '<your-health-report-email>';
 
+# In hours.
+our $judge_alive_interval = 1.0;
+
 our $cats_dir;
 sub cats_dir()
 {
