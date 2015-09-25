@@ -398,12 +398,14 @@ sub state_to_display
         runtime_error =>         $state == $cats::st_runtime_error,
         compilation_error =>     $state == $cats::st_compilation_error,
         idleness_limit_exceeded=>$state == $cats::st_idleness_limit_exceeded,
+        manually_rejected =>     $state == $cats::st_manually_rejected,
     );
     (
         not_processed =>         $state == $cats::st_not_processed,
         unhandled_error =>       $state == $cats::st_unhandled_error,
         install_processing =>    $state == $cats::st_install_processing,
         testing =>               $state == $cats::st_testing,
+        awaiting_verification => $state == $cats::st_awaiting_verification,
         accepted =>              $state == $cats::st_accepted,
         ($use_rejected ? (rejected => 0 < grep $_, values %error) : %error),
         security_violation =>    $state == $cats::st_security_violation,

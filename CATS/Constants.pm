@@ -57,8 +57,9 @@ $st_not_processed = 0;
 $st_unhandled_error = 1;
 $st_install_processing = 2;
 $st_testing = 3;
+$st_awaiting_verification = 4;
 
-# This value should not actuall exist in the database.
+# This value should not actually exist in the database.
 # Values greater than this indicate that judge has finished processing.
 $request_processed = 9;
 
@@ -72,6 +73,7 @@ $st_security_violation = 16;
 $st_memory_limit_exceeded = 17;
 $st_ignore_submit = 18;
 $st_idleness_limit_exceeded = 19;
+$st_manually_rejected = 20;
 
 # Values for contest_problems.status.
 $problem_st_ready     = 0;
