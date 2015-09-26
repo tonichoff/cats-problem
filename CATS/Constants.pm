@@ -75,11 +75,12 @@ $st_ignore_submit = 18;
 $st_idleness_limit_exceeded = 19;
 $st_manually_rejected = 20;
 
-# Values for contest_problems.status.
-$problem_st_ready     = 0;
-$problem_st_suspended = 1;
-$problem_st_disabled  = 2;
-$problem_st_hidden    = 3;
+# Values for contest_problems.status. Order is important:
+$problem_st_manual    = 0; # Requre manual verification after judge acceptance.
+$problem_st_ready     = 1; # Judges process runs starting at or above this status.
+$problem_st_suspended = 2; # UI accepts submissions at or above this status.
+$problem_st_disabled  = 3; # UI displays problems at or above this status.
+$problem_st_hidden    = 4;
 
 # Values for problems.run_method.
 $rm_default = 0;
