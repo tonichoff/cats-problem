@@ -8,8 +8,38 @@ use File::Slurp;
 use lib '..'; 
 my $clear = 0;
 my @tests;
+my $compiler;
+
+sub check_compiler {
+    ($compiler) = @_;
+    my $hello_world =<<"END"
+#include <iostream>
+using namespace std;
+int main() {
+    cout << "Hello World" << endl;    
+}
+END
+;
+    open(my $fh, '>', 'hello_world.cpp');
+    print $fh $hello_world;
+    close $fh;
+    my $compile = "$compiler -o hello_world.exe hello_world.cpp";
+    system $compile;
+    unlink "hello_world.cpp";
+    if ($? >> 8) {
+        print "$compiler bad compiler\n";
+        die;
+    }
+    my $out = `hello_world.exe`;
+    $out ne "Hello World\n" and print "wrong output: $out" and die;
+    print "used compiler $compiler\n"
+}
+
 BEGIN {
-    #register tests
+    if ($#ARGV > -1) {
+        check_compiler(@ARGV);
+    }
+    
     push @tests, map {run => \&run_parser_test, file => $_} => <parser/*.fd>;
     push @tests, map {
         run => \&run_validator_test,
@@ -59,8 +89,9 @@ sub prepare_testlib_validator {
     CATS::Formal::Formal::generate_and_write(
         {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"   
     );
+    $compiler or fail("undefined compiler") or return;
     my $compile = 
-        "g++ -enable-auto-import -o $dir$name.exe $dir$name.cpp";
+        "$compiler -o $dir$name.exe $dir$name.cpp";
     print "compiling... $file -> testlib\n";
     system($compile);
     if ($? >> 8) {
