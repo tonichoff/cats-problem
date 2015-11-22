@@ -47,7 +47,7 @@ BEGIN {
         prepare => \&prepare_testlib_validator,
         validate => \&testlib_validate,
         name => 'testlib'
-    } => <validator/*.fd>;
+    } => <validator/*.fd> if $compiler;
     push @tests, map {
         run => \&run_validator_test,
         file => $_,
@@ -89,7 +89,7 @@ sub prepare_testlib_validator {
     CATS::Formal::Formal::generate_and_write(
         {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"   
     );
-    $compiler or fail("undefined compiler") or return;
+    $compiler or return fail('undefined compiler');
     my $compile = 
         "$compiler -o $dir$name.exe $dir$name.cpp";
     print "compiling... $file -> testlib\n";
