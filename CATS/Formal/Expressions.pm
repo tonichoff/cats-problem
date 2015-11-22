@@ -4,7 +4,6 @@ use Error;
 use Constants;
     
 package CATS::Formal::Expressions::BaseExpression;
-use Base;
 use parent -norequire, 'CATS::Formal::BaseObj';
 
 sub is_expr {1;}
