@@ -1,5 +1,8 @@
 package CATS::Config;
 
+use strict;
+use warnings;
+
 BEGIN {
     use Exporter;
 
@@ -20,7 +23,6 @@ our $db_password = '<your-password>';
 
 our $proxy = '<your-proxy-server>';
 
-
 our $smtp = {
     server => '<your-smtp-server>',
     port => '<your-smtp-port>',
@@ -29,6 +31,8 @@ our $smtp = {
     email => '<your-smtp-email>',
 };
 our $health_report_email = '<your-health-report-email>';
+
+our $ip_info = 'https://db-ip.com/%s';
 
 # In hours.
 our $judge_alive_interval = 1.0;
