@@ -485,8 +485,10 @@ sub import_one_source
 
     if ($src_id) {
         !$type || $stype == $type || $cats::source_modules{$stype} == $type
-            or $self->error("Import type check failed for guid='$guid' ($type vs $stype)");
-        $self->checker_added if defined $cats::source_modules{$stype} && $cats::source_modules{$stype} == $cats::checker_module;
+            or $self->error(sprintf q~Import type check failed for guid='%s' expected: '%s' got: '%s'~,
+                $guid, map $cats::source_module_names{$_}, $type, $stype);
+        $self->checker_added
+            if defined $cats::source_modules{$stype} && $cats::source_modules{$stype} == $cats::checker_module;
         $import->{src_id} = $src_id;
         $self->note("Imported source from guid='$guid'");
     } else {
