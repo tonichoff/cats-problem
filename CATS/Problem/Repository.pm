@@ -653,7 +653,7 @@ sub parse_commit_text
     return %co;
 }
 
-sub commif_diff
+sub commit_diff
 {
     my ($self, %co) = @_;
     @{$co{parents}} <= 1 or die 'Too many parents'; # TODO?
@@ -683,7 +683,7 @@ sub commit_info
 {
     my ($self, $sha, $enc) = @_;
     my %co = $self->parse_commit($sha);
-    return { info => \%co, $self->commif_diff(%co, encoding => $enc), log => $self->{log} };
+    return { info => \%co, $self->commit_diff(%co, encoding => $enc), log => $self->{log} };
 }
 
 # format tree entry (row of git_tree)
