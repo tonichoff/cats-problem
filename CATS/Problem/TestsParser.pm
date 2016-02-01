@@ -136,7 +136,9 @@ sub start_tag_In
             $self->set_test_attr($_, 'gen_group', $gen_group);
         }
         $self->note(
-            "Generator group $gen_group created for tests " . join ',', map $_->{rank}, @t) if $gen_group;
+            "Generator group $gen_group created for tests " .
+            join ',', sort { $a <=> $b } map $_->{rank}, @t)
+            if $gen_group;
     }
     if (defined $atts->{validate}) {
         for (@t) {
