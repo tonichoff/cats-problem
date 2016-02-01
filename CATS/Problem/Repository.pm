@@ -659,8 +659,9 @@ sub commit_diff
     @{$co{parents}} <= 1 or die 'Too many parents'; # TODO?
     # my $hash_parent_param = @{$co{'parents'}} > 1 ? '--cc' : $co{'parent'} || '--root';
     my $hash_parent_param = $co{parent} || '--root';
+    # TODO: Normalize whitespace instead.
     my @lines = map Encode::decode($co{encoding}, $_),
-        $self->git("diff-tree -r -M --no-commit-id --patch-with-raw --full-index $hash_parent_param ${co{id}}");
+        $self->git("diff-tree -b -r -M --no-commit-id --patch-with-raw --full-index $hash_parent_param ${co{id}}");
     my @difftree;
     while (scalar @lines) {
         my $line = shift @lines;
