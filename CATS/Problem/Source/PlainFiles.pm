@@ -4,6 +4,9 @@ use strict;
 use warnings;
 
 use File::Spec;
+use File::stat;
+use File::Glob 'bsd_glob';
+use List::Util 'max';
 use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 
 use CATS::BinaryFile;
@@ -62,5 +65,18 @@ sub finalize
     $repo->add()->commit($self->{problem}{author}, $message, $is_amend);
 }
 
+sub last_modified {
+    my ($self) = @_;
+    my $dir = $self->{dir};
+    my (@path, @folder);
+    while ($dir) {
+        my @new_path = bsd_glob(File::Spec->catfile($dir, '*'));
+        push @path, @new_path;
+        -d $_ and push @folder, $_ for @new_path;
+        $dir = pop @folder;
+    }
+    push @path, $self->{dir};
+    max(map stat($_)->mtime, @path);
+}
 
 1;
