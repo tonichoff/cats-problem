@@ -40,11 +40,17 @@ sub object_by_id
     select_object($table, { id => $id });
 }
 
-
-my $next_id = 100;
 sub new_id
 {
-    return $next_id++ unless $dbh;
+    unless ($dbh) {
+        open my $fnext_id, '<', 'judge_next_id.txt';
+        my $id = <$fnext_id>;
+        chomp $id;
+        close $fnext_id;
+        open $fnext_id, '>', 'judge_next_id.txt';
+        printf $fnext_id "%d\n", $id + 1;
+        return $id;
+    }
     if ($CATS::Config::db_dsn =~ /Firebird/)
     {
         $dbh->selectrow_array(q~SELECT GEN_ID(key_seq, 1) FROM RDB$DATABASE~);
