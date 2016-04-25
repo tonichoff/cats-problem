@@ -373,7 +373,7 @@ sub start_tag_Attachment
 
     push @{$self->{problem}{attachments}},
         $self->set_named_object($atts->{name}, {
-            id => $self->{id_gen}->($self),
+            id => $self->{id_gen}->($self, $atts->{src}),
             $self->read_member_named(name => $atts->{src}, kind => 'attachment'),
             name => $atts->{name}, file_name => $atts->{src}, refcount => 0
         });
@@ -388,7 +388,7 @@ sub start_tag_Picture
 
     push @{$self->{problem}{pictures}},
         $self->set_named_object($atts->{name}, {
-            id => $self->{id_gen}->($self),
+            id => $self->{id_gen}->($self, $atts->{src}),
             $self->read_member_named(name => $atts->{src}, kind => 'picture'),
             name => $atts->{name}, ext => $ext, refcount => 0
         });
@@ -398,7 +398,7 @@ sub problem_source_common_params
 {
     (my CATS::Problem::Parser $self, my $atts, my $kind) = @_;
     return (
-        id => $self->{id_gen}->($self),
+        id => $self->{id_gen}->($self, $atts->{src}),
         $self->read_member_named(name => $atts->{src}, kind => $kind),
         de_code => $atts->{de_code},
         guid => $atts->{export},
@@ -466,7 +466,7 @@ sub start_tag_Module
     exists CATS::Problem::module_types()->{$atts->{type}}
         or $self->error("Unknown module type: '$atts->{type}'");
     push @{$self->{problem}{modules}}, {
-        id => $self->{id_gen}->($self),
+        id => $self->{id_gen}->($self, $atts->{src}),
         $self->read_member_named(name => $atts->{src}, kind => 'module'),
         de_code => $atts->{de_code},
         guid => $atts->{export}, type => $atts->{type},
@@ -518,7 +518,7 @@ sub start_tag_Sample
     $self->error("Duplicate sample $r") if defined $self->{problem}{samples}->{$r};
 
     $self->{current_sample} = $self->{problem}{samples}->{$r} = {
-        sample_id => $self->{id_gen}->($self),
+        sample_id => $self->{id_gen}->($self, "Start_tag_Sample_with_rank_equal_$atts->{rank}"),
         rank => $r
     };
 }
@@ -568,7 +568,7 @@ sub start_tag_Testset
     $problem->{testsets}->{$n} and $self->error("Duplicate testset '$n'");
     $self->parse_test_rank($atts->{tests});
     $problem->{testsets}->{$n} = {
-        id => $self->{id_gen}->($self),
+        id => $self->{id_gen}->($self, "Test_set_with_name_$n"),
         map { $_ => $atts->{$_} } qw(name tests points comment hideDetails)
     };
     $problem->{testsets}->{$n}->{hideDetails} ||= 0;
