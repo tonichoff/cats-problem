@@ -42,15 +42,7 @@ sub object_by_id
 
 sub new_id
 {
-    unless ($dbh) {
-        open my $fnext_id, '<', 'judge_next_id.txt';
-        my $id = <$fnext_id>;
-        chomp $id;
-        close $fnext_id;
-        open $fnext_id, '>', 'judge_next_id.txt';
-        printf $fnext_id "%d\n", $id + 1;
-        return $id;
-    }
+    return Digest::MD5::md5_hex(Encode::encode_utf8($_[1])) unless $dbh;
     if ($CATS::Config::db_dsn =~ /Firebird/)
     {
         $dbh->selectrow_array(q~SELECT GEN_ID(key_seq, 1) FROM RDB$DATABASE~);
