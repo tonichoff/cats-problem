@@ -42,7 +42,7 @@ sub object_by_id
 
 sub new_id
 {
-    return Digest::MD5::md5_hex(Encode::encode_utf8($_[1])) unless $dbh;
+    return Digest::MD5::md5_hex(Encode::encode_utf8($_[1] // die)) unless $dbh;
     if ($CATS::Config::db_dsn =~ /Firebird/)
     {
         $dbh->selectrow_array(q~SELECT GEN_ID(key_seq, 1) FROM RDB$DATABASE~);
