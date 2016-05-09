@@ -3,19 +3,19 @@ package CATS::Problem::PolygonBackend;
 use strict;
 use warnings;
 
-use List::Util 'max';
 use Archive::Zip;
-use File::Temp qw[tempfile tempdir];
+use Cwd;
+use List::Util 'max';
 use File::Glob 'bsd_glob';
+use File::Temp qw(tempfile tempdir);
+use File::Spec;
 
 my $has_mechanize;
 BEGIN { $has_mechanize = eval { require WWW::Mechanize; require HTML::TreeBuilder; 1; } }
 
-use File::Spec;
-
 sub new {
     my ($class, $problem, $log, $problem_path, $url, $login, $password, $action, $exist_problem, $root) = @_;
-    $has_mechanize or $log->error('WWW::Mechanize requires for update problem');
+    $has_mechanize or $log->error('WWW::Mechanize is required to use Polygon back-end');
     my $self = {
         root => $root,
         problem => $problem,
@@ -50,8 +50,8 @@ sub login {
     $mech->get("$self->{root}/login");
     $mech->form_with_fields('login', 'password');
     $mech->set_fields(
-        'login' => $self->{login},
-        'password' => $self->{password},
+        login => $self->{login},
+        password => $self->{password},
     );
     $mech->submit;
 }

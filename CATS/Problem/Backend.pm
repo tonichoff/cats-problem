@@ -4,18 +4,17 @@ use strict;
 use warnings;
 
 use Archive::Zip;
-
 use File::Glob 'bsd_glob';
 use File::Temp;
-
-use JSON;
+use JSON::XS;
+use LWP::UserAgent;
 
 my $has_Http_Request_Common;
 BEGIN { $has_Http_Request_Common = eval { require HTTP::Request::Common; import HTTP::Request::Common; 1; } }
 
 sub new {
     my ($class, $problem, $log, $problem_path, $url, $login, $password, $action, $problem_exist, $root) = @_;
-    $has_Http_Request_Common or $log->error('HTTP::Request::Common requires for update problem');
+    $has_Http_Request_Common or $log->error('HTTP::Request::Common is required to upload problems');
     my ($sid) = $url =~ m/sid=([a-zA-Z0-9]+)/ or $log->error("bad contest url $url");
     my ($cid) = $url =~ m/cid=([a-zA-Z0-9]+)/ or $log->error("bad contest url $url");
     my ($pid) = $url =~ m/download=([a-zA-Z0-9]+)/;
@@ -88,7 +87,7 @@ sub upload_problem {
             json => 1,
             cid => $self->{cid},
             sid => $self->{sid},
-            zip => [$fname],
+            zip => [ $fname ],
             add_new => 1,
     ]);
 }
