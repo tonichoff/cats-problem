@@ -99,11 +99,12 @@ sub problem_source_common_params {
 
 sub start_tag_problem {
     (my CATS::Problem::PolygonParser $self, my $atts) = @_;
+    $self->{problem}{description}{title} = $atts->{'short-name'};
 }
 
 sub start_tag_name {
     (my CATS::Problem::PolygonParser $self, my $atts) = @_;
-    $self->{problem}{description}{title} = $atts->{value};
+    #$self->{problem}{description}{title} = $atts->{value};
 }
 
 sub start_tag_judging {
@@ -196,7 +197,6 @@ sub end_tag_answer_pattern {
 
 sub start_tag_file {
     (my CATS::Problem::PolygonParser $self, my $atts) = @_;
-    $atts->{path} and $atts->{type} or return;
     $atts->{path} =~ m/testlib.h/ or return;
     $self->{testlib} = $atts->{path};
     $self->{has_testlib} = 1;
