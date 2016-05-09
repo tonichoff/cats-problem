@@ -300,8 +300,7 @@ sub stml_src_handlers
 sub end_tag_FormalInput
 {
     (my CATS::Problem::Parser $self, my $atts) = @_;
-    $has_formal_input or $self->warning('Parsing FormalInput tag requires FormalInput module');
-    $has_formal_input or return;
+    $has_formal_input or return $self->warning('Parsing FormalInput tag requires FormalInput module');
     my $parser_err = FormalInput::parserValidate(${$self->{stml}});
     if ($parser_err) {
         my $s = FormalInput::errorMessageByCode(FormalInput::getErrCode($parser_err));
