@@ -14,7 +14,7 @@ my $has_mechanize;
 BEGIN { $has_mechanize = eval { require WWW::Mechanize; require HTML::TreeBuilder; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $login, $password, $action, $exist_problem, $root) = @_;
+    my ($class, $problem, $log, $problem_path, $url, $action, $exist_problem, $root) = @_;
     $has_mechanize or $log->error('WWW::Mechanize is required to use Polygon back-end');
     my $self = {
         root => $root,
@@ -22,8 +22,6 @@ sub new {
         log => $log,
         name => $exist_problem ? $problem->{description}{title} : $problem_path,
         path => $exist_problem ? $problem_path : "$problem_path.zip",
-        login => $login,
-        password => $password,
         url => $url,
         mech => WWW::Mechanize->new(autocheck => 1),
         pid => undef,
@@ -44,14 +42,16 @@ sub new {
     return bless \%{$self} => $class;
 }
 
+sub needs_login { !defined $_[0]->{session} || !defined $_[0]->{ccid} }
+
 sub login {
-    my $self = shift;
+    my ($self, $login, $password) = @_;
     my $mech = $self->{mech};
     $mech->get("$self->{root}/login");
     $mech->form_with_fields('login', 'password');
     $mech->set_fields(
-        login => $self->{login},
-        password => $self->{password},
+        login => $login,
+        password => $password,
     );
     $mech->submit;
 }
@@ -418,7 +418,6 @@ sub download_problem {
 
 sub update {
     my $self = shift;
-    $self->login;
     $self->start;
     $self->{upload} ? $self->upload_problem : $self->download_problem;
 }

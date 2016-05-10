@@ -13,37 +13,37 @@ my $has_Http_Request_Common;
 BEGIN { $has_Http_Request_Common = eval { require HTTP::Request::Common; import HTTP::Request::Common; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $login, $password, $action, $problem_exist, $root) = @_;
+    my ($class, $problem, $log, $problem_path, $url, $action, $problem_exist, $root) = @_;
     $has_Http_Request_Common or $log->error('HTTP::Request::Common is required to upload problems');
-    my ($sid) = $url =~ m/sid=([a-zA-Z0-9]+)/ or $log->error("bad contest url $url");
-    my ($cid) = $url =~ m/cid=([a-zA-Z0-9]+)/ or $log->error("bad contest url $url");
-    my ($pid) = $url =~ m/download=([a-zA-Z0-9]+)/;
+    my ($sid) = $url =~ m/sid=([a-zA-Z0-9]+)/;
+    my ($cid) = $url =~ m/cid=([0-9]+)/ or $log->error("bad contest url $url");
+    my ($pid) = $url =~ m/download=([0-9]+)/;
     my $self = {
         root => $root,
         problem => $problem,
         log => $log,
         name => $problem_exist ? $problem->{description}{title} : $problem_path,
         path => $problem_exist ? $problem_path : "$problem_path.zip",
-        login => $login,
-        password => $password,
-        agent => LWP::UserAgent->new,
+        agent => LWP::UserAgent->new(requests_redirectable => [ qw(GET POST) ]),
         sid => $sid,
         cid => $cid,
         pid => $pid,
         upload => $action eq 'upload',
     };
-    return bless \%{$self} => $class;
+    return bless $self => $class;
 }
 
+sub needs_login { !defined $_[0]->{sid} }
+
 sub login {
-    my $self = shift;
+    my ($self, $login, $password) = @_;
     my $log = $self->{log};
     my $agent = $self->{agent};
     my $response = $agent->request(POST "$self->{root}/main.pl", [
         f => 'login',
         json => 1,
-        login => $self->{login},
-        passwd => $self->{password},
+        login => $login,
+        passwd => $password,
     ]);
     $response = decode_json($response->{_content});
     $response->{status} eq 'error' and $log->error($response->{message});
@@ -61,8 +61,7 @@ sub start {
     ]);
     $response = decode_json($response->{_content});
     if ($response->{error}) {
-        $self->{log}->warning($response->{error});
-        $self->login;
+        $self->{log}->error($response->{error});
     }
 }
 
@@ -112,7 +111,8 @@ sub download_without_using_url {
 sub download_using_url {
     my $self = shift;
     my $agent = $self->{agent};
-    my $response = $agent->request(GET "$self->{root}/main.pl", [
+    my $response = $agent->request(POST "$self->{root}/main.pl",
+      Content => [
         sid => $self->{sid},
         cid => $self->{cid},
         f => 'problems',
