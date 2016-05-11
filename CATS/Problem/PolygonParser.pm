@@ -253,11 +253,12 @@ sub start_tag_executable_source {
 sub on_start_tag {
     my CATS::Problem::PolygonParser $self = shift;
     my ($p, $el, %atts) = @_;
-    my $h = tag_handlers()->{$el} ? tag_handlers()->{$el} :
-        tag_handlers()->{ "${$self->{tag_stack}}[-1]->{name}/$el" }
-        or $self->error("Unknown tag $el");
-    my %prop = ( name => $el, atts => \%atts );
-    push @{$self->{tag_stack}}, \%prop;
+    my $stack = $self->{tag_stack};
+    my $h =
+        tag_handlers()->{$el} ? tag_handlers()->{$el} :
+        @$stack > 1 ? tag_handlers()->{ "$stack->[-1]->{name}/$el" } : undef
+        or $self->error("Unknown tag '$el'");
+    push @$stack, { name => $el, atts => \%atts };
     $h->{s}->($self, \%atts, $el) if $h->{s};
 }
 
