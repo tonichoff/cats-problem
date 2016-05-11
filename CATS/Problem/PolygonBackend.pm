@@ -40,11 +40,13 @@ sub new {
         },
         verbose => $verbose,
     };
+    ($self->{ccid}) = $url =~ m/ccid=([a-z0-9]+)/;
+    ($self->{name}) = $url =~ m~/p/[a-zA-Z0-9-]+/([a-zA-Z0-9-]+)~;
     $self->{mech}->proxy('https', $proxy) if $proxy;
     return bless $self => $class;
 }
 
-sub needs_login { !defined $_[0]->{session} || !defined $_[0]->{ccid} }
+sub needs_login { !defined $_[0]->{ccid} }
 
 sub login {
     my ($self, $login, $password) = @_;
