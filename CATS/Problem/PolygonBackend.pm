@@ -14,7 +14,7 @@ my $has_mechanize;
 BEGIN { $has_mechanize = eval { require WWW::Mechanize; require HTML::TreeBuilder; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $exist_problem, $root, $verbose) = @_;
+    my ($class, $problem, $log, $problem_path, $url, $exist_problem, $root, $proxy, $verbose) = @_;
     $has_mechanize or $log->error('WWW::Mechanize is required to use Polygon back-end');
     my $self = {
         root => $root,
@@ -23,7 +23,7 @@ sub new {
         name => $exist_problem ? $problem->{description}{title} : $problem_path,
         path => $exist_problem ? $problem_path : "$problem_path.zip",
         url => $url,
-        mech => WWW::Mechanize->new(autocheck => 1),
+        mech => WWW::Mechanize->new(autocheck => 1, ssl_opts => { verify_hostname => 0 }),
         pid => undef,
         ccid => undef,
         session => undef,
@@ -39,6 +39,7 @@ sub new {
         },
         verbose => $verbose,
     };
+    $self->{mech}->proxy('https', $proxy) if $proxy;
     return bless $self => $class;
 }
 

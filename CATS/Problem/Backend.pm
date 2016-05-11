@@ -13,7 +13,7 @@ my $has_Http_Request_Common;
 BEGIN { $has_Http_Request_Common = eval { require HTTP::Request::Common; import HTTP::Request::Common; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $problem_exist, $root, $verbose) = @_;
+    my ($class, $problem, $log, $problem_path, $url, $problem_exist, $root, $proxy, $verbose) = @_;
     my ($sid) = $url =~ m/sid=([a-zA-Z0-9]+)/;
     my ($cid) = $url =~ m/cid=([0-9]+)/ or $log->error("bad contest url $url");
     my ($pid) = $url =~ m/download=([0-9]+)/;
@@ -29,6 +29,7 @@ sub new {
         pid => $pid,
         verbose => $verbose,
     };
+    $self->{agent}->proxy('http', $proxy) if $proxy;
     return bless $self => $class;
 }
 
