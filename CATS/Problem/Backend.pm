@@ -33,31 +33,32 @@ sub new {
 
 sub needs_login { !defined $_[0]->{sid} }
 
+sub post {
+  my ($self, $params) = @_;
+  decode_json($self->{agent}->request(POST "$self->{root}/main.pl", $params)->{_content});
+}
+
 sub login {
     my ($self, $login, $password) = @_;
     my $log = $self->{log};
-    my $agent = $self->{agent};
-    my $response = $agent->request(POST "$self->{root}/main.pl", [
+    my $response = $self->post([
         f => 'login',
         json => 1,
         login => $login,
         passwd => $password,
     ]);
-    $response = decode_json($response->{_content});
     $response->{status} eq 'error' and $log->error($response->{message});
     $self->{sid} = $response->{sid};
 }
 
 sub start {
     my $self = shift;
-    my $agent = $self->{agent};
-    my $response = $agent->request(POST "$self->{root}/main.pl", [
+    my $response = $self->post([
         f => 'problems',
         json => 1,
         cid => $self->{cid},
         sid => $self->{sid},
     ]);
-    $response = decode_json($response->{_content});
     if ($response->{error}) {
         $self->{log}->error($response->{error});
     }
@@ -92,19 +93,16 @@ sub upload_problem {
 
 sub download_without_using_url {
     my $self = shift;
-    my $agent = $self->{agent};
     my $log = $self->{log};
-    my $response = $agent->request(POST "$self->{root}/main.pl",
-        Content  => [
-            f => 'problems',
-            json => 1,
-            cid => $self->{cid},
-            sid => $self->{sid},
-        ]);
-    $response = decode_json($response->{_content});
+    my $response = $self->post([
+        f => 'problems',
+        json => 1,
+        cid => $self->{cid},
+        sid => $self->{sid},
+    ]);
     my @problems = grep $_->{name} eq $self->{name}, @{$response->{problems}};
     @problems != 1 and $log->error(@problems . " problems have name '$self->{name}'");
-    $agent->request(GET "$self->{root}/$problems[0]->{package_url}");
+    $self->{agent}->request(GET "$self->{root}/$problems[0]->{package_url}");
 }
 
 sub download_using_url {
