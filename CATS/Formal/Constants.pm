@@ -117,7 +117,14 @@ use constant {
     }
 };
 
-my %RTOKENS = reverse %{TOKENS()};
+sub reverse_hash {
+    my ($hash) = @_;
+    my $r;
+    $r->{$hash->{$_}} //= $_ for sort keys %$hash;
+    $r;
+}
+
+my %RTOKENS = %{reverse_hash TOKENS};
 
 use constant PRIORS => {
     #TOKENS->{DOT}   => 7,
@@ -138,13 +145,12 @@ use constant PRIORS => {
     TOKENS->{OR}    => 1,
 };
 
-my %tmp = reverse %{STR_TOKENS()};
-use constant TOKENS_STR => \%tmp;
+use constant TOKENS_STR => reverse_hash STR_TOKENS;
 
 use constant PREF_PRIOR => PRIORS->{TOKENS->{NOT}};
 
 use constant CMP_PRIOR => PRIORS->{TOKENS->{LT}};
 
-my %RFD_TYPES = reverse %{FD_TYPES()};
-use constant RFD_TYPES => \%RFD_TYPES;
+use constant RFD_TYPES => reverse_hash FD_TYPES;
+
 1;
