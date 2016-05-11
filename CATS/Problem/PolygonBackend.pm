@@ -54,6 +54,7 @@ sub login {
         password => $password,
     );
     $mech->submit;
+    $mech->uri->path eq '/problems' or die 'invalid login/email or password';
 }
 
 sub start {
@@ -61,7 +62,7 @@ sub start {
     my $mech = $self->{mech};
     my $log = $self->{log};
     my $elem = HTML::TreeBuilder->new_from_content($mech->content)->look_down(_tag => 'tr', problemName => $self->{name});
-    $self->{pid} = $elem->{problemid} or $log->error('invalid login/email or password or problem not found');
+    $self->{pid} = $elem->{problemid} or $log->error('problem not found');
     ($self->{ccid}) = $mech->uri =~ m/ccid=([a-z0-9]*)/;
     if ($self->{mech}->find_link(url_regex => qr/edit-start\?problemId=$self->{pid}/)) {
         $self->{mech}->get("/edit-start\?problemId=$self->{pid}\&ccid=$self->{ccid}");
