@@ -33,6 +33,7 @@ sub on_end_tag
     $content =~ s/^\s+// if defined $content;
 
     if ($el eq 'path') {
+        $source->{path} = $content;
         $source->{src} = '';
         CATS::BinaryFile::load($content, \$source->{src});
         return;
@@ -66,7 +67,7 @@ sub load {
     my ($guid, $dir) = @_;
     my $fname = File::Spec->catfile($dir, "$guid.xml");
 
-    my $parser = new XML::Parser::Expat;
+    my $parser = XML::Parser::Expat->new;
     my $text = undef;
     my $source = {%{get_tags()}};
     $parser->setHandlers(
@@ -74,7 +75,7 @@ sub load {
         Char => sub { $text .= $_[1] },
     );
     CATS::BinaryFile::load($fname, \my $data);
-    $parser->parse($data);
+    $parser->parsefile($fname);
     return $source;
 }
 
@@ -84,8 +85,7 @@ sub get_guids_by_regexp {
     $guid =~ s/\*/\.\*/;
     $guid = qr/$guid/;
     opendir my $dh, $dir or die "Cannot open directory: $!";
-    map { /^(.*)\.xml$/; $1 } grep /$guid/, readdir $dh;
+    map { /^(.*)\.xml$/ ? $1 : () } grep /^$guid/, readdir $dh;
 }
-
 
 1;
