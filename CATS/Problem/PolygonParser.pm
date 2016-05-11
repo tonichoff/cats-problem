@@ -39,6 +39,7 @@ sub tag_handlers() {{
     'input-path-pattern' => { e => \&end_tag_input_pattern },
     'output-path-pattern' => {},
     'answer-path-pattern' => { e => \&end_tag_answer_pattern },
+    'stress-file-pattern' => {},
     files => {},
     resources => {},
     file => { s => \&start_tag_file },
@@ -99,7 +100,7 @@ sub problem_source_common_params {
 
 sub start_tag_problem {
     (my CATS::Problem::PolygonParser $self, my $atts) = @_;
-    $self->{problem}{description}{title} = $atts->{'short-name'};
+    $self->{problem}{description}{title} = $atts->{'short-name'} || $atts->{'name'};
 }
 
 sub start_tag_name {
@@ -109,8 +110,8 @@ sub start_tag_name {
 
 sub start_tag_judging {
     (my CATS::Problem::PolygonParser $self, my $atts) = @_;
-    $self->{problem}{description}{input_file} = $atts->{'input-file'};
-    $self->{problem}{description}{output_file} = $atts->{'output-file'};
+    $self->{problem}{description}{input_file} = $atts->{'input-file'} || '*STDIN';
+    $self->{problem}{description}{output_file} = $atts->{'output-file'} || '*STDOUT';
 }
 
 sub start_tag_judging_testset {
@@ -309,6 +310,8 @@ sub parse_xml {
             }
         }
     }
+
+    $self->{problem}->{run_method} = $cats::rm_default;
 }
 
 sub parse {
