@@ -14,7 +14,7 @@ my $has_mechanize;
 BEGIN { $has_mechanize = eval { require WWW::Mechanize; require HTML::TreeBuilder; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $action, $exist_problem, $root) = @_;
+    my ($class, $problem, $log, $problem_path, $url, $exist_problem, $root) = @_;
     $has_mechanize or $log->error('WWW::Mechanize is required to use Polygon back-end');
     my $self = {
         root => $root,
@@ -27,7 +27,6 @@ sub new {
         pid => undef,
         ccid => undef,
         session => undef,
-        upload => $action eq 'upload',
         downloading => {
             tests => [],
             sources => [],
@@ -39,7 +38,7 @@ sub new {
             pattern => undef,
         }
     };
-    return bless \%{$self} => $class;
+    return bless $self => $class;
 }
 
 sub needs_login { !defined $_[0]->{session} || !defined $_[0]->{ccid} }
@@ -414,12 +413,6 @@ sub download_problem {
     $self->generate_xml;
     $self->{downloading}{writer} = -d $self->{path} ? \&write_dir : \&write_archive;
     $self->{downloading}{writer}->($self, $self->{path});
-}
-
-sub update {
-    my $self = shift;
-    $self->start;
-    $self->{upload} ? $self->upload_problem : $self->download_problem;
 }
 
 1;

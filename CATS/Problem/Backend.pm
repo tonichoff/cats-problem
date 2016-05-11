@@ -13,8 +13,7 @@ my $has_Http_Request_Common;
 BEGIN { $has_Http_Request_Common = eval { require HTTP::Request::Common; import HTTP::Request::Common; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $action, $problem_exist, $root) = @_;
-    $has_Http_Request_Common or $log->error('HTTP::Request::Common is required to upload problems');
+    my ($class, $problem, $log, $problem_path, $url, $problem_exist, $root) = @_;
     my ($sid) = $url =~ m/sid=([a-zA-Z0-9]+)/;
     my ($cid) = $url =~ m/cid=([0-9]+)/ or $log->error("bad contest url $url");
     my ($pid) = $url =~ m/download=([0-9]+)/;
@@ -28,7 +27,6 @@ sub new {
         sid => $sid,
         cid => $cid,
         pid => $pid,
-        upload => $action eq 'upload',
     };
     return bless $self => $class;
 }
@@ -67,6 +65,7 @@ sub start {
 
 sub upload_problem {
     my $self = shift;
+    $has_Http_Request_Common or $self->{log}->error('HTTP::Request::Common is required to upload problems');
     my $agent = $self->{agent};
     my $fname;
     if (-d $self->{path}) {
@@ -147,12 +146,6 @@ sub download_problem {
             $member->extractToFileNamed($fn);
         }
     }
-}
-
-sub update {
-    my $self = shift;
-    $self->start;
-    $self->{upload} ? $self->upload_problem : $self->download_problem;
 }
 
 1;
