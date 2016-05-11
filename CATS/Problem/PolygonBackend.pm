@@ -5,6 +5,7 @@ use warnings;
 
 use Archive::Zip;
 use Cwd;
+use Encode;
 use List::Util 'max';
 use File::Glob 'bsd_glob';
 use File::Temp qw(tempfile tempdir);
@@ -281,7 +282,7 @@ sub write_dir {
         mkdir File::Spec->catfile($path, $_->{dir});
         open my $fh, '>', $fn = File::Spec->catfile($path, $_->{dir}, $_->{name})
             or $log->error("Can't open file $fn");
-        print $fh $_->{content};
+        print $fh encode_utf8($_->{content});
     }
 
     mkdir File::Spec->catfile($path, 'tests');
@@ -289,7 +290,7 @@ sub write_dir {
         $_->{method} eq 'manual' or next;
         open my $fh, '>', $fn = File::Spec->catfile($path, sprintf($self->{downloading}{pattern}, $_->{rank}))
             or $log->error("Can't open file $fn");
-        print $fh $_->{content};
+        print $fh encode_utf8($_->{content});
     }
 
     open my $fh, '>', $fn = File::Spec->catfile($path, 'problem.xml') or $log->error("Can't open file $fn");
@@ -306,10 +307,11 @@ sub dumper_atts {
 sub dumper {
     my ($self, $spaces, $xml) = @_;
     my $ans = '';
-    for (@{$xml}) {
+    for (@$xml) {
+        $_->{name} or next; # FIXME
         $ans .=
-            "$spaces<$_->{name}" . $self->dumper_atts($_->{atts}) . ">" . ($_->{value} || ($_->{tags} ? "\n$spaces" : '')) .
-            $self->dumper("$spaces    ", ($_->{tags} || [])) .
+            "$spaces<$_->{name}" . $self->dumper_atts($_->{atts}) . ">" .
+            ($_->{value} || ($_->{tags} ? "\n" . $self->dumper("$spaces    ", $_->{tags}) . $spaces : '')) .
             "</$_->{name}>\n";
     }
     $ans;
