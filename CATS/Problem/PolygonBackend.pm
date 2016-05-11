@@ -14,7 +14,7 @@ my $has_mechanize;
 BEGIN { $has_mechanize = eval { require WWW::Mechanize; require HTML::TreeBuilder; 1; } }
 
 sub new {
-    my ($class, $problem, $log, $problem_path, $url, $exist_problem, $root) = @_;
+    my ($class, $problem, $log, $problem_path, $url, $exist_problem, $root, $verbose) = @_;
     $has_mechanize or $log->error('WWW::Mechanize is required to use Polygon back-end');
     my $self = {
         root => $root,
@@ -36,7 +36,8 @@ sub new {
             memory_limit => undef,
             time_limit => undef,
             pattern => undef,
-        }
+        },
+        verbose => $verbose,
     };
     return bless $self => $class;
 }
