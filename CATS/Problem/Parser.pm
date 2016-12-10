@@ -75,6 +75,7 @@ sub tag_handlers()
     Checker => { s => \&start_tag_Checker, r => ['src'] },
     Generator => { s => \&start_tag_Generator, r => ['src', 'name'] },
     Validator => { s => \&start_tag_Validator, r => ['src', 'name'] },
+    Visualizer => { s => \&start_tag_Visualizer, r => ['src', 'name'] },
     GeneratorRange => {
         s => \&start_tag_GeneratorRange, r => ['src', 'name', 'from', 'to'] },
     Module => { s => \&start_tag_Module, r => ['src', 'de_code', 'type'] },
@@ -176,6 +177,15 @@ sub create_validator
 
     return $self->set_named_object($p->{name}, {
         $self->problem_source_common_params($p, 'validator')
+    });
+}
+
+sub create_visualizer
+{
+    (my CATS::Problem::Parser $self, my $p) = @_;
+
+    return $self->set_named_object($p->{name}, {
+        $self->problem_source_common_params($p, 'visualizer')
     });
 }
 
@@ -403,6 +413,7 @@ sub problem_source_common_params
         guid => $atts->{export},
         time_limit => $atts->{timeLimit},
         memory_limit => $atts->{memoryLimit},
+        name => $atts->{name},
     );
 }
 
@@ -442,6 +453,12 @@ sub start_tag_Validator
 {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     push @{$self->{problem}{validators}}, $self->create_validator($atts);
+}
+
+sub start_tag_Visualizer
+{
+    (my CATS::Problem::Parser $self, my $atts) = @_;
+    push @{$self->{problem}{visualizers}}, $self->create_visualizer($atts);
 }
 
 sub start_tag_GeneratorRange
