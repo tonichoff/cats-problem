@@ -3,8 +3,6 @@ package CATS::Testset;
 use strict;
 use warnings;
 
-use CATS::DB qw($dbh);
-
 
 sub parse_test_rank
 {
@@ -52,17 +50,18 @@ sub parse_test_rank
 
 sub get_all_testsets
 {
+    my ($dbh, $pid) = @_;
     $dbh->selectall_hashref(qq~
         SELECT id, name, tests, points, comment, hide_details
         FROM testsets WHERE problem_id = ?~,
         'name', undef,
-        $_[0]) || {};
+        $pid) || {};
 }
 
 
 sub get_testset
 {
-    my ($rid, $update) = @_;
+    my ($dbh, $rid, $update) = @_;
     my ($pid, $orig_testsets, $testsets) = $dbh->selectrow_array(q~
         SELECT R.problem_id, R.testsets, COALESCE(R.testsets, CP.testsets)
         FROM reqs R
@@ -83,7 +82,7 @@ sub get_testset
         $dbh->commit;
     }
 
-    my %tests = %{parse_test_rank(get_all_testsets($pid), $testsets)};
+    my %tests = %{parse_test_rank(get_all_testsets($dbh, $pid), $testsets)};
     map { exists $tests{$_} ? ($_ => $tests{$_}) : () } @all_tests;
 }
 
