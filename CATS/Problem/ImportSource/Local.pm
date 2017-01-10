@@ -8,6 +8,7 @@ sub new
 {
     my ($class, %opts) = @_;
     $opts{modulesdir} or die 'You must specify modules folder';
+    $opts{id_counter} or $opts{id_counter} = 0;
     bless \%opts => $class;
 }
 
@@ -31,5 +32,7 @@ sub get_sources_info
 
     map CATS::SourceManager::load($_->{guid}, $self->{modulesdir}), @$sources;
 }
+
+sub get_new_id { $_[0]->{id_counter}++ . ($_[1] // '') }
 
 1;

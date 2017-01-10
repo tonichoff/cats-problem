@@ -17,4 +17,6 @@ sub get_guids { (); }
 
 sub get_sources_info { (); }
 
+sub get_new_id { 0 }
+
 1;

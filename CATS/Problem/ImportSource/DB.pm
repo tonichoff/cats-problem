@@ -32,4 +32,6 @@ sub get_sources_info
         map { $_->{guid} } @$sources)};
 }
 
+sub get_new_id { CATS::DB::new_id(@_) }
+
 1;
