@@ -13,7 +13,7 @@ use warnings;
 
 use lib '..';
 
-use CATS::Problem::ImportSource;
+use CATS::Problem::ImportSource::Local;
 use CATS::Problem::Source::Base;
 use CATS::Problem::Parser;
 
