@@ -346,7 +346,7 @@ sub escape_url
 sub gen_url_params
 {
     my (%p) = @_;
-    map { defined $p{$_} ? "$_=" . escape_url($p{$_}) : () } keys %p;
+    map { defined $p{$_} ? "$_=" . escape_url($p{$_}) : () } 'f', sort grep $_ ne 'f', keys %p;
 }
 
 
