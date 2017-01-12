@@ -3,8 +3,8 @@ package CATS::Problem::Source::Git;
 use strict;
 use warnings;
 
-use File::Temp qw(tempdir);
 use File::Copy::Recursive qw(dircopy);
+use File::Temp qw(tempdir);
 
 use CATS::BinaryFile;
 use CATS::Problem::Repository;

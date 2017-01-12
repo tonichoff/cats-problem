@@ -3,37 +3,32 @@ package CATS::Utils;
 use strict;
 use warnings;
 
-BEGIN {
-    use Exporter;
+use Exporter qw(import);
 
-    no strict;
-    @ISA = qw(Exporter);
-    @EXPORT = qw(
-        blob_mimetype
-        coalesce
-        mode_str
-        file_type
-        file_type_long
-        chop_str
-        split_fname
-        untabify
-        unquote
-        escape_xml
-        url_function
-        state_to_display
-        source_hash
-        date_to_iso
-        encodings
-        source_encodings
-        redirect_url_function
-    );
+our @EXPORT = qw(
+    blob_mimetype
+    coalesce
+    mode_str
+    file_type
+    file_type_long
+    chop_str
+    split_fname
+    untabify
+    unquote
+    escape_xml
+    url_function
+    state_to_display
+    source_hash
+    date_to_iso
+    encodings
+    source_encodings
+    redirect_url_function
+);
+our %EXPORT_TAGS = (all => [ @EXPORT ]);
 
-    %EXPORT_TAGS = (all => [@EXPORT]);
-}
-
-use Text::Balanced qw(extract_tagged extract_bracketed);
 use Digest::MD5;
 use Fcntl ':mode';
+use Text::Balanced qw(extract_tagged extract_bracketed);
 
 use constant {
     S_IFGITLINK => 0160000,

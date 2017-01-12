@@ -3,14 +3,9 @@ package CATS::Config;
 use strict;
 use warnings;
 
-BEGIN {
-    use Exporter;
-
-    no strict;
-    @ISA = qw(Exporter);
-    @EXPORT = qw(cats_dir);
-    %EXPORT_TAGS = (all => [ @EXPORT ]);
-}
+use Exporter qw(import);
+our @EXPORT = qw(cats_dir);
+our %EXPORT_TAGS = (all => [ @EXPORT ]);
 
 # This is a template file, you should adjust parameters below
 # and copy this file to the same folder, but with .template extenison removed.

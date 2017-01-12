@@ -3,11 +3,11 @@ package CATS::Problem::Source::PlainFiles;
 use strict;
 use warnings;
 
+use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
+use File::Glob 'bsd_glob';
 use File::Spec;
 use File::stat;
-use File::Glob 'bsd_glob';
 use List::Util 'max';
-use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 
 use CATS::BinaryFile;
 

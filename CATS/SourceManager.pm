@@ -3,13 +3,13 @@ package CATS::SourceManager;
 use strict;
 use warnings;
 
-use CATS::Utils qw(escape_xml);
-use CATS::Constants;
-use CATS::BinaryFile;
-
 use File::Spec;
-use XML::Parser::Expat;
 use Scalar::Util qw(looks_like_number);
+use XML::Parser::Expat;
+
+use CATS::BinaryFile;
+use CATS::Constants;
+use CATS::Utils qw(escape_xml);
 
 sub get_tags()
 {{

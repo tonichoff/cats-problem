@@ -3,11 +3,8 @@ package CATS::Problem::Authors;
 use strict;
 use warnings;
 
-BEGIN {
-    use Exporter;
-    our @ISA = qw(Exporter);
-    our @EXPORT = qw(get_git_author_info KLENINS_EMAIL DEFAULT_EMAIL DEFAULT_AUTHOR EXTERNAL_AUTHOR);
-}
+use Exporter qw(import);
+our @EXPORT = qw(get_git_author_info KLENINS_EMAIL DEFAULT_EMAIL DEFAULT_AUTHOR EXTERNAL_AUTHOR);
 
 use constant {
     KLENINS_EMAIL   => 'klenin@gmail.com',

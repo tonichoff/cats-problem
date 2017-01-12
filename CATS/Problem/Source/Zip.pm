@@ -3,10 +3,10 @@ package CATS::Problem::Source::Zip;
 use strict;
 use warnings;
 
-use File::Temp qw(tempdir);
+use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 use File::Copy::Recursive qw(dirmove);
 use File::stat;
-use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
+use File::Temp qw(tempdir);
 
 use CATS::BinaryFile;
 

@@ -6,10 +6,10 @@ use warnings;
 use Archive::Zip;
 use Cwd;
 use Encode;
-use List::Util 'max';
 use File::Glob 'bsd_glob';
 use File::Temp qw(tempfile tempdir);
 use File::Spec;
+use List::Util 'max';
 
 my $has_mechanize;
 BEGIN { $has_mechanize = eval { require WWW::Mechanize; require HTML::TreeBuilder; 1; } }

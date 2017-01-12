@@ -3,19 +3,15 @@ package CATS::DB;
 use strict;
 use warnings;
 
-use base qw(Exporter);
-
-BEGIN
-{
-    our @EXPORT = qw($dbh $sql new_id _u);
-}
+use Exporter qw(import);
+our @EXPORT = qw($dbh $sql new_id _u);
 
 use Carp;
 use DBI;
 
 use CATS::Config;
 
-use vars qw($dbh $sql);
+our ($dbh, $sql);
 
 
 sub _u { splice(@_, 1, 0, { Slice => {} }); @_; }

@@ -22,13 +22,13 @@ use warnings;
 
 use Encode;
 use Fcntl ':mode';
+use File::Copy::Recursive qw(dircopy);
 use File::Path;
 use File::Spec;
 use File::Temp qw(tempdir tempfile);
-use File::Copy::Recursive qw(dircopy);
 
-use CATS::Problem::Authors;
 use CATS::BinaryFile;
+use CATS::Problem::Authors;
 use CATS::Utils qw(blob_mimetype untabify unquote mode_str file_type file_type_long chop_str);
 
 my $tmp_template = 'zipXXXXXX';

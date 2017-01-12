@@ -4,12 +4,12 @@ use strict;
 use warnings;
 
 use Encode;
-use XML::Parser::Expat;
 use JSON::XS;
+use XML::Parser::Expat;
 
-use CATS::Utils qw(escape_xml);
-use CATS::Problem;
 use CATS::Constants;
+use CATS::Problem;
+use CATS::Utils qw(escape_xml);
 
 my $has_formal_input;
 BEGIN { $has_formal_input = eval { require FormalInput; 1; } }
