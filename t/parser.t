@@ -13,7 +13,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -26,7 +26,7 @@ sub parse
     my $parser = CATS::Problem::Parser->new(
         source => CATS::Problem::Source::Mockup->new(data => $data, logger => Logger->new),
         import_source => CATS::Problem::ImportSource::Local->new(modulesdir => '.'),
-        id_gen => sub { 1 },
+        id_gen => sub { $_[1] },
         problem_desc => { %{ $desc || {} } },
     )->parse;
 }
@@ -321,3 +321,95 @@ subtest 'tag stack', sub {
         'test.xml' => wrap_problem(q~<SampleOut/>~),
     }) } qr/SampleOut.+Sample/, 'SampleOut outside SampleTest';
 };
+
+subtest 'test', sub {
+    plan tests => 33;
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test/>~),
+    }) } qr/Test.rank/, 'Test without rank';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="2"/>~),
+    }) } qr/Missing test #1/, 'Missing test 1';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"/>~),
+    }) } qr/No input source for test 1/, 'Test without In';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In/></Test>~),
+    }) } qr/No input source for test 1/, 'Test with empty In';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/></Test>~),
+    }) } qr/t01/, 'Test with nonexinsting input file';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><In src="t01.in"/></Test>~),
+        't01.in' => 'z',
+    }) } qr/Redefined attribute 'in_file'/, 'Test with duplicate In';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/></Test>~),
+        't01.in' => 'z',
+    }) } qr/No output source for test 1/, 'Test without Out';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><Out/></Test>~),
+        't01.in' => 'z',
+    }) } qr/No output source for test 1/, 'Test with empty Out';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><Out src="t01.out"/><Out src="t01.out"/></Test>~),
+        't01.in' => 'z',
+        't01.out' => 'q',
+    }) } qr/Redefined attribute 'out_file'/, 'Test with duplicate Out';
+
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Test rank="1"><In src="t01.in"/><Out src="t01.out"/></Test>
+<Checker src="checker.pp"/>~),
+            't01.in' => 'z',
+            't01.out' => 'q',
+            'checker.pp' => 'z',
+        });
+        is scalar(keys %{$p->{tests}}), 1, 'Test 1';
+        my $t = $p->{tests}->{1};
+        is $t->{rank}, 1, 'Test 1 rank';
+        is $t->{in_file}, 'z', 'Test 1 In src';
+        is $t->{out_file}, 'q', 'Test 1 Out src';
+    }
+
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Test rank="1-2"><In src="t%n.in"/><Out src="t%n.out"/></Test>
+<Checker src="checker.pp"/>~),
+            't1.in' => 't1in', 't1.out' => 't1out',
+            't2.in' => 't2in', 't2.out' => 't2out',
+            'checker.pp' => 'z',
+        });
+        is scalar(keys %{$p->{tests}}), 2, 'Apply %n';
+        for (1..2) {
+            my $t = $p->{tests}->{$_};
+            is $t->{rank}, $_, "Apply $_ rank";
+            is $t->{in_file}, "t${_}in", "Apply $_ In src";
+            is $t->{out_file}, "t${_}out", "Apply $_ Out src";
+        }
+    }
+
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Generator name="gen" src="gen.pp"/>
+<Solution name="sol" src="sol.pp"/>
+<Test rank="1-5"><In use="gen" param="!%n"/><Out use="sol"/></Test>
+<Checker src="chk.pp"/>~),
+            'gen.pp' => 'z',
+            'sol.pp' => 'z',
+            'chk.pp' => 'z',
+        });
+        is scalar(keys %{$p->{tests}}), 5, 'Gen %n';
+        for (1, 2, 5) {
+            my $t = $p->{tests}->{$_};
+            is $t->{rank}, $_, "Gen $_ rank";
+            is $t->{param}, "!$_", "Gen $_ param";
+            is $t->{generator_id}, 'gen.pp', "Gen $_ In";
+            is $t->{std_solution_id}, 'sol.pp', "Gen $_ Out";
+        }
+    }
+}
