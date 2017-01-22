@@ -31,6 +31,8 @@ sub validate_test
         or return 'No output source';
     defined $test->{out_file} && $test->{std_solution_id}
         and return 'Both output file and standard solution';
+    ($test->{points} // '0') =~ /^\d+$/
+        or return 'Bad points';
     undef;
 }
 

@@ -323,7 +323,7 @@ subtest 'tag stack', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 33;
+    plan tests => 36;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -357,6 +357,11 @@ subtest 'test', sub {
         't01.in' => 'z',
         't01.out' => 'q',
     }) } qr/Redefined attribute 'out_file'/, 'Test with duplicate Out';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1" points="A"><In src="t01.in"/><Out src="t01.out"/></Test>~),
+        't01.in' => 'z',
+        't01.out' => 'q',
+    }) } qr/Bad points/, 'Bad points';
 
     {
         my $p = parse({
@@ -377,7 +382,7 @@ subtest 'test', sub {
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~
-<Test rank="1-2"><In src="t%n.in"/><Out src="t%n.out"/></Test>
+<Test rank="1-2" points="5"><In src="t%n.in"/><Out src="t%n.out"/></Test>
 <Checker src="checker.pp"/>~),
             't1.in' => 't1in', 't1.out' => 't1out',
             't2.in' => 't2in', 't2.out' => 't2out',
@@ -387,6 +392,7 @@ subtest 'test', sub {
         for (1..2) {
             my $t = $p->{tests}->{$_};
             is $t->{rank}, $_, "Apply $_ rank";
+            is $t->{points}, 5, "Apply $_ points";
             is $t->{in_file}, "t${_}in", "Apply $_ In src";
             is $t->{out_file}, "t${_}out", "Apply $_ Out src";
         }
