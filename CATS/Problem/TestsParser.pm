@@ -181,5 +181,20 @@ sub apply_test_defaults
     }
 }
 
+sub start_tag_Testset
+{
+    (my CATS::Problem::Parser $self, my $atts) = @_;
+    my $n = $atts->{name};
+    my $problem = $self->{problem};
+    $problem->{testsets}->{$n} and $self->error("Duplicate testset '$n'");
+    $self->parse_test_rank($atts->{tests});
+    $problem->{testsets}->{$n} = my $ts = {
+        id => $self->{id_gen}->($self, "Test_set_with_name_$n"),
+        map { $_ => $atts->{$_} } qw(name tests points comment hideDetails)
+    };
+    $ts->{hideDetails} ||= 0;
+    ($ts->{points} // 0) =~ /^\d+$/ or $self->error("Bad points for testset '$n'");
+    $self->note("Testset $n added");
+}
 
 1;
