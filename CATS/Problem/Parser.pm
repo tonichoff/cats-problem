@@ -211,6 +211,7 @@ sub validate
     my @without_points = map $_->{rank}, grep !defined $_->{points}, @t;
     $self->warning('Points not defined for tests: ' . join ',', @without_points)
         if @without_points && @without_points != @t;
+    $self->validate_testsets;
 
     $check_order->($problem->{samples}, 'sample');
 

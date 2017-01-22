@@ -421,7 +421,7 @@ subtest 'test', sub {
 };
 
 subtest 'testest', sub {
-    plan tests => 4;
+    plan tests => 15;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Testset/>~),
@@ -430,6 +430,12 @@ subtest 'testest', sub {
         'test.xml' => wrap_problem(q~<Testset name="ts"/>~),
     }) } qr/Testset.tests/, 'Testset without tests';
     throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Testset name="ts" tests="X"/>~),
+    }) } qr/Unknown testset 'X'/, 'Testset with bad tests 1';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Testset name="ts" tests="1-"/>~),
+    }) } qr/Bad element/, 'Testset with bad tests 2';
+    throws_ok { parse({
         'test.xml' => wrap_problem(q~
 <Testset name="ts" tests="1"/>
 <Testset name="ts" tests="2"/>~),
@@ -437,4 +443,32 @@ subtest 'testest', sub {
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Testset name="ts" tests="1" points="X"/>~),
     }) } qr/Bad points for testset 'ts'/, 'Bad points';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Testset name="ts" tests="1"/>~),
+    }) } qr/Undefined test 1 in testset 'ts'/, 'Undefined test';
+
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Test rank="1-10"><In src="t"/><Out src="t"/></Test>
+<Testset name="ts1" tests="2-5,1" comment="blabla"/>
+<Testset name="ts2" tests="ts1,7" hideDetails="1"/>
+<Checker src="checker.pp"/>~),
+            't' => 'q',
+            'checker.pp' => 'z',
+        });
+        is scalar(keys %{$p->{testsets}}), 2, 'Testset count';
+
+        my $ts1 = $p->{testsets}->{ts1};
+        is $ts1->{name}, 'ts1', 'Testset 1 name';
+        is $ts1->{tests}, '2-5,1', 'Testset 1 tests';
+        is $ts1->{comment}, 'blabla', 'Testset 1 comment';
+        is $ts1->{hideDetails}, 0, 'Testset 1 hideDetails';
+
+        my $ts2 = $p->{testsets}->{ts2};
+        is $ts2->{name}, 'ts2', 'Testset 2 name';
+        is $ts2->{tests}, 'ts1,7', 'Testset 2 tests';
+        is $ts2->{hideDetails}, 1, 'Testset 2 hideDetails';
+    }
 };

@@ -5,7 +5,6 @@ use warnings;
 
 use CATS::Testset;
 
-
 sub apply_test_rank
 {
     my ($v, $rank) = @_;
@@ -195,6 +194,18 @@ sub start_tag_Testset
     $ts->{hideDetails} ||= 0;
     ($ts->{points} // 0) =~ /^\d+$/ or $self->error("Bad points for testset '$n'");
     $self->note("Testset $n added");
+}
+
+sub validate_testsets
+{
+    (my CATS::Problem::Parser $self) = @_;
+    my $testsets = $self->{problem}->{testsets};
+    for my $ts (sort keys %$testsets) {
+        my $tests = CATS::Testset::parse_test_rank($testsets, $testsets->{$ts}->{tests}, sub { $self->error(@_) });
+        for (keys %$tests) {
+            $self->{problem}->{tests}->{$_} or $self->error("Undefined test $_ in testset '$ts'");
+        }
+    }
 }
 
 1;
