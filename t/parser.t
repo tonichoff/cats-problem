@@ -421,7 +421,7 @@ subtest 'test', sub {
 };
 
 subtest 'testest', sub {
-    plan tests => 3;
+    plan tests => 4;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Testset/>~),
@@ -434,4 +434,7 @@ subtest 'testest', sub {
 <Testset name="ts" tests="1"/>
 <Testset name="ts" tests="2"/>~),
     }) } qr/Duplicate testset 'ts'/, 'Duplicate testset';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Testset name="ts" tests="1" points="X"/>~),
+    }) } qr/Bad points for testset 'ts'/, 'Bad points';
 };

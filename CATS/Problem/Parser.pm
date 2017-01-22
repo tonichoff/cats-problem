@@ -218,7 +218,6 @@ sub validate
 
     $problem->{$_} && $problem->{description}->{"${_}_url"}
         and $self->error("Both stml and url for $_") for qw(statement explanation);
-    # insert_problem_content
     $problem->{has_checker} or $self->error('No checker specified');
 }
 
@@ -583,11 +582,12 @@ sub start_tag_Testset
     my $problem = $self->{problem};
     $problem->{testsets}->{$n} and $self->error("Duplicate testset '$n'");
     $self->parse_test_rank($atts->{tests});
-    $problem->{testsets}->{$n} = {
+    $problem->{testsets}->{$n} = my $ts = {
         id => $self->{id_gen}->($self, "Test_set_with_name_$n"),
         map { $_ => $atts->{$_} } qw(name tests points comment hideDetails)
     };
-    $problem->{testsets}->{$n}->{hideDetails} ||= 0;
+    $ts->{hideDetails} ||= 0;
+    ($ts->{points} // 0) =~ /^\d+$/ or $self->error("Bad points for testset '$n'");
     $self->note("Testset $n added");
 }
 
