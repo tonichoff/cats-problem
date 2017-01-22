@@ -13,7 +13,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -418,4 +418,20 @@ subtest 'test', sub {
             is $t->{std_solution_id}, 'sol.pp', "Gen $_ Out";
         }
     }
-}
+};
+
+subtest 'testest', sub {
+    plan tests => 3;
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Testset/>~),
+    }) } qr/Testset.name/, 'Testset without name';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Testset name="ts"/>~),
+    }) } qr/Testset.tests/, 'Testset without tests';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Testset name="ts" tests="1"/>
+<Testset name="ts" tests="2"/>~),
+    }) } qr/Duplicate testset 'ts'/, 'Duplicate testset';
+};
