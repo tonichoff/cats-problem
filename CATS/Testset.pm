@@ -54,7 +54,7 @@ sub get_all_testsets
 {
     my ($dbh, $pid) = @_;
     $dbh->selectall_hashref(qq~
-        SELECT id, name, tests, points, comment, hide_details
+        SELECT id, name, tests, points, comment, hide_details, depends_on
         FROM testsets WHERE problem_id = ?~,
         'name', undef,
         $pid) || {};
