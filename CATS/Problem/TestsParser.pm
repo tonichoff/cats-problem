@@ -189,7 +189,7 @@ sub start_tag_Testset
     $self->parse_test_rank($atts->{tests});
     $problem->{testsets}->{$n} = my $ts = {
         id => $self->{id_gen}->($self, "Test_set_with_name_$n"),
-        map { $_ => $atts->{$_} } qw(name tests points comment hideDetails)
+        map { $_ => $atts->{$_} } qw(name tests points comment hideDetails depends_on)
     };
     $ts->{hideDetails} ||= 0;
     ($ts->{points} // 0) =~ /^\d+$/ or $self->error("Bad points for testset '$n'");
@@ -204,6 +204,14 @@ sub validate_testsets
         my $tests = CATS::Testset::parse_test_rank($testsets, $testsets->{$ts}->{tests}, sub { $self->error(@_) });
         for (keys %$tests) {
             $self->{problem}->{tests}->{$_} or $self->error("Undefined test $_ in testset '$ts'");
+        }
+        if (my $dep = $testsets->{$ts}->{depends_on}) {
+            my $dep_tests = CATS::Testset::parse_test_rank(
+                $testsets, $dep, sub { $self->error(@_) }, include_deps => 1);
+            # May be caused by circular references of individual tests, as opposed to recursive testsets.
+            for (sort keys %$dep_tests) {
+                exists $tests->{$_} and $self->error("Testset '$ts' both contains and depends on test $_");
+            }
         }
     }
 }

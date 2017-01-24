@@ -421,7 +421,7 @@ subtest 'test', sub {
 };
 
 subtest 'testest', sub {
-    plan tests => 15;
+    plan tests => 20;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Testset/>~),
@@ -448,17 +448,38 @@ subtest 'testest', sub {
 <Testset name="ts" tests="1"/>~),
     }) } qr/Undefined test 1 in testset 'ts'/, 'Undefined test';
 
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Test rank="1-10"><In src="t"/><Out src="t"/></Test>
+<Testset name="ts1" tests="1" depends_on="ts2"/>
+<Testset name="ts2" tests="2" depends_on="ts1"/>
+<Checker src="checker.pp"/>~),
+            't' => 'q',
+            'checker.pp' => 'z',
+    }) } qr/Recursive/, 'Recursive dependency via testest';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Test rank="1-10"><In src="t"/><Out src="t"/></Test>
+<Testset name="ts1" tests="1" depends_on="ts2"/>
+<Testset name="ts2" tests="2" depends_on="1"/>
+<Checker src="checker.pp"/>~),
+            't' => 'q',
+            'checker.pp' => 'z',
+    }) } qr/Testset 'ts1' both contains and depends on test 1/, 'Recursive dependency via test';
+
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~
 <Test rank="1-10"><In src="t"/><Out src="t"/></Test>
 <Testset name="ts1" tests="2-5,1" comment="blabla"/>
 <Testset name="ts2" tests="ts1,7" hideDetails="1"/>
+<Testset name="ts3" tests="10" depends_on="ts1,6"/>
 <Checker src="checker.pp"/>~),
             't' => 'q',
             'checker.pp' => 'z',
         });
-        is scalar(keys %{$p->{testsets}}), 2, 'Testset count';
+        is scalar(keys %{$p->{testsets}}), 3, 'Testset count';
 
         my $ts1 = $p->{testsets}->{ts1};
         is $ts1->{name}, 'ts1', 'Testset 1 name';
@@ -470,5 +491,10 @@ subtest 'testest', sub {
         is $ts2->{name}, 'ts2', 'Testset 2 name';
         is $ts2->{tests}, 'ts1,7', 'Testset 2 tests';
         is $ts2->{hideDetails}, 1, 'Testset 2 hideDetails';
+
+        my $ts2 = $p->{testsets}->{ts3};
+        is $ts2->{name}, 'ts3', 'Testset 3 name';
+        is $ts2->{tests}, '10', 'Testset 2 tests';
+        is $ts2->{depends_on}, 'ts1,6', 'Testset 3 depends_on';
     }
 };

@@ -9,22 +9,25 @@ use Test::Exception;
 use CATS::Testset;
 
 my $testsets = {
-  't1' => { tests => '1,2,3' },
-  't2' => { tests => 't1' },
-  'tr1' => { tests => 'tr2' },
-  'tr2' => { tests => 'tr1' },
-  'sc1' => { tests => '1-5', points => 10 },
-  'sc2' => { tests => '5-6', points => 20 },
-  'scn' => { tests => 'sc1,3', points => 7 },
-  'sc' => { tests => 'sc1' },
-  'sca' => { tests => 'sc,sc2' },
+    t1 => { tests => '1,2,3' },
+    t2 => { tests => 't1' },
+    tr0 => { tests => 'tr0' },
+    tr1 => { tests => 'tr2' },
+    tr2 => { tests => 'tr1' },
+    sc1 => { tests => '1-5', points => 10 },
+    sc2 => { tests => '5-6', points => 20, depends_on => 't1,5' },
+    scn => { tests => 'sc1,3', points => 7 },
+    sc => { tests => 'sc1' },
+    sca => { tests => 'sc,sc2' },
+    tdr1 => { tests => '1', depends_on => 'tdr2' },
+    tdr2 => { tests => '2', depends_on => 'tdr1' },
 };
 
-sub ptr { CATS::Testset::parse_test_rank($testsets, @_, sub { die @_ }) }
+sub ptr { CATS::Testset::parse_test_rank($testsets, $_[0], sub { die @_ }, include_deps => $_[1]) }
 
 sub h { my %h; @h{@_} = undef; \%h; }
 
-plan tests => 3;
+plan tests => 4;
 
 subtest 'basic', sub {
     plan tests => 7;
@@ -39,20 +42,29 @@ subtest 'basic', sub {
 };
 
 subtest 'testsets', sub {
-    plan tests => 4;
+    plan tests => 5;
     is_deeply(ptr('t1'), h(1 .. 3));
     is_deeply(ptr('t2'), h(1 .. 3));
     throws_ok { ptr('x') } qr/unknown testset/i;
-    throws_ok { ptr('tr2') } qr/recursive/i;
+    throws_ok { ptr('tr0') } qr/recursive/i, 'direct recursion';
+    throws_ok { ptr('tr2') } qr/recursive/i, 'indirect recursion';
 };
 
 subtest 'scoring groups', sub {
     plan tests => 6;
     my %t1 = map { $_ => $testsets->{sc1} } 1..5;
-    is_deeply(ptr('sc1'), \%t1);
-    is_deeply(ptr('sc'), \%t1);
-    is_deeply(ptr('sc, 9'), { %t1, 9 => undef });
+    is_deeply ptr('sc1'), \%t1;
+    is_deeply ptr('sc'), \%t1;
+    is_deeply ptr('sc, 9'), { %t1, 9 => undef };
     throws_ok { ptr('scn') } qr/nested/i;
     throws_ok { ptr('sc1,sc2') } qr/ambiguous/i;
     throws_ok { ptr('sca') } qr/ambiguous/i;
+};
+
+subtest 'dependencies', sub {
+    plan tests => 4;
+    ok ptr('tdr1') && ptr('tdr2');
+    throws_ok { ptr('tdr1', 1) } qr/recursive/i;
+    throws_ok { ptr('tdr2', 1) } qr/recursive/i;
+    is_deeply [ sort keys %{ptr('sc2', 1)} ], [ 1..3, 5..6 ];
 };

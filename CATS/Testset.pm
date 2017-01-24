@@ -3,10 +3,11 @@ package CATS::Testset;
 use strict;
 use warnings;
 
+sub is_scoring_group { 0 < grep $_[0]->{$_}, qw(points hide_details depends_on) }
 
 sub parse_test_rank
 {
-    my ($all_testsets, $rank_spec, $on_error) = @_;
+    my ($all_testsets, $rank_spec, $on_error, %p) = @_;
     my (%result, %used, $rec);
     $rec = sub {
         my ($r, $scoring_group) = @_;
@@ -20,12 +21,13 @@ sub parse_test_rank
                 my $testset = $all_testsets->{$_} or die \"Unknown testset '$_'";
                 $used{$_}++ and die \"Recursive usage of testset '$_'";
                 my $sg = $scoring_group;
-                if ($testset->{points} || $testset->{hide_details}) {
+                if (is_scoring_group($testset)) {
                     die \"Nested scoring group '$_'" if $sg;
                     $sg = $testset;
                     $sg->{test_count} = 0;
                 }
                 $rec->($testset->{tests}, $sg);
+                $rec->($testset->{depends_on}) if $p{include_deps} && $testset->{depends_on};
             }
             elsif (/^(\d+)(?:-(\d+))?$/) {
                 my ($from, $to) = ($1, $2 || $1);
