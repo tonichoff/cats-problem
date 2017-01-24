@@ -492,9 +492,9 @@ subtest 'testest', sub {
         is $ts2->{tests}, 'ts1,7', 'Testset 2 tests';
         is $ts2->{hideDetails}, 1, 'Testset 2 hideDetails';
 
-        my $ts2 = $p->{testsets}->{ts3};
-        is $ts2->{name}, 'ts3', 'Testset 3 name';
-        is $ts2->{tests}, '10', 'Testset 2 tests';
-        is $ts2->{depends_on}, 'ts1,6', 'Testset 3 depends_on';
+        my $ts3 = $p->{testsets}->{ts3};
+        is $ts3->{name}, 'ts3', 'Testset 3 name';
+        is $ts3->{tests}, '10', 'Testset 2 tests';
+        is $ts3->{depends_on}, 'ts1,6', 'Testset 3 depends_on';
     }
 };
