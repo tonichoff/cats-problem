@@ -13,7 +13,7 @@ use warnings;
 
 use lib '..';
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 use Test::Exception;
 
 use CATS::Problem::ImportSource;
@@ -497,4 +497,29 @@ subtest 'testest', sub {
         is $ts3->{tests}, '10', 'Testset 2 tests';
         is $ts3->{depends_on}, 'ts1,6', 'Testset 3 depends_on';
     }
+};
+
+subtest 'validator', sub {
+    plan tests => 8;
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Validator/>~),
+    }) } qr/Validator.src/, 'Validator without source';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Validator src="t"/>~),
+    }) } qr/Validator.name/, 'Validator without name';
+    my $p = parse({
+        'test.xml' => wrap_problem(q~
+<Validator name="val" src="t.pp" inputFile="*STDIN"/>
+<Checker src="t.pp"/>
+<Test rank="1"><In src="t" validate="val"/><Out src="t"/></Test>~),
+        't.pp' => 'q',
+        't' => 'w',
+    });
+    is @{$p->{validators}}, 1, 'validator count';
+    my $v = $p->{validators}->[0];
+    is $v->{name}, 'val', 'validator name';
+    is $v->{src}, 'q', 'validator source';
+    is $v->{inputFile}, '*STDIN', 'validator inputFile';
+    is keys(%{$p->{tests}}), 1, 'validator test count';
+    is $p->{tests}->{1}->{input_validator_id}, 't.pp', 'validator test validate';
 };

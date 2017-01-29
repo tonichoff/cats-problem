@@ -176,7 +176,8 @@ sub create_validator
     (my CATS::Problem::Parser $self, my $p) = @_;
 
     return $self->set_named_object($p->{name}, {
-        $self->problem_source_common_params($p, 'validator')
+        $self->problem_source_common_params($p, 'validator'),
+        inputFile => $p->{inputFile},
     });
 }
 
