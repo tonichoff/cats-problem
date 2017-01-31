@@ -8,15 +8,15 @@ use Test::Exception;
 use lib '..';
 use lib $FindBin::Bin;
 
-use ParserMockup;
+use CATS::Problem::Tags;
 
-my $p = ParserMockup::make({});
+sub ptc { goto \&CATS::Problem::Tags::parse_tag_condition }
 
-throws_ok { $p->parse_tag_condition('1'); } qr/part 1/, 'Incorrect 1';
-throws_ok { $p->parse_tag_condition('a,!'); } qr/part 2/, 'Incorrect 2';
+throws_ok { ptc('1'); } qr/part 1/, 'Incorrect 1';
+throws_ok { ptc('a,!'); } qr/part 2/, 'Incorrect 2';
 
 {
-    my $t = $p->parse_tag_condition('a,!b, c9=3,long_name = -5, !negeq=x');
+    my $t = ptc('a,!b, c9=3,long_name = -5, !negeq=x');
     is keys %$t, 5, 'count';
     is_deeply $t->{a}, [ 0, undef ], 'tag a';
     is_deeply $t->{b}, [ 1, undef ], 'tag b';
@@ -24,7 +24,7 @@ throws_ok { $p->parse_tag_condition('a,!'); } qr/part 2/, 'Incorrect 2';
     is_deeply $t->{long_name}, [ 0, -5 ], 'tag long_name';
     is_deeply $t->{negeq}, [ 1, 'x' ], 'tag negeq';
 
-    my $chk = sub { $p->check_tag_condition($t, $p->parse_tag_condition($_[0])) };
+    my $chk = sub { CATS::Problem::Tags::check_tag_condition($t, ptc($_[0])) };
     ok $chk->('a'), 'check a';
     ok !$chk->('!a'), 'check !a';
     ok !$chk->('b'), 'check b';
