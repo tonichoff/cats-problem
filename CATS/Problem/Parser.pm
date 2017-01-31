@@ -591,6 +591,20 @@ sub start_tag_Run
     $self->note("Run method set to '$m'");
 }
 
+sub parse_tag_condition
+{
+    (my CATS::Problem::Parser $self, my $cond) = @_;
+    my $result = {};
+    my $i = 0;
+    for (split /,/, $cond) {
+        $i++;
+        my ($neg, $name, $value) = /^\s*(\!)?\s*([a-zA-Z][a-zA-Z0-9_]*)\s*(?:=\s*(\S+))?\s*$/;
+        $name or $self->error("Incorrect condition format in part $i");
+        $result->{$name} = [ $neg ? 1 : 0, $value ];
+    }
+    $result;
+}
+
 sub parse_xml
 {
     (my CATS::Problem::Parser $self, my $xml_file) = @_;
