@@ -605,6 +605,22 @@ sub parse_tag_condition
     $result;
 }
 
+sub check_tag_condition
+{
+    (my CATS::Problem::Parser $self, my $tags, my $cond) = @_;
+    ref $tags eq 'HASH' && ref $cond eq 'HASH' or die;
+    for (keys %$cond) {
+        my ($tneg, $tvalue) = @{$tags->{$_} // [ 1, '' ]};
+        $tneg && $tvalue and return $self->error("Negated value for tag '$_'");
+        my ($neg, $value) = @{$cond->{$_}};
+        $neg ?
+            (defined $value ? $value ne $tvalue : $tneg) :
+            (defined $value ? $value eq $tvalue : !$tneg)
+            or return 0;
+    }
+    1;
+}
+
 sub parse_xml
 {
     (my CATS::Problem::Parser $self, my $xml_file) = @_;
