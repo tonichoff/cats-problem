@@ -6,6 +6,7 @@ use warnings;
 sub parse_tag_condition
 {
     my ($cond, $on_error) = @_;
+    $cond or return {};
     $on_error //= sub { die @_ };
     my $result = {};
     my $i = 0;

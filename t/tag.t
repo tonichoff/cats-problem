@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 21;
+use Test::More tests => 23;
 use Test::Exception;
 
 use lib '..';
@@ -14,6 +14,9 @@ sub ptc { goto \&CATS::Problem::Tags::parse_tag_condition }
 
 throws_ok { ptc('1'); } qr/part 1/, 'Incorrect 1';
 throws_ok { ptc('a,!'); } qr/part 2/, 'Incorrect 2';
+
+is_deeply ptc(undef), {}, 'parse undef';
+is_deeply ptc(''), {}, 'parse empty';
 
 {
     my $t = ptc('a,!b, c9=3,long_name = -5, !negeq=x');
