@@ -14,6 +14,7 @@ my $testsets = {
     tr0 => { tests => 'tr0' },
     tr1 => { tests => 'tr2' },
     tr2 => { tests => 'tr1' },
+    sc0 => { tests => '6,7', points => 0 },
     sc1 => { tests => '1-5', points => 10 },
     sc2 => { tests => '5-6', points => 20, depends_on => 't1,5' },
     scn => { tests => 'sc1,3', points => 7 },
@@ -54,11 +55,14 @@ subtest 'testsets', sub {
 };
 
 subtest 'scoring groups', sub {
-    plan tests => 6;
+    plan tests => 8;
+    my %t0 = map { $_ => $testsets->{sc0} } 6, 7;
+    is_deeply ptr('sc0'), \%t0, 'points 0';
     my %t1 = map { $_ => $testsets->{sc1} } 1..5;
-    is_deeply ptr('sc1'), \%t1;
-    is_deeply ptr('sc'), \%t1;
+    is_deeply ptr('sc1'), \%t1, 'points 10';
+    is_deeply ptr('sc'), \%t1, 'points + depends';
     is_deeply ptr('sc, 9'), { %t1, 9 => undef };
+    is_deeply ptr('sc1,sc0'), { %t0, %t1 }, 'sc0+1';
     throws_ok { ptr('scn') } qr/nested/i;
     throws_ok { ptr('sc1,sc2') } qr/ambiguous/i;
     throws_ok { ptr('sca') } qr/ambiguous/i;

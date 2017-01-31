@@ -3,7 +3,7 @@ package CATS::Testset;
 use strict;
 use warnings;
 
-sub is_scoring_group { 0 < grep $_[0]->{$_}, qw(points hide_details depends_on) }
+sub is_scoring_group { defined $_[0]->{points} || $_[0]->{hide_details} || defined $_[0]->{depends_on} }
 
 sub parse_test_rank
 {
