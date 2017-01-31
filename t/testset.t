@@ -21,6 +21,9 @@ my $testsets = {
     sca => { tests => 'sc,sc2' },
     tdr1 => { tests => '1', depends_on => 'tdr2' },
     tdr2 => { tests => '2', depends_on => 'tdr1' },
+    tdc1 => { tests => '4', depends_on => 't1' },
+    tdc2 => { tests => '5', depends_on => 'tdc1,t1' },
+    tdc3 => { tests => '6', depends_on => 'tdc2,t1' },
 };
 
 sub ptr { CATS::Testset::parse_test_rank($testsets, $_[0], sub { die @_ }, include_deps => $_[1]) }
@@ -62,9 +65,11 @@ subtest 'scoring groups', sub {
 };
 
 subtest 'dependencies', sub {
-    plan tests => 4;
+    plan tests => 6;
     ok ptr('tdr1') && ptr('tdr2');
     throws_ok { ptr('tdr1', 1) } qr/recursive/i;
     throws_ok { ptr('tdr2', 1) } qr/recursive/i;
     is_deeply [ sort keys %{ptr('sc2', 1)} ], [ 1..3, 5..6 ];
+    is_deeply [ sort keys %{ptr('tdc1', 1)} ], [ 1..4 ];
+    throws_ok { ptr('tdc3', 1) } qr/recursive/i; # TODO: Remove this limitation.
 };
