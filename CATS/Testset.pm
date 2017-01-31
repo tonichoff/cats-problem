@@ -84,7 +84,7 @@ sub get_testset
         $dbh->commit;
     }
 
-    my %tests = %{parse_test_rank(get_all_testsets($dbh, $pid), $testsets)};
+    my %tests = %{parse_test_rank(get_all_testsets($dbh, $pid), $testsets, sub { warn @_ })};
     map { exists $tests{$_} ? ($_ => $tests{$_}) : () } @all_tests;
 }
 
