@@ -1,35 +1,16 @@
-package Logger;
-
-#use Carp;
-sub new { bless {}, $_[0]; }
-sub note {}
-sub warning {}
-sub error { die $_[1] }
-
-package main;
-
 use strict;
 use warnings;
 
-use lib '..';
-
+use FindBin;
 use Test::More tests => 11;
 use Test::Exception;
 
-use CATS::Problem::ImportSource;
-use CATS::Problem::Source::Base;
-use CATS::Problem::Parser;
+use lib '..';
+use lib $FindBin::Bin;
 
-sub parse
-{
-    my ($data, $desc) = @_;
-    my $parser = CATS::Problem::Parser->new(
-        source => CATS::Problem::Source::Mockup->new(data => $data, logger => Logger->new),
-        import_source => CATS::Problem::ImportSource::Local->new(modulesdir => '.'),
-        id_gen => sub { $_[1] },
-        problem_desc => { %{ $desc || {} } },
-    )->parse;
-}
+use ParserMockup;
+
+sub parse { ParserMockup::make(@_)->parse }
 
 sub wrap_xml { qq~<?xml version="1.0" encoding="Utf-8"?><CATS version="1.0">$_[0]</CATS>~ }
 
