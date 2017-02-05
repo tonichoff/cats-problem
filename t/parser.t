@@ -304,7 +304,7 @@ subtest 'tag stack', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 36;
+    plan tests => 39;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -399,6 +399,23 @@ subtest 'test', sub {
             is $t->{std_solution_id}, 'sol.pp', "Gen $_ Out";
         }
     }
+
+    {
+        my $parser = ParserMockup::make({
+            'test.xml' => wrap_problem(q~
+<Test rank="1" points="1"><In src="in"/><Out src="out"/></Test>
+<Test rank="2"><In src="in"/><Out src="out"/></Test>
+<Checker src="checker.pp" style="testlib"/>~),
+            'in' => 'in', 'out' => 'out',
+            'checker.pp' => 'z',
+        });
+        my $p = $parser->parse;
+        my $w = $parser->logger->{warnings};
+        is scalar @$w, 1, 'point/no-point warnings count';
+        is $w->[0], 'Points are defined for tests: 1 but not 2', 'point/no-point warning';
+        is scalar(keys %{$p->{tests}}), 2, 'point/no-point tests count';
+    }
+
 };
 
 subtest 'testest', sub {

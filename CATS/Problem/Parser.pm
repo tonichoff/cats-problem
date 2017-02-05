@@ -27,6 +27,8 @@ sub new
     return bless \%opts => $class;
 }
 
+sub logger { $_[0]->{source}->{logger} }
+
 sub error
 {
     my CATS::Problem::Parser $self = shift;
@@ -209,9 +211,10 @@ sub validate
         my $error = validate_test($_) or next;
         $self->error("$error for test $_->{rank}");
     }
-    my @without_points = map $_->{rank}, grep !defined $_->{points}, @t;
-    $self->warning('Points not defined for tests: ' . join ',', @without_points)
-        if @without_points && @without_points != @t;
+    my @no_points = ([], []);
+    push @{$no_points[defined $_->{points} ? 0 : 1]}, $_->{rank} for @t;
+    $self->warning(sprintf 'Points are defined for tests: %s but not %s',
+        map CATS::Testset::pack_rank_spec(@$_), @no_points) if @{$no_points[0]} && @{$no_points[1]};
     $self->validate_testsets;
 
     $check_order->($problem->{samples}, 'sample');

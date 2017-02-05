@@ -137,8 +137,7 @@ sub start_tag_In
             $self->set_test_attr($_, 'gen_group', $gen_group);
         }
         $self->note(
-            "Generator group $gen_group created for tests " .
-            join ',', sort { $a <=> $b } map $_->{rank}, @t)
+            "Generator group $gen_group created for tests " . CATS::Testset::pack_rank_spec(map $_->{rank}, @t))
             if $gen_group;
     }
     if (defined $atts->{validate}) {
@@ -159,7 +158,8 @@ sub start_tag_Out
     if (defined $atts->{src}) {
         for (@t) {
             my $src = apply_test_rank($atts->{'src'}, $_->{rank});
-            $self->set_test_attr($_, 'out_file', $self->{source}->read_member($src, "Invalid test output file reference: '$src'"));
+            $self->set_test_attr($_, 'out_file',
+                $self->{source}->read_member($src, "Invalid test output file reference: '$src'"));
         }
     }
     if (defined $atts->{'use'}) {
