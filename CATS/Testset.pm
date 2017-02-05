@@ -68,6 +68,22 @@ sub validate_testset
     1;
 }
 
+sub pack_rank_spec
+{
+    my (@ranks) = sort { $a <=> $b } @_;
+    my (@ranges);
+    my $range = [0, -1];
+    for (@ranks, 0) {
+        if ($range->[1] + 1 != $_) {
+            push @ranges, "$range->[0]" . ($range->[0] == $range->[1] ? '' : "-$range->[1]")
+                if $range->[0];
+            $range->[0] = $_;
+        }
+        $range->[1] = $_;
+    }
+    join ',', @ranges;
+}
+
 
 sub get_all_testsets
 {

@@ -37,7 +37,7 @@ sub val { CATS::Testset::validate_testset($testsets, $_[1], $_[0], sub { die @_ 
 sub hu { my %h; $h{$_} = undef for @_; \%h; }
 sub h1 { my %h; $h{$_} = 1 for @_; \%h; }
 
-plan tests => 4;
+plan tests => 5;
 
 subtest 'basic', sub {
     plan tests => 7;
@@ -88,4 +88,14 @@ subtest 'dependencies', sub {
     is_keys ptr('tdc1', 1), [ 1..4 ];
     is_keys ptr('tdc3', 1), [ 1..6 ], 'diamond';
     ok val('tdc3', h1(1..6)), 'validate diamond';
+};
+
+sub pck { goto \&CATS::Testset::pack_rank_spec }
+
+subtest 'pack', sub {
+    plan tests => 4;
+    is pck(), '', 'pack empty';
+    is pck(1, 2, 3), '1-3', 'pack 1,2,3';
+    is pck(4, 6, 8), '4,6,8', 'pack 4,6,8';
+    is pck(5, 7, 4, 15..20), '4-5,7,15-20', 'pack 4-5,7,15-20';
 };
