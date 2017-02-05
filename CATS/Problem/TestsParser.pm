@@ -199,20 +199,10 @@ sub start_tag_Testset
 sub validate_testsets
 {
     (my CATS::Problem::Parser $self) = @_;
-    my $testsets = $self->{problem}->{testsets};
-    for my $ts (sort keys %$testsets) {
-        my $tests = CATS::Testset::parse_test_rank($testsets, $testsets->{$ts}->{tests}, sub { $self->error(@_) });
-        for (keys %$tests) {
-            $self->{problem}->{tests}->{$_} or $self->error("Undefined test $_ in testset '$ts'");
-        }
-        if (my $dep = $testsets->{$ts}->{depends_on}) {
-            my $dep_tests = CATS::Testset::parse_test_rank(
-                $testsets, $dep, sub { $self->error(@_) }, include_deps => 1);
-            # May be caused by circular references of individual tests, as opposed to recursive testsets.
-            for (sort keys %$dep_tests) {
-                exists $tests->{$_} and $self->error("Testset '$ts' both contains and depends on test $_");
-            }
-        }
+    my $all_testsets = $self->{problem}->{testsets};
+    for my $ts (sort keys %$all_testsets) {
+        CATS::Testset::validate_testset(
+        $all_testsets, $self->{problem}->{tests}, $ts, sub { $self->error(@_) }) or return;
     }
 }
 

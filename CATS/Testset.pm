@@ -19,7 +19,7 @@ sub parse_test_rank
         for (split ',', $r) {
             if (/^[a-zA-Z][a-zA-Z0-9_]*$/) {
                 my $testset = $all_testsets->{$_} or die \"Unknown testset '$_'";
-                $used{$_}++ and die \"Recursive usage of testset '$_'";
+                $used{$_}++ and $p{include_deps} ? return : die \"Recursive usage of testset '$_'";
                 my $sg = $scoring_group;
                 if (is_scoring_group($testset)) {
                     die \"Nested scoring group '$_'" if $sg;
@@ -47,6 +47,25 @@ sub parse_test_rank
     eval { $rec->($rank_spec); %result or die \'Empty rank specifier'; }
         or $on_error && $on_error->(ref $@ ? "${$@} in rank spec '$rank_spec'" : $@);
     \%result;
+}
+
+sub validate_testset
+{
+    my ($all_testsets, $all_tests, $testset_name, $on_error) = @_;
+    my $testset = $all_testsets->{$testset_name};
+    my $tests = parse_test_rank($all_testsets, $testset->{tests}, $on_error);
+    for (keys %$tests) {
+        $all_tests->{$_} or return $on_error->("Undefined test $_ in testset '$testset_name'");
+    }
+    if (my $dep = $testset->{depends_on}) {
+        my $dep_tests = parse_test_rank($all_testsets, $dep, $on_error, include_deps => 1);
+        # May be caused by circular references of individual tests, as opposed to recursive testsets.
+        for (sort keys %$dep_tests) {
+            return $on_error->("Testset '$testset_name' both contains and depends on test $_")
+                if exists $tests->{$_};
+        }
+    }
+    1;
 }
 
 

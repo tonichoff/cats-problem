@@ -437,7 +437,7 @@ subtest 'testest', sub {
 <Checker src="checker.pp"/>~),
             't' => 'q',
             'checker.pp' => 'z',
-    }) } qr/Recursive/, 'Recursive dependency via testest';
+    }) } qr/Testset 'ts1' both contains and depends on test 1/, 'Recursive dependency via testest';
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~
