@@ -796,6 +796,7 @@ sub blob
 
     my $result = {
         lines => [],
+        encoding => $enc,
         paths => $self->format_page_path($file, 'blob', $hash_base),
         latest_sha => $self->get_latest_master_sha,
         is_remote => $self->get_remote_url,
@@ -815,6 +816,8 @@ sub blob
         my $nr;
         while (my $line = <$fd>) {
             chomp $line;
+            # Guess encoding
+            $result->{encoding} = $enc = $enc->($line) if ref $enc eq 'CODE';
             $line = Encode::decode($enc, $line);
             $line = untabify($line);
             $nr++;
