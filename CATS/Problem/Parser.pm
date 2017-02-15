@@ -302,8 +302,11 @@ sub stml_src_handlers
                 my $n = $atts->{$src} or next;
                 my $url_field = "${field}_url";
                 $problem->{$url_field} and $self->error("Several $url_field resources");
-                $problem->{$url_field} = { url => 'http', attachment => 'file' }->{$src} . "://$n";
-                $self->inc_object_ref_count($n, 'attachment') if $src eq 'attachment';
+                $problem->{$url_field} = $n;
+                if ($src eq 'attachment') {
+                    $problem->{$url_field} = "file://$n";
+                    $self->inc_object_ref_count($n, 'attachment');
+                }
                 $self->note("$url_field set to $src '$n'");
             }
         },
