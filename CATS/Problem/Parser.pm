@@ -222,7 +222,7 @@ sub validate
     $problem->{run_method} ||= $cats::rm_default;
 
     $problem->{$_} && $problem->{description}->{"${_}_url"}
-        and $self->error("Both stml and url for $_") for qw(statement explanation);
+        and $self->warning("Both stml and url for $_") for qw(statement explanation);
     $problem->{has_checker} or $self->error('No checker specified');
 }
 
