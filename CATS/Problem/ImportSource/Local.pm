@@ -33,6 +33,6 @@ sub get_sources_info
     map CATS::SourceManager::load($_->{guid}, $self->{modulesdir}), @$sources;
 }
 
-sub get_new_id { $_[0]->{id_counter}++ . ($_[1] // '') }
+sub get_new_id { $_[0]->{id_counter}++ . ($_[2] // '') }
 
 1;
