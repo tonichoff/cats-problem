@@ -508,7 +508,7 @@ sub _parse_attrs {
         if ($$token == TOKENS->{NAME}) {
             $self->_assert($fd->{name}, "duplicate attribute 'name'");
             $self->_next_token;
-            $self->_expect('EQ');
+            $self->_expect('ASSIGN');
             $self->_next_token;
             $self->_expect_identifier;
             $self->_assert($fd->{parent}->find_child($self->{token_str}),
@@ -518,14 +518,14 @@ sub _parse_attrs {
         } elsif ($$token == TOKENS->{CHARS}) {
             $self->_assert($fd->{attributes}->{chars}, "duplicate attribute 'chars'");
             $self->_next_token;
-            $self->_expect('EQ');
+            $self->_expect('ASSIGN');
             $self->_parse_chars($fd);
         } else {
             $self->_expect_identifier;
             $self->_assert($fd->{attributes}->{$self->{token_str}}, "duplicate attribute '$self->{token_str}'");
             my $attr = $self->{token_str};
             $self->_next_token;
-            $self->_expect('EQ');
+            $self->_expect('ASSIGN');
             my ($col, $row) = ($self->{col} + 1, $self->{row});
             my $expr = $self->_parse_expr($fd);
             $fd->{attributes}->{$attr} = $expr;
@@ -614,7 +614,7 @@ sub _parse_params {
         $self->_expect_identifier;
         my $parameter = $self->{token_str};
         $self->_next_token;
-        $self->_expect('EQ');
+        $self->_expect('ASSIGN');
         my $expr = $self->_parse_expr();
         $self->{curParent}->{attributes}->{$parameter} = $expr;
     }
