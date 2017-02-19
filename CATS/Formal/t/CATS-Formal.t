@@ -4,22 +4,24 @@ use File::Basename;
 use File::Compare;
 use File::Spec;
 use File::Slurp;
-use Cwd qw(abs_path);
-use lib dirname(dirname(dirname(dirname(abs_path($0)))));
+use Cwd qw(abs_path getcwd chdir);
+
 my $clear = 0;
 my @tests;
 my $compiler;
+my $tests_dir;
+my $root_dir;
 
 sub check_compiler {
     ($compiler) = @_;
-    my $hello_world =<<"END"
+    my $hello_world =<<CPP
 #include <iostream>
 using namespace std;
 int main() {
-    cout << "Hello World" << endl;    
+    cout << "Hello World" << endl;
 }
-END
-;
+CPP
+    ;
     open(my $fh, '>', 'hello_world.cpp');
     print $fh $hello_world;
     close $fh;
@@ -39,7 +41,10 @@ BEGIN {
     if ($#ARGV > -1) {
         check_compiler(@ARGV);
     }
-    
+    $tests_dir = dirname(abs_path($0));
+    $root_dir = dirname(dirname(dirname($tests_dir)));
+    chdir($tests_dir);
+    print "$tests_dir\n$root_dir\n";
     push @tests, map {run => \&run_parser_test, file => $_} => <parser/*.fd>;
     push @tests, map {
         run => \&run_validator_test,
@@ -57,6 +62,7 @@ BEGIN {
     } => <validator/*.fd>;
 }
 
+use lib $root_dir;
 use Test::More tests => 2 + scalar @tests;
 my @suffix_to_save = qw(.fd .in .ans);
 
@@ -90,7 +96,7 @@ sub prepare_testlib_validator {
         {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"
     );
     $compiler or return fail('undefined compiler');
-    my $compile = 
+    my $compile =
         "$compiler -o $dir$name.exe $dir$name.cpp";
     print "compiling... $file -> testlib\n";
     system($compile);
