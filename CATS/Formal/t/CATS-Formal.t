@@ -6,7 +6,7 @@ use File::Spec;
 use File::Slurp;
 use Cwd qw(abs_path getcwd chdir);
 
-my $clear = 0;
+my $clear; BEGIN {$clear = 1;}
 my @tests;
 my $compiler;
 my $tests_dir;
@@ -33,6 +33,9 @@ CPP
         die;
     }
     my $out = `hello_world.exe`;
+    if ($clear) {
+        unlink 'hello_world.exe';
+    }
     $out ne "Hello World\n" and print "wrong output: $out" and die;
     print "used compiler $compiler\n"
 }
