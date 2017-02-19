@@ -33,6 +33,7 @@ sub parse_descriptions {
         my $text = $descriptions{$namespace};
         defined $text || next;
         if ($is_files->{$namespace} eq 'file') {
+            $text eq '' && next;
             $text = read_file($text);
         }
         $fd = $parser->parse($text, $namespace, $fd);
