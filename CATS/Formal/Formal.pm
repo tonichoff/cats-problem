@@ -79,8 +79,8 @@ sub generate_and_write {
 }
 
 sub part_copy {
-    my ($h1, $h2, $keys1, $keys2) = @_;
-    @{$h2->{@$keys2}} = @{$h1->{@$keys1}};
+    my ($from_hash, $to_hash, $from_keys, $to_keys) = @_;
+    @{$to_hash->{@$to_keys}} = @{$from_hash->{@$from_keys}};
 }
 
 sub validate {
