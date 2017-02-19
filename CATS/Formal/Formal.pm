@@ -31,7 +31,7 @@ sub parse_descriptions {
     my @keys = ('INPUT', 'ANSWER', 'OUTPUT');
     foreach my $namespace (@keys) {
         my $text = $descriptions{$namespace};
-        $text || next;
+        defined $text || next;
         if ($is_files->{$namespace} eq 'file') {
             $text = read_file($text);
         }
