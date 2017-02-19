@@ -115,4 +115,16 @@ sub generate {
     return $res->{error};
 }
 
+sub check_syntax {
+	my ($fds, $opt) = @_;
+	$opt ||= {};
+	my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
+	part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
+	my $fd_root = parse_descriptions($fd_is, %$fds);
+    unless ($fd_root) {
+        return CATS::Formal::Error::get();
+    }
+    undef;
+}
+
 1;
