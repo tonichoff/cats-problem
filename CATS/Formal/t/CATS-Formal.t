@@ -43,23 +43,22 @@ BEGIN {
     }
     $tests_dir = dirname(abs_path($0));
     $root_dir = dirname(dirname(dirname($tests_dir)));
-    chdir($tests_dir);
     print "$tests_dir\n$root_dir\n";
-    push @tests, map {run => \&run_parser_test, file => $_} => <parser/*.fd>;
+    push @tests, map {run => \&run_parser_test, file => $_} => <$tests_dir/parser/*.fd>;
     push @tests, map {
         run => \&run_validator_test,
         file => $_,
         prepare => \&prepare_testlib_validator,
         validate => \&testlib_validate,
         name => 'testlib'
-    } => <validator/*.fd> if $compiler;
+    } => <$tests_dir/validator/*.fd> if $compiler;
     push @tests, map {
         run => \&run_validator_test,
         file => $_,
         prepare => \&prepare_universal_validator,
         validate => \&universal_validate,
         name => 'universal'
-    } => <validator/*.fd>;
+    } => <$tests_dir/validator/*.fd>;
 }
 
 use lib $root_dir;
@@ -183,7 +182,7 @@ require_ok('CATS::Formal::Formal');
 
 $_->{run}->($_) for @tests;
 
-clear('parser');
-clear('validator');
+clear("$tests_dir/parser");
+clear("$tests_dir/validator");
 
 1;
