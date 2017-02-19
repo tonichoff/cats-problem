@@ -17,8 +17,11 @@ use constant GENERATORS => {
     'testlib_validator'   => CATS::Formal::Generators::TestlibValidator,
 };
 
-sub default_v {
-    {INPUT => 'file', OUTPUT => 'file', ANSWER => 'file'}    
+sub set_all {
+	my ($val) = @_;
+	my $res = {};
+	$res->{$_} = $val for qw(INPUT OUTPUT ANSWER);
+	return $res;
 }
 
 sub parse_descriptions {
@@ -83,14 +86,14 @@ sub part_copy {
 sub validate {
     my ($descriptions, $validate, $opt) = @_;
     $opt ||= {};
-    my $fd_is = default_v;
+    my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
     part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
     my $fd_root = parse_descriptions($fd_is, %$descriptions);
     unless ($fd_root) {
         my $error = CATS::Formal::Error::get();
         return $error;
     }
-    my $data_is = default_v;
+    my $data_is = set_all($opt->{data} || $opt->{all} || 'file');
     part_copy($opt, $data_is, ['input_data', 'output_data', 'answer_data'], ['INPUT', 'OUTPUT', 'ANSWER']);
     eval {
         CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$validate);
@@ -100,10 +103,11 @@ sub validate {
 }
 
 sub generate {
-    my ($fds, $gen_id, $out, $is_files) = @_;
+    my ($fds, $gen_id, $out, $opt) = @_;
+    $opt ||= {};
     $out ||= \*STDOUT;
-    my $fd_is = default_v;
-    part_copy($is_files, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
+    my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
+    part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
     my $res = generate_source($gen_id, $fd_is, %$fds);
     unless ($res->{error}) {
         write_res_to_file($res, $out);
