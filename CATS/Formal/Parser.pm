@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Error;
+use CATS::Formal::Error;
 
 package CATS::Formal::Parser::Base;
 
@@ -37,10 +37,10 @@ sub _finish {
 
 package CATS::Formal::Parser;
 
-use Description;
-use Expressions;
-use Constants;
-use Functions;
+use CATS::Formal::Description;
+use CATS::Formal::Expressions;
+use CATS::Formal::Constants;
+use CATS::Formal::Functions;
 
 use parent -norequire, 'CATS::Formal::Parser::Base';
 

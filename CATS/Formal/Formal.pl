@@ -2,8 +2,10 @@ use strict;
 use warnings;
 
 use Getopt::Long;
-use Formal;
-use Data::Dumper;
+use File::Basename qw(dirname);
+use Cwd qw(abs_path);
+use lib dirname(dirname(dirname(abs_path($0))));
+use CATS::Formal::Formal;
 
 my $generator = '';
 my %from;

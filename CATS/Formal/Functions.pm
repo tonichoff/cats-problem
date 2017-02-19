@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Math::Trig;
-use Expressions;
+use CATS::Formal::Expressions;
 
 use constant Integer => 'CATS::Formal::Expressions::Integer';
 use constant Float   => 'CATS::Formal::Expressions::Float';

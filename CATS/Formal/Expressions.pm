@@ -1,10 +1,10 @@
 use strict;
 use warnings;
-use Error;
-use Constants;
-    
+use CATS::Formal::Error;
+use CATS::Formal::Constants;
+
 package CATS::Formal::Expressions::BaseExpression;
-use parent -norequire, 'CATS::Formal::BaseObj';
+use parent 'CATS::Formal::BaseObj';
 
 sub is_expr {1;}
 sub new {
@@ -38,7 +38,7 @@ sub evaluate {
 
 ##############################################################################
 package CATS::Formal::Expressions::Binary;
-BEGIN {CATS::Formal::Constants->import()}
+use CATS::Formal::Constants;
 # left - expr, right - expr, op - token
 use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_access { $_[0]->{is_access};}
@@ -137,7 +137,7 @@ sub evaluate {
 
 ##############################################################################
 package CATS::Formal::Expressions::Unary;
-BEGIN {CATS::Formal::Constants->import()}
+use CATS::Formal::Constants;
 #op - token, node - expr
 use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_unary{1;}

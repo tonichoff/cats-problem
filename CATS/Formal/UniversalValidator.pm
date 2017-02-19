@@ -4,9 +4,8 @@ use warnings;
 
 use File::Slurp;
 
-use Constants;
-use Expressions;
-BEGIN {CATS::Formal::Constants->import()};
+use CATS::Formal::Constants;
+use CATS::Formal::Expressions;
 
 sub assert {
     CATS::Formal::Error::assert(@_);

@@ -1,8 +1,6 @@
 package CATS::Formal::Generators::TestlibValidator;
 
-use lib '..';
-use Generators::TestlibBase;
-use parent -norequire, 'CATS::Formal::Generators::TestlibBase';
+use parent 'CATS::Formal::Generators::TestlibBase';
 
 sub generate_description {
     my ($self, $fd) = @_;

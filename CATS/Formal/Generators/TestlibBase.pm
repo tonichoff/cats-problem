@@ -2,11 +2,9 @@ package CATS::Formal::Generators::TestlibBase;
 use strict;
 use warnings;
 
-use lib '..';
-use Generators::BaseGenerator;
-use Constants;
+use CATS::Formal::Constants;
 
-use parent -norequire, 'CATS::Formal::Generators::BaseGenerator';
+use parent 'CATS::Formal::Generators::BaseGenerator';
 
 use constant FD_TYPES => CATS::Formal::Constants::FD_TYPES;
 use constant TOKENS   => CATS::Formal::Constants::TOKENS;

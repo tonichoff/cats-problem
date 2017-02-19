@@ -2,11 +2,10 @@ package CATS::Formal::Description;
 use strict;
 use warnings;
 
-use BaseObj;
-use Expressions;
-use Constants;
-BEGIN {CATS::Formal::Constants->import()}
-use parent -norequire, 'CATS::Formal::BaseObj';
+use CATS::Formal::Expressions;
+use CATS::Formal::Constants;
+
+use parent 'CATS::Formal::BaseObj';
 
 sub is_description {1;}
 

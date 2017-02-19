@@ -4,8 +4,8 @@ use File::Basename;
 use File::Compare;
 use File::Spec;
 use File::Slurp;
-
-use lib '..'; 
+use Cwd qw(abs_path);
+use lib dirname(dirname(dirname(dirname(abs_path($0)))));
 my $clear = 0;
 my @tests;
 my $compiler;
@@ -172,8 +172,8 @@ sub run_validator_tests{
     }
 }
 
-BEGIN {use_ok('Formal')};
-require_ok('Formal');
+BEGIN {use_ok('CATS::Formal::Formal')};
+require_ok('CATS::Formal::Formal');
 
 $_->{run}->($_) for @tests;
 

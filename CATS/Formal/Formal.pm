@@ -2,13 +2,13 @@ package CATS::Formal::Formal;
 
 use File::Slurp;
 
-use Parser;
-use Error;
-use Generators::XML;
-use Generators::TestlibChecker;
-use Generators::TestlibValidator;
-use Generators::TestlibStdChecker;
-use UniversalValidator;
+use CATS::Formal::Parser;
+use CATS::Formal::Error;
+use CATS::Formal::Generators::XML;
+use CATS::Formal::Generators::TestlibChecker;
+use CATS::Formal::Generators::TestlibValidator;
+use CATS::Formal::Generators::TestlibStdChecker;
+use CATS::Formal::UniversalValidator;
 
 use constant GENERATORS => {
     'xml'                 => CATS::Formal::Generators::XML,
