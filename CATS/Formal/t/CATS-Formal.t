@@ -41,7 +41,7 @@ BEGIN {
     if ($#ARGV > -1) {
         check_compiler(@ARGV);
     }
-    $tests_dir = dirname(abs_path($0));
+    $tests_dir = dirname(abs_path(__FILE__));
     $root_dir = dirname(dirname(dirname($tests_dir)));
     print "$tests_dir\n$root_dir\n";
     push @tests, map {run => \&run_parser_test, file => $_} => <$tests_dir/parser/*.fd>;
