@@ -25,7 +25,7 @@ GetOptions(
 
 if (keys %validate) {
     print CATS::Formal::Formal::validate(\%from, \%validate) || "validation ok";
-} 
+}
 
 if ($generator) {
     print CATS::Formal::Formal::generate(\%from, $generator, $to) || "generation ok";

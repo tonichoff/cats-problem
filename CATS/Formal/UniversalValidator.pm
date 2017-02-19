@@ -45,7 +45,7 @@ sub validate_top {
     $self->{params} = {};
     %{$self->{params}} = %{$fd->{attributes}};
     unless ($self->{params}->{strict}) {
-        $self->{params}->{strict} = CATS::Formal::Expressions::Integer->new(1); 
+        $self->{params}->{strict} = CATS::Formal::Expressions::Integer->new(1);
     }
     my $v = $self->validate_record($fd);
     my $t = $self->{params}->{strict} ?
@@ -73,7 +73,7 @@ sub read_newline {
         my $s = substr $self->{data}, 0, 1;
         assert(1, "EOLN expected but '$s' given");
     }
-    
+
     $self->{data} = $';
 }
 
@@ -88,11 +88,11 @@ sub read_token {
     if ($self->{need_space}) {
         $self->read_space;
     }
-    
+
     unless ($self->{params}->{strict}) {
         $self->read_spaces;
     }
-    
+
     if ($self->{data} =~ /^(\S+)/) {
         $self->{token} = $1;
         $self->{data} = $';
@@ -225,7 +225,7 @@ sub validate_string {
         my @letters = split '', $token;
         foreach (@letters) {
             assert(index($$chars, $_) == -1,
-                "expected string consisting of '$chars' but got '$token' ($_)"       
+                "expected string consisting of '$chars' but got '$token' ($_)"
             );
         }
     }
@@ -247,8 +247,8 @@ sub validate_seq {
         my $len_val = $length->evaluate($val);
         for (my $v = 0; $v < $$len_val; ++$v){
             my $cv = $self->validate_record($fd);
-            push @{$val->{children}}, $cv;            
-            push @{$val->{val}}, $cv->{val}; 
+            push @{$val->{children}}, $cv;
+            push @{$val->{val}}, $cv->{val};
             if ($v + 1 != $$len_val && !$self->{newline}) {
                 $self->{need_space} = 1;
             }
@@ -256,12 +256,12 @@ sub validate_seq {
     } else {
         while ($self->peek_token ne '') {
             my $cv = $self->validate_record($fd);
-            push @{$val->{children}}, $cv;            
+            push @{$val->{children}}, $cv;
             push @{$val->{val}}, $cv->{val};
             if ($self->peek_token ne '' && !$self->{newline}) {
                 $self->{need_space} = 1;
             }
-        } 
+        }
     }
     $self->{cur} = $val->{parent};
     return $val;
@@ -306,7 +306,7 @@ sub validate_constraints {
             my $s = $c->stringify;
             CATS::Formal::Error::set(
                 "constraint '$s' failed"
-            );   
+            );
         }
     }
 }

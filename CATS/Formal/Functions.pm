@@ -255,7 +255,7 @@ $str_to_int_function = {
     calc => sub {
         Integer->new(${$_[0]});
     },
-    return => Integer 
+    return => Integer
 };
 
 $float_to_int_function = {

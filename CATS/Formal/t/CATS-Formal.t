@@ -87,7 +87,7 @@ sub prepare_testlib_validator {
     my ($file) = @_;
     my ($name, $dir, $suffix) = fileparse($file, '.fd');
     CATS::Formal::Formal::generate_and_write(
-        {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"   
+        {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"
     );
     $compiler or return fail('undefined compiler');
     my $compile = 
@@ -110,7 +110,7 @@ sub testlib_validate {
 
 sub prepare_universal_validator {
     return {
-        INPUT => $_[0] 
+        INPUT => $_[0]
     };
 }
 

@@ -18,23 +18,23 @@ use constant GENERATORS => {
 };
 
 sub set_all {
-	my ($val) = @_;
-	my $res = {};
-	$res->{$_} = $val for qw(INPUT OUTPUT ANSWER);
-	return $res;
+    my ($val) = @_;
+    my $res = {};
+    $res->{$_} = $val for qw(INPUT OUTPUT ANSWER);
+    return $res;
 }
 
 sub parse_descriptions {
     my ($is_files, %descriptions) = @_;
     my $parser = CATS::Formal::Parser->new();
     my $fd;
-    my @keys = ('INPUT', 'ANSWER', 'OUTPUT'); 
+    my @keys = ('INPUT', 'ANSWER', 'OUTPUT');
     foreach my $namespace (@keys) {
         my $text = $descriptions{$namespace};
         $text || next;
         if ($is_files->{$namespace} eq 'file') {
             $text = read_file($text);
-        }        
+        }
         $fd = $parser->parse($text, $namespace, $fd);
         $fd || return $fd;
     }
@@ -59,7 +59,7 @@ sub generate_source {
 
 sub generate_source_from_files {
     my ($gen_id, %files) = @_;
-    return generate_source($gen_id, default_v, %files);
+    return generate_source($gen_id, set_all('file'), %files);
 }
 
 sub write_res_to_file {
@@ -116,11 +116,11 @@ sub generate {
 }
 
 sub check_syntax {
-	my ($fds, $opt) = @_;
-	$opt ||= {};
-	my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
-	part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
-	my $fd_root = parse_descriptions($fd_is, %$fds);
+    my ($fds, $opt) = @_;
+    $opt ||= {};
+    my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
+    part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
+    my $fd_root = parse_descriptions($fd_is, %$fds);
     unless ($fd_root) {
         return CATS::Formal::Error::get();
     }

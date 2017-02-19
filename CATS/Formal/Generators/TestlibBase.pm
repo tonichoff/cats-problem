@@ -11,7 +11,7 @@ use constant TOKENS   => CATS::Formal::Constants::TOKENS;
 use constant PRIORS   => CATS::Formal::Constants::PRIORS;
 
 use constant BAD_NAMES => {
-    alignas => 1, 
+    alignas => 1,
     alignof => 1,
     and     => 1,
     and_eq  => 1,
@@ -99,7 +99,7 @@ use constant BAD_NAMES => {
 
 my $struct_counter = 0;
 #$self->{description} = {
-#   def_name => {real_name=>'', type=>$self->{types}}    
+#   def_name => {real_name=>'', type=>$self->{types}}
 #}
 my $stream_name = '_in_stream_';
 
@@ -112,7 +112,7 @@ sub init {
     $self->{generated_functions} = {};
     $self->{definitions} = {};
     $self->{reader} = '';
-    $self->{stream_name} = $stream_name; 
+    $self->{stream_name} = $stream_name;
 }
 
 sub generate {
@@ -121,11 +121,11 @@ sub generate {
     eval{
         $self->init;
         $self->generate_description($obj);
-        $res = $self->pattern;    
+        $res = $self->pattern;
     };
     CATS::Formal::Error::propagate_bug_error();
     return $res;
-    
+
 }
 
 sub generate_description {
@@ -159,7 +159,7 @@ sub generate_int_obj {
     }
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     $obj->{space_reader} = 1;
-    
+
     return $obj;
 }
 
@@ -196,7 +196,7 @@ sub generate_float_obj {
         }
         $read_func = "readStrictDouble($a, $b, $dmin, $dmax, \"$obj->{name}\")";
     }
-    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.$read_func;\n" . 
+    $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.$read_func;\n" .
         $self->generate_constraints($fd, $spaces);
     $obj->{space_reader} = 1;
     return $obj;
@@ -209,7 +209,7 @@ sub generate_string_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
     $obj->{name_for_expr} = $prefix . $obj->{name};
-    
+
     $obj->{declaration} = "string $obj->{name};\n";
     $fd->{obj} = $obj;
     $obj->{reader} = $spaces . "$obj->{name_for_expr} = $stream_name.readWord();\n";
@@ -235,7 +235,7 @@ sub generate_string_obj {
             "$obj->{name_for_expr}.find_first_not_of($chars) == string::npos"
         );
     }
-    
+
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
     $obj->{space_reader} = 1;
     return $obj;
@@ -247,11 +247,11 @@ sub generate_seq_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name($fd->{name} || '_tmp_obj_');
     $obj->{name_for_expr} = $prefix . $obj->{name};
-    $fd->{obj} = $obj; 
-     
+    $fd->{obj} = $obj;
+
     my $type = "SEQ_$struct_counter";
     my $seq_elem = $self->find_good_name($type.'_elem');
-    
+
     $struct_counter++;
     $obj->{declaration} = "vector<$type> $obj->{name};\n";
     my $len = $fd->{attributes}->{length};
@@ -270,7 +270,7 @@ sub generate_seq_obj {
     my ($members, $compare) = $self->generate_children($fd, $obj, "$seq_elem.", $deep+1);
     $obj->{reader} .= $spaces."    $obj->{name_for_expr}.push_back($seq_elem);\n" .
                       $spaces."}\n" . $self->generate_constraints($fd, $spaces);
-    my $struct_definition = <<"END"    
+    my $struct_definition = <<"END"
 struct $type {
 $members
 };
@@ -280,14 +280,14 @@ bool operator==(const $type& f, const $type& s){
 
 END
 ;
-    $self->{type_declarations} .= "struct $type;\n"; 
+    $self->{type_declarations} .= "struct $type;\n";
     $self->{type_definitions} .= $struct_definition;
     $self->{space_reader} = 1;
     return $obj;
 }
 
 sub generate_children {
-    my ($self, $fd, $obj, $prefix, $deep) = @_;    
+    my ($self, $fd, $obj, $prefix, $deep) = @_;
     my @child_objects = map $self->generate_obj($_, $prefix, $deep)
         => @{$fd->{children}};
     my $spaces = '    ' x $deep;
@@ -312,13 +312,13 @@ sub generate_record_obj {
     my $spaces = '    ' x $deep;
     $obj->{name} = $self->find_good_name(lc($fd->{name} || '_tmp_obj_'));
     $obj->{name_for_expr} = $prefix . $obj->{name};
-    $fd->{obj} = $obj; 
+    $fd->{obj} = $obj;
     my $type = $obj->{type} = uc "_$obj->{name}_";
     $obj->{declaration} = "$type $obj->{name};\n";
     $obj->{reader} = '';
     my ($members, $compare) = $self->generate_children($fd, $obj, "$obj->{name}.", $deep);
     $obj->{reader} .= $self->generate_constraints($fd, $spaces);
-    my $struct_definition = <<"END"    
+    my $struct_definition = <<"END"
 struct $type {
 $members
 };
@@ -328,7 +328,7 @@ bool operator==(const $type& f, const $type& s){
 
 END
 ;
-    $self->{type_declarations} .= "struct $type;\n"; 
+    $self->{type_declarations} .= "struct $type;\n";
     $self->{type_definitions} .= $struct_definition;
     $self->{space_reader} = 1;
     return $obj;
@@ -337,15 +337,15 @@ END
 sub generate_new_line_obj {
     my ($self, $fd, $prefix, $deep) = @_;
     my $spaces = '    ' x $deep;
-    
+
     my $obj = {newline_obj => 1, reader => "$spaces$stream_name.seekEoln();\n"};
     if ($self->{params}->{strict}) {
         $obj->{reader} = "$spaces$stream_name.readEoln();\n";
     }
     if ($self->{last_obj}) {
-        $self->{last_obj}->{space_reader} = undef; 
+        $self->{last_obj}->{space_reader} = undef;
     }
-    return $obj;    
+    return $obj;
 }
 
 sub generate_obj {
@@ -436,11 +436,11 @@ sub generate_expr {
         #} else {
         #    die "not implemented";
         #}
-    
+
     } elsif ($expr->is_array_access) {
         return $self->generate_expr($expr->{head}) . '[' . $self->generate_expr($expr->{index}) . ']';
     } else {die "wtf"}
-    
+
 }
 
 sub try_generate_function {
