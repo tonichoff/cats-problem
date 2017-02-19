@@ -4,22 +4,24 @@ use File::Basename;
 use File::Compare;
 use File::Spec;
 use File::Slurp;
+use Cwd qw(abs_path getcwd chdir);
 
-use lib '..'; 
-my $clear = 0;
+my $clear; BEGIN {$clear = 1;}
 my @tests;
 my $compiler;
+my $tests_dir;
+my $root_dir;
 
 sub check_compiler {
     ($compiler) = @_;
-    my $hello_world =<<"END"
+    my $hello_world =<<CPP
 #include <iostream>
 using namespace std;
 int main() {
-    cout << "Hello World" << endl;    
+    cout << "Hello World" << endl;
 }
-END
-;
+CPP
+    ;
     open(my $fh, '>', 'hello_world.cpp');
     print $fh $hello_world;
     close $fh;
@@ -31,6 +33,9 @@ END
         die;
     }
     my $out = `hello_world.exe`;
+    if ($clear) {
+        unlink 'hello_world.exe';
+    }
     $out ne "Hello World\n" and print "wrong output: $out" and die;
     print "used compiler $compiler\n"
 }
@@ -39,24 +44,27 @@ BEGIN {
     if ($#ARGV > -1) {
         check_compiler(@ARGV);
     }
-    
-    push @tests, map {run => \&run_parser_test, file => $_} => <parser/*.fd>;
+    $tests_dir = dirname(abs_path(__FILE__));
+    $root_dir = dirname(dirname(dirname($tests_dir)));
+    print "$tests_dir\n$root_dir\n";
+    push @tests, map {run => \&run_parser_test, file => $_} => <$tests_dir/parser/*.fd>;
     push @tests, map {
         run => \&run_validator_test,
         file => $_,
         prepare => \&prepare_testlib_validator,
         validate => \&testlib_validate,
         name => 'testlib'
-    } => <validator/*.fd> if $compiler;
+    } => <$tests_dir/validator/*.fd> if $compiler;
     push @tests, map {
         run => \&run_validator_test,
         file => $_,
         prepare => \&prepare_universal_validator,
         validate => \&universal_validate,
         name => 'universal'
-    } => <validator/*.fd>;
+    } => <$tests_dir/validator/*.fd>;
 }
 
+use lib $root_dir;
 use Test::More tests => 2 + scalar @tests;
 my @suffix_to_save = qw(.fd .in .ans);
 
@@ -87,10 +95,10 @@ sub prepare_testlib_validator {
     my ($file) = @_;
     my ($name, $dir, $suffix) = fileparse($file, '.fd');
     CATS::Formal::Formal::generate_and_write(
-        {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"   
+        {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"
     );
     $compiler or return fail('undefined compiler');
-    my $compile = 
+    my $compile =
         "$compiler -o $dir$name.exe $dir$name.cpp";
     print "compiling... $file -> testlib\n";
     system($compile);
@@ -110,7 +118,7 @@ sub testlib_validate {
 
 sub prepare_universal_validator {
     return {
-        INPUT => $_[0] 
+        INPUT => $_[0]
     };
 }
 
@@ -172,12 +180,12 @@ sub run_validator_tests{
     }
 }
 
-BEGIN {use_ok('Formal')};
-require_ok('Formal');
+BEGIN {use_ok('CATS::Formal::Formal')};
+require_ok('CATS::Formal::Formal');
 
 $_->{run}->($_) for @tests;
 
-clear('parser');
-clear('validator');
+clear("$tests_dir/parser");
+clear("$tests_dir/validator");
 
 1;

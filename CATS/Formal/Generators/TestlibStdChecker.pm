@@ -1,8 +1,6 @@
 package CATS::Formal::Generators::TestlibStdChecker;
 
-use lib '..';
-use Generators::TestlibChecker;
-use parent -norequire, 'CATS::Formal::Generators::TestlibChecker';
+use parent 'CATS::Formal::Generators::TestlibChecker';
 
 sub generate_description {
     my ($self, $fd) = @_;

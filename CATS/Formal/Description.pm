@@ -2,11 +2,10 @@ package CATS::Formal::Description;
 use strict;
 use warnings;
 
-use BaseObj;
-use Expressions;
-use Constants;
-BEGIN {CATS::Formal::Constants->import()}
-use parent -norequire, 'CATS::Formal::BaseObj';
+use CATS::Formal::Expressions;
+use CATS::Formal::Constants;
+
+use parent 'CATS::Formal::BaseObj';
 
 sub is_description {1;}
 
@@ -21,7 +20,7 @@ sub new {
     $self->{constraints} = [];
     $self->{attributes} = {};
     $self->{parent}->add_child($self) if $self->{parent};
-    
+
     return $self;
 }
 
@@ -31,7 +30,7 @@ sub stringify {
     if (@_) {
         $deep = shift;
     }
-    
+
     my $a = $self->{name} ? 'name=' . $self->{name}.' ' : '';
     foreach (keys %{$self->{attributes}}){
         my $e = $self->{attributes}->{$_}->stringify;
@@ -50,10 +49,10 @@ sub find {
     my $cur = $self->{parent};
     while ($cur) {
         my $child = $cur->find_child($name);
-        return $child if $child;        
-        $cur = $cur->{parent};        
+        return $child if $child;
+        $cur = $cur->{parent};
     }
-    return $cur;    
+    return $cur;
 }
 
 sub add_child {
@@ -91,7 +90,7 @@ sub to_expr_type {
     );
     my $type = $fd_to_expr{$self->{type}};
     unless ($type){
-        my $t = RFD_TYPES()->{$self->{type}}; 
+        my $t = RFD_TYPES()->{$self->{type}};
         CATS::Formal::Error::set(
             "unable to convert object of type '$t' to expression type"
         );
@@ -110,10 +109,10 @@ sub find_self_val {
         $cur->{fd}->{type} == FD_TYPES()->{SEQ} &&
             $cur->{parent}->{fd} != $cur->{fd}  &&
             next;
-        
+
         foreach my $c (@{$cur->{children}}){
             return $c if $c->{fd} == $self;
-        }        
+        }
     }
     return undef;
 }

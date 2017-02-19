@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Error;
+use CATS::Formal::Error;
 
 package CATS::Formal::Parser::Base;
 
@@ -10,7 +10,7 @@ sub new {
     bless $self, $class;
     $self;
 }
- 
+
 sub parse {
     my ($self, $str, $namespace, $fd) = @_;
     $self->_init($str);
@@ -24,7 +24,7 @@ sub parse {
 }
 
 sub _init {
-    die "called abstract method Parser::parse_start";    
+    die "called abstract method Parser::parse_start";
 }
 
 sub _parse_start {
@@ -37,10 +37,10 @@ sub _finish {
 
 package CATS::Formal::Parser;
 
-use Description;
-use Expressions;
-use Constants;
-use Functions;
+use CATS::Formal::Description;
+use CATS::Formal::Expressions;
+use CATS::Formal::Constants;
+use CATS::Formal::Functions;
 
 use parent -norequire, 'CATS::Formal::Parser::Base';
 
@@ -58,7 +58,7 @@ use constant {
 
 my @patterns = (
     '[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?' => TOKEN_TYPES->{CONSTANT_FLOAT},
-    '\d+' => TOKEN_TYPES->{CONSTANT_INT}, 
+    '\d+' => TOKEN_TYPES->{CONSTANT_INT},
     '\w+' => TOKEN_TYPES->{WORD},
     "'.*?'" => TOKEN_TYPES->{CONSTANT_STR},
     '>=|<=|<>|==|!=|&&|\|\||[-.+*\/%\[\]^=()<>!,;#]' => TOKEN_TYPES->{OPERATOR},
@@ -74,7 +74,7 @@ sub _calc_pos {
             ++$self->{row};
         } else {
             ++$self->{col};
-        } 
+        }
     }
 }
 
@@ -104,7 +104,7 @@ sub _next_token {
     my $self = shift;
     $self->{pos} += length $self->{token_str};
     $self->{col} += length $self->{token_str};
-    
+
     while ($self->_skip_spaces || $self->_skip_comments) {}
     my $src = \$self->{src};
     if ($$src =~ /^\s*$/) {
@@ -113,7 +113,7 @@ sub _next_token {
         $self->{token_str} = '';
         return ($self->{token_type}, $self->{token}, $self->{token_str});
     }
-    
+
     my $type = TOKEN_TYPES->{UNKNOWN};
     my $spaces;
     my $token_str;
@@ -121,7 +121,7 @@ sub _next_token {
     if ($$src =~ /^(\/\/.*?\n)/) {
         #code
     }
-    
+
     for(my $i = 0; $i < $#patterns; $i += 2){
         my $pat = $patterns[$i];
         if ($$src =~ /^(\s*)($pat)/s) {
@@ -136,9 +136,9 @@ sub _next_token {
     }
     if ($type == TOKEN_TYPES->{UNKNOWN}) {
         my $char = substr($$src, 0, 1);;
-        $self->error("unknown token '$char'");    
+        $self->error("unknown token '$char'");
     };
-    
+
     #my $rtype = $RTOKEN_TYPES{$type};
     #print "$token $rtype\n";
     $self->{token_type} = $type;
@@ -208,18 +208,18 @@ sub _parse_comma_delimeted_exprs {
     $self->_next_token;
     return $arr;
 }
-    
+
 sub _parse_func {
     my ($self, $name) = @_;
     $self->_next_token;
     my $params = $self->_parse_comma_delimeted_exprs('RPAREN');
-    my @types  = map $_->calc_type, @{$params}; 
+    my @types  = map $_->calc_type, @{$params};
     my $func = CATS::Formal::Functions::find($name, \@types);
     unless ($func) {
         my $t = join ', ' => map $_->type_as_str, @types;
         $self->error("unknown function '$name($t)'");
     }
-    
+
     return CATS::Formal::Expressions::Function->new(name => $name, params => $params, func => $func);
 }
 
@@ -230,7 +230,7 @@ sub _member_access_new {
     $self->_assert($member == $self->{fd} && !$self->{self_reference_enabled},
         "self reference is forbidden"
     );
-    
+
     return CATS::Formal::Expressions::MemberAccess->new(head => $head, member => $member);
 }
 
@@ -397,7 +397,7 @@ sub _parse_expr {
 sub _parse_chars {
     my $self = shift;
     my $fd = shift;
-    
+
     #FUUUUUUUUUUUUUUUUUU
     my $src = \$self->{src};
     my $p2 = '{.*?(?<!\\\\)}';
@@ -427,7 +427,7 @@ sub _parse_chars {
                 }
                 $res[$j] = !$neg;
                 ++$i;
-            } else { 
+            } else {
                 $res[ord($chars[++$i])] = !$neg;
                 ++$i;
             }
@@ -443,13 +443,13 @@ sub _parse_chars {
             $res[ord($chars[$i++])] = !$neg;
         }
     }
-    
+
     my $str = '';
     for my $i (0 .. $#res){
         $str .= chr($i) if $res[$i];
     }
     #ENDFUUUUUUUUUUUU
-    
+
     $fd->{attributes}->{chars} = CATS::Formal::Expressions::String->new($str);
     $self->_next_token;
 }
@@ -508,7 +508,7 @@ sub _parse_attrs {
         if ($$token == TOKENS->{NAME}) {
             $self->_assert($fd->{name}, "duplicate attribute 'name'");
             $self->_next_token;
-            $self->_expect('EQ');
+            $self->_expect('ASSIGN');
             $self->_next_token;
             $self->_expect_identifier;
             $self->_assert($fd->{parent}->find_child($self->{token_str}),
@@ -518,14 +518,14 @@ sub _parse_attrs {
         } elsif ($$token == TOKENS->{CHARS}) {
             $self->_assert($fd->{attributes}->{chars}, "duplicate attribute 'chars'");
             $self->_next_token;
-            $self->_expect('EQ');
+            $self->_expect('ASSIGN');
             $self->_parse_chars($fd);
         } else {
             $self->_expect_identifier;
             $self->_assert($fd->{attributes}->{$self->{token_str}}, "duplicate attribute '$self->{token_str}'");
             my $attr = $self->{token_str};
             $self->_next_token;
-            $self->_expect('EQ');
+            $self->_expect('ASSIGN');
             my ($col, $row) = ($self->{col} + 1, $self->{row});
             my $expr = $self->_parse_expr($fd);
             $fd->{attributes}->{$attr} = $expr;
@@ -590,7 +590,7 @@ sub _parse_obj {
     } else {
         $self->error("expected one of 'int, string, float, seq, newline' got '$self->{token_str}'");
     }
-    
+
 }
 
 sub _parse_seq {
@@ -614,7 +614,7 @@ sub _parse_params {
         $self->_expect_identifier;
         my $parameter = $self->{token_str};
         $self->_next_token;
-        $self->_expect('EQ');
+        $self->_expect('ASSIGN');
         my $expr = $self->_parse_expr();
         $self->{curParent}->{attributes}->{$parameter} = $expr;
     }
@@ -625,19 +625,19 @@ sub _parse_to_namespace {
     unless (grep $_ eq $namespace => qw(INPUT OUTPUT ANSWER)) {
         $self->error("namespace must be one of INPUT OUTPUT ANSWER but got $namespace");
     }
-    
+
     my $fd = CATS::Formal::Description->new ({type => FD_TYPES->{RECORD}, parent => $root, name => $namespace});
     $self->{curParent} = $fd;
     $self->_next_token;
     if ($self->{token} == TOKENS->{EOF}) {
         $self->error("empty file");
     }
-    
+
     $self->_parse_params;
     while ($self->{token} != TOKENS->{EOF}) {
         $self->_parse_seq;
     }
-    
+
     $self->{curParent} = $fd->{parent};
 }
 

@@ -1,10 +1,10 @@
 use strict;
 use warnings;
-use Error;
-use Constants;
-    
+use CATS::Formal::Error;
+use CATS::Formal::Constants;
+
 package CATS::Formal::Expressions::BaseExpression;
-use parent -norequire, 'CATS::Formal::BaseObj';
+use parent 'CATS::Formal::BaseObj';
 
 sub is_expr {1;}
 sub new {
@@ -33,12 +33,12 @@ sub calc_type {
 }
 
 sub evaluate {
-    die "abstract method called BaseExpression::evaluate";    
+    die "abstract method called BaseExpression::evaluate";
 }
 
 ##############################################################################
 package CATS::Formal::Expressions::Binary;
-BEGIN {CATS::Formal::Constants->import()}
+use CATS::Formal::Constants;
 # left - expr, right - expr, op - token
 use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_access { $_[0]->{is_access};}
@@ -57,12 +57,12 @@ sub calc_type {
             $left->is_string && $right->is_string;
         CATS::Formal::Error::set("types $left and $right not comparable");
     }
-    
+
     if (grep $self->{op} == $_ => @{TOKENS()}{qw(AND OR)}) {
         return 'CATS::Formal::Expressions::Integer' if $left->is_int && $right->is_int;
         CATS::Formal::Error::set("operands for '&&' and '||' should be integers");
     }
-    
+
     if (grep $self->{op} == $_ => @{TOKENS()}{qw(POW MUL DIV MOD PLUS MINUS)}) {
         if ($left->is_int && $right->is_int) {
             return 'CATS::Formal::Expressions::Integer';
@@ -113,7 +113,7 @@ sub evaluate {
     if (TOKENS()->{OR} == $self->{op}) {
         return $self->evaluate_or($val);
     }
-    
+
     my $left = $self->{left}->evaluate($val);
     my $right = $self->{right}->evaluate($val);
     my %op = (
@@ -137,7 +137,7 @@ sub evaluate {
 
 ##############################################################################
 package CATS::Formal::Expressions::Unary;
-BEGIN {CATS::Formal::Constants->import()}
+use CATS::Formal::Constants;
 #op - token, node - expr
 use parent -norequire , 'CATS::Formal::Expressions::BaseExpression';
 sub is_unary{1;}
@@ -189,7 +189,7 @@ sub evaluate {
     my $v = $self->{fd}->find_self_val($val);
     $v ||
       CATS::Formal::Error::set("don't know the value of '$self->{fd}->{name}'");
-    return $v->{val};    
+    return $v->{val};
 }
 
 ##############################################################################
@@ -240,7 +240,7 @@ sub evaluate {
     my ($self, $val) = @_;
     my $v = $self->{head}->evaluate($val);
     my $p = first {$_->{fd} == $self->{member}} @{$v};
-    return $p->{val}; 
+    return $p->{val};
 }
 
 ##############################################################################
@@ -263,7 +263,7 @@ sub evaluate {
     my ($self, $val) = @_;
     my $head = $self->{head}->evaluate($val);
     my $index = $self->{index}->evaluate($val);
-    return $head->[$$index]; 
+    return $head->[$$index];
 }
 
 ##############################################################################
@@ -293,7 +293,7 @@ use overload
 
 sub is_constant{1;}
 sub new {
-    my $class = shift; 
+    my $class = shift;
     my $val = shift; #take scalar
     my $self = \$val;
     return bless $self, $class;
@@ -320,7 +320,7 @@ sub _bool {
     if ($self->is_array || $self->is_record) {
         return @$self;
     }
-       
+
     return $$self;
 }
 
@@ -474,7 +474,7 @@ package CATS::Formal::Expressions::Integer;
 use parent -norequire , 'CATS::Formal::Expressions::Constant';
 use POSIX qw(floor);
 sub new {
-    my ($class, $val) = @_; 
+    my ($class, $val) = @_;
     $val = floor($val);
     my $self = \$val;
     return bless $self, $class;

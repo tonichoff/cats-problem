@@ -1,12 +1,10 @@
 package CATS::Formal::Generators::TestlibValidator;
 
-use lib '..';
-use Generators::TestlibBase;
-use parent -norequire, 'CATS::Formal::Generators::TestlibBase';
+use parent 'CATS::Formal::Generators::TestlibBase';
 
 sub generate_description {
     my ($self, $fd) = @_;
-    die "ROOT obj expected" if $fd->{type} != CATS::Formal::Constants::FD_TYPES->{ROOT}; 
+    die "ROOT obj expected" if $fd->{type} != CATS::Formal::Constants::FD_TYPES->{ROOT};
     my $input = $fd->find_child('INPUT');
     $self->{params} = {};
     %{$self->{params}} = %{$input->{attributes}};
