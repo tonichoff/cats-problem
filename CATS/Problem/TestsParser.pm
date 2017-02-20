@@ -156,11 +156,19 @@ sub start_tag_Out
     my @t = @{$self->{current_tests}};
 
     if (defined $atts->{src}) {
+        my (@valid, @invalid);
         for (@t) {
             my $src = apply_test_rank($atts->{'src'}, $_->{rank});
-            $self->set_test_attr($_, 'out_file',
-                $self->{source}->read_member($src, "Invalid test output file reference: '$src'"));
+            if (defined (my $m = $self->{source}->read_member($src))) {
+                push @valid, $m;
+                $self->set_test_attr($_, 'out_file', $m);
+            }
+            else {
+                push @invalid, $src;
+            }
         }
+        @invalid and
+            $self->error('Invalid test output file references: ' . join ', ', map "'$_'", sort @invalid);
     }
     if (defined $atts->{'use'}) {
         for (@t) {

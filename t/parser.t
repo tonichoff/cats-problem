@@ -304,7 +304,7 @@ subtest 'tag stack', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 39;
+    plan tests => 41;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -320,7 +320,7 @@ subtest 'test', sub {
     }) } qr/No input source for test 1/, 'Test with empty In';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/></Test>~),
-    }) } qr/t01/, 'Test with nonexinsting input file';
+    }) } qr/'t01.in'/, 'Test with nonexinsting input file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><In src="t01.in"/></Test>~),
         't01.in' => 'z',
@@ -333,6 +333,14 @@ subtest 'test', sub {
         'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><Out/></Test>~),
         't01.in' => 'z',
     }) } qr/No output source for test 1/, 'Test with empty Out';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><Out src="t02.out"/></Test>~),
+        't01.in' => 'z',
+    }) } qr/'t02.out'/, 'Test with nonexinsting output file 1';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1-2"><In src="t01.in"/><Out src="t%0n.out"/></Test>~),
+        't01.in' => 'z',
+    }) } qr/'t01.out', 't02.out'/, 'Test with nonexinsting output file 2';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><Out src="t01.out"/><Out src="t01.out"/></Test>~),
         't01.in' => 'z',
