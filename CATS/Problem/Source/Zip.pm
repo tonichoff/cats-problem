@@ -52,7 +52,7 @@ sub find_members
 sub read_member
 {
     my ($self, $name, $msg) = @_;
-    my $member = $self->{zip}->memberNamed($name) or $self->error($msg);
+    my $member = $self->{zip}->memberNamed($name) or return $msg && $self->error($msg);
 
     $member->desiredCompressionMethod(COMPRESSION_STORED);
     my $status = $member->rewindData();

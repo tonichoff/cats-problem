@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use File::Copy::Recursive qw(dircopy);
+use File::Spec;
 use File::Temp qw(tempdir);
 
 use CATS::BinaryFile;
@@ -53,8 +54,9 @@ sub find_members
 sub read_member
 {
     my ($self, $name, $msg) = @_;
-    my $content;
-    CATS::BinaryFile::load($self->{repo}->get_dir . $name, \$content);
+    my $fname = File::Spec->catfile($self->{repo}->get_dir, $name);
+    -f $fname or return $msg && $self->error($msg);
+    CATS::BinaryFile::load($fname, \my $content);
     return $content;
 }
 

@@ -58,7 +58,7 @@ sub find_members
 sub read_member
 {
     my ($self, $name, $msg) = @_;
-    $self->{data}->{$name} or $self->error($msg);
+    $self->{data}->{$name} or return $msg && $self->error($msg);
 }
 
 sub finalize { die 'Mockup'; }

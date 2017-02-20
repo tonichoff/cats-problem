@@ -53,7 +53,7 @@ sub read_member
 {
     my ($self, $name, $msg) = @_;
     my $fname = File::Spec->catfile($self->{dir}, $name);
-    $self->error($msg) if ! -e $fname;
+    -f $fname or return $msg && $self->error($msg);
     CATS::BinaryFile::load($fname, \my $content);
     return $content;
 }
