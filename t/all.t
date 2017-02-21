@@ -1,7 +1,6 @@
 use FindBin;
 use Test::Harness;
 
-use lib "$FindBin::Bin/../CATS/Formal";
-runtests(map "$FindBin::Bin/$_.t", qw(parser source tag testset ../CATS/Formal/t/CATS-Formal));
+runtests(map "$FindBin::Bin/$_.t", qw(parser source tag testset CATS-Formal));
 
 1;
