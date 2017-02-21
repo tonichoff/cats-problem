@@ -67,6 +67,8 @@ SKIP: {
     my $gitdir = File::Spec->catfile($tmpdir, '.git');
     my $git = qq~git --git-dir="$gitdir" --work-tree="$tmpdir"~;
     `$git init`;
+    `$git config user.email "test\@example.com"`;
+    `$git config user.name "test"`;
     `$git add $tmpdir/*`;
     `$git commit -m 'Init'`;
 
