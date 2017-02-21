@@ -62,7 +62,7 @@ sub check {
 
 SKIP: {
     my $tmpdir = File::Temp->newdir(CLEANUP => 1) or die;
-    `git` or skip 'no git', 1;
+    `git` or skip 'no git', 6;
     prepare_dir($tmpdir);
     my $gitdir = File::Spec->catfile($tmpdir, '.git');
     my $git = qq~git --git-dir="$gitdir" --work-tree="$tmpdir"~;
