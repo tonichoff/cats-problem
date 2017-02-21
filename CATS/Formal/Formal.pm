@@ -32,7 +32,7 @@ sub parse_descriptions {
     foreach my $namespace (@keys) {
         my $text = $descriptions{$namespace};
         defined $text || next;
-        if ($is_files->{$namespace} eq 'file') {
+        if (($is_files->{$namespace} // '') eq 'file') {
             $text eq '' && next;
             $text = read_file($text);
         }
@@ -81,7 +81,11 @@ sub generate_and_write {
 
 sub part_copy {
     my ($from_hash, $to_hash, $from_keys, $to_keys) = @_;
-    @{$to_hash->{@$to_keys}} = @{$from_hash->{@$from_keys}};
+    @$from_keys == @$to_keys or die;
+    for my $i (0 .. $#$from_keys) {
+        my $k = $from_keys->[$i];
+        $to_hash->{$to_keys->[$i]} = $from_hash->{$k} if exists $from_hash->{$k};
+    }
 }
 
 sub validate {
