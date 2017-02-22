@@ -155,7 +155,7 @@ subtest 'sources', sub {
 };
 
 subtest 'text', sub {
-    plan tests => 10;
+    plan tests => 11;
     my $p = parse({
         'test.xml' => wrap_problem(q~
 <Checker src="checker.pp"/>
@@ -201,6 +201,11 @@ statement</ProblemStatement>
 <Checker src="checker.pp"/>~),
         'checker.pp' => 'z',
     }) } qr/qqq/, 'bad incude src';
+
+    throws_ok { parse({
+        'text.xml' => wrap_problem(q~
+<ProblemStatement><ProblemConstraints></ProblemConstraints></ProblemStatement>~),
+    }); } qr/Unexpected.*ProblemConstraints/, 'ProblemConstraints inside ProblemStatement';
 };
 
 subtest 'picture-attachment', sub {

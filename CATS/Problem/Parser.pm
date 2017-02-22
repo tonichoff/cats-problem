@@ -237,7 +237,9 @@ sub on_start_tag
     my CATS::Problem::Parser $self = shift;
     my ($p, $el, %atts) = @_;
 
+    my $h = tag_handlers()->{$el};
     if (my $stml = $self->{stml}) {
+        $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->{tag_stack}->[-1]);
         if ($el eq 'include') {
             my $name = $atts{src} or
                 return $self->error(q~Missing required 'src' attribute of 'include' tag~);
@@ -256,7 +258,7 @@ sub on_start_tag
         return;
     }
 
-    my $h = tag_handlers()->{$el} or $self->error("Unknown tag $el");
+    $h or $self->error("Unknown tag $el");
     my $in = $h->{in} // ['Problem'];
     !@$in || $self->check_top_tag($in)
         or $self->error_stack("Tag '$el' must be inside of " . join(' or ', @$in));
@@ -277,7 +279,7 @@ sub on_end_tag
         return;
     }
     $h or $self->error("Unknown tag $el");
-    pop @{$self->{tag_stack}};
+    $el eq pop @{$self->{tag_stack}} or $self->error("Mismatched closing tag $el");
 }
 
 sub start_stml {
