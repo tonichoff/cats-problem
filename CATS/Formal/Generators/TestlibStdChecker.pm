@@ -1,5 +1,8 @@
 package CATS::Formal::Generators::TestlibStdChecker;
 
+use strict;
+use warnings;
+
 use parent 'CATS::Formal::Generators::TestlibChecker';
 
 sub generate_description {

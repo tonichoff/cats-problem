@@ -1,5 +1,8 @@
 package CATS::Formal::Generators::TestlibValidator;
 
+use strict;
+use warnings;
+
 use parent 'CATS::Formal::Generators::TestlibBase';
 
 sub generate_description {

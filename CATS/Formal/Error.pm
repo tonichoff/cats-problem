@@ -1,5 +1,7 @@
 package CATS::Formal::Error;
 
+use strict;
+use warnings;
 
 my $error;
 

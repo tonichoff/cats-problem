@@ -1,5 +1,8 @@
 package CATS::Formal::Formal;
 
+use strict;
+use warnings;
+
 use File::Slurp;
 
 use CATS::Formal::Parser;
@@ -11,10 +14,10 @@ use CATS::Formal::Generators::TestlibStdChecker;
 use CATS::Formal::UniversalValidator;
 
 use constant GENERATORS => {
-    'xml'                 => CATS::Formal::Generators::XML,
-    'testlib_checker'     => CATS::Formal::Generators::TestlibChecker,
-    'testlib_std_checker' => CATS::Formal::Generators::TestlibStdChecker,
-    'testlib_validator'   => CATS::Formal::Generators::TestlibValidator,
+    xml                 => 'CATS::Formal::Generators::XML',
+    testlib_checker     => 'CATS::Formal::Generators::TestlibChecker',
+    testlib_std_checker => 'CATS::Formal::Generators::TestlibStdChecker',
+    testlib_validator   => 'CATS::Formal::Generators::TestlibValidator',
 };
 
 sub set_all {
@@ -49,7 +52,7 @@ sub generate_source {
         my $error = CATS::Formal::Error::get();
         return {error => $error};
     }
-    my $generator = GENERATORS->{$gen_id} ||
+    my $generator = GENERATORS()->{$gen_id} ||
         return {error => "unknown generator $gen_id"};
     my $res = $generator->new()->generate($fd_root);
     unless ($res) {

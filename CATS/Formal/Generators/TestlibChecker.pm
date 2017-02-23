@@ -1,5 +1,8 @@
 package CATS::Formal::Generators::TestlibChecker;
 
+use strict;
+use warnings;
+
 use parent 'CATS::Formal::Generators::TestlibBase';
 
 my $pe = '_constraint_result_';
