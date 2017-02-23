@@ -2,7 +2,7 @@ package CATS::Formal::Generators::TestlibBase;
 use strict;
 use warnings;
 
-use CATS::Formal::Constants;
+use CATS::Formal::Constants ();
 
 use parent 'CATS::Formal::Generators::BaseGenerator';
 

@@ -39,7 +39,7 @@ package CATS::Formal::Parser;
 
 use CATS::Formal::Description;
 use CATS::Formal::Expressions;
-use CATS::Formal::Constants;
+use CATS::Formal::Constants ();
 use CATS::Formal::Functions;
 
 use parent -norequire, 'CATS::Formal::Parser::Base';
@@ -655,7 +655,5 @@ sub error {
     my ($self, $msg) = @_;
     CATS::Formal::Error::set($msg eq 'empty file' ? $msg : "$msg at line $self->{row} : $self->{col}");
 }
-
-
 
 1;
