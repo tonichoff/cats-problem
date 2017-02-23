@@ -29,6 +29,9 @@ our $health_report_email = '<your-health-report-email>';
 our $absolute_url = '<your-absolute-url>';
 
 our $ip_info = 'https://db-ip.com/%s';
+our %ip_aliases = (
+    localhost => qr/^127\.0\.0\.1$/,
+);
 
 # In hours.
 our $judge_alive_interval = 1.0;
