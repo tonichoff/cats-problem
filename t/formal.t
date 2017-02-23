@@ -65,7 +65,7 @@ BEGIN {
 }
 
 use lib $root_dir;
-use Test::More tests => 2 + scalar @tests;
+use Test::More tests => 1 + scalar @tests;
 my @suffix_to_save = qw(.fd .in .ans);
 
 sub compare_files_ok {
@@ -181,7 +181,6 @@ sub run_validator_tests{
 }
 
 BEGIN {use_ok('CATS::Formal::Formal')};
-require_ok('CATS::Formal::Formal');
 
 $_->{run}->($_) for @tests;
 
