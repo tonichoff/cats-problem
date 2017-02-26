@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 12;
+use Test::More tests => 13;
 use Test::Exception;
 
 use lib '..';
@@ -316,6 +316,43 @@ subtest 'apply_test_rank', sub {
     is CATS::Problem::Parser::apply_test_rank('a%0nc', 9), 'a09c', '2 digits';
     is CATS::Problem::Parser::apply_test_rank('a%00nc', 9), 'a009c', '3 digits';
     is CATS::Problem::Parser::apply_test_rank('a%%%nc', 9), 'a%9c', 'Escape';
+};
+
+subtest 'sample', sub {
+    plan tests => 11;
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample/>~),
+    }) } qr/Sample.rank/, 'Sample without rank';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="2"/>~),
+    }) } qr/Missing sample #1/, 'Missing sample 1';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/></Sample>~),
+    }) } qr/'t01.in'/, 'Sample with nonexinsting input file';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/><SampleOut src="t01.out"/></Sample>~),
+        't01.in' => 'z',
+    }) } qr/'t01.out'/, 'Sample with nonexinsting input file';
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Sample rank="1"><SampleIn src="s"/><SampleOut src="s"/></Sample>
+<Sample rank="2"><SampleIn>aaa</SampleIn><SampleOut>bbb</SampleOut></Sample>
+<Checker src="checker.pp"/>~),
+            'checker.pp' => 'zz',
+            's' => 'sss',
+        });
+        is scalar(keys %{$p->{samples}}), 2, 'Sample count';
+        my $s1 = $p->{samples}->{1};
+        is $s1->{rank}, 1, 'Sample 1 rank';
+        is $s1->{in_file}, 'sss', 'Sample 1 In src';
+        is $s1->{out_file}, 'sss', 'Sample 1 Out src';
+        my $s2 = $p->{samples}->{2};
+        is $s2->{rank}, 2, 'Sample 2 rank';
+        is $s2->{in_file}, 'aaa', 'Sample 2 In';
+        is $s2->{out_file}, 'bbb', 'Sample 2 Out';
+    }
 };
 
 subtest 'test', sub {
