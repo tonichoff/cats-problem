@@ -555,7 +555,7 @@ sub end_tag_Sample
     my $ps = $self->{problem}->{samples};
     for my $s (@{$self->{current_samples}}) {
         for (qw(in_file out_file)) {
-            if(exists $ps->{$s}->{$_}) {
+            if (exists $ps->{$s}->{$_}) {
                 $self->error("Both src and inline data specified for sample $s $_")
                      if $self->{current_sample}->{$_} ne '';
             }
@@ -575,9 +575,12 @@ sub sample_in_out
     my CATS::Problem::Parser $self = shift;
     my ($atts, $in_out) = @_;
     if ($atts->{src}) {
+        my $ps = $self->{problem}->{samples};
         for (@{$self->{current_samples}}) {
             my $src = apply_test_rank($atts->{src}, $_);
-            $self->{problem}->{samples}->{$_}->{$in_out} =
+            defined $ps->{$_}->{$in_out}
+                and $self->error("Redefined attribute '$in_out' for sample $_");
+            $ps->{$_}->{$in_out} =
                 $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
         }
     }
