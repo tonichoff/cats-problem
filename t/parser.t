@@ -319,21 +319,38 @@ subtest 'apply_test_rank', sub {
 };
 
 subtest 'sample', sub {
-    plan tests => 11;
+    plan tests => 32;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample/>~),
     }) } qr/Sample.rank/, 'Sample without rank';
     throws_ok { parse({
-        'test.xml' => wrap_problem(q~<Sample rank="2"/>~),
-    }) } qr/Missing sample #1/, 'Missing sample 1';
+        'test.xml' => wrap_problem(q~<Sample rank="2"><SampleIn>q</SampleIn><SampleOut>w</SampleOut></Sample>~),
+    }) } qr/Missing.*1/, 'missing sample';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"/>~),
+    }) } qr/Neither.*1 in_file/, 'missing in_file';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>w</SampleIn></Sample>~),
+    }) } qr/Neither.*1 out_file/, 'missing out_file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/></Sample>~),
     }) } qr/'t01.in'/, 'Sample with nonexinsting input file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/><SampleOut src="t01.out"/></Sample>~),
         't01.in' => 'z',
-    }) } qr/'t01.out'/, 'Sample with nonexinsting input file';
+    }) } qr/'t01.out'/, 'Sample with nonexinsting output file';
+    throws_ok { parse({
+            'test.xml' => wrap_problem(q~
+<Sample rank="1"><SampleIn src="s"><tt>zz</tt></SampleIn><SampleOut>ww</SampleOut></Sample>~),
+        's' => 'a',
+    }) } qr/Both.*1 in_file/, 'Sample with duplicate input';
+    throws_ok { parse({
+            'test.xml' => wrap_problem(q~
+<Sample rank="1"><SampleIn><tt>zz</tt></SampleIn><SampleOut src="s">ww</SampleOut></Sample>~),
+        's' => 'a',
+    }) } qr/Both.*1 out_file/, 'Sample with duplicate output';
+
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~
@@ -352,6 +369,42 @@ subtest 'sample', sub {
         is $s2->{rank}, 2, 'Sample 2 rank';
         is $s2->{in_file}, 'aaa', 'Sample 2 In';
         is $s2->{out_file}, 'bbb', 'Sample 2 Out';
+    }
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Sample rank="1-3"><SampleIn src="s%n"/><SampleOut src="out"/></Sample>
+<Checker src="checker.pp"/>~),
+            'checker.pp' => 'zz',
+            's1' => 's11',
+            's2' => 's22',
+            's3' => 's33',
+            'out' => 'out',
+        });
+        is scalar(keys %{$p->{samples}}), 3, 'Sample range count';
+        for (1..3) {
+            my $s = $p->{samples}->{$_};
+            is $s->{rank}, $_, "Sample range $_ rank";
+            is $s->{in_file}, "s$_$_", "Sample range $_ In src";
+            is $s->{out_file}, 'out', "Sample range $_ Out src";
+        }
+    }
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Sample rank="1-2"><SampleIn><b>cc</b></SampleIn><SampleOut src="s%0n"/></Sample>
+<Checker src="checker.pp"/>~),
+            'checker.pp' => 'zz',
+            's01' => 's11',
+            's02' => 's22',
+        });
+        is scalar(keys %{$p->{samples}}), 2, 'Sample range count';
+        for (1..2) {
+            my $s = $p->{samples}->{$_};
+            is $s->{rank}, $_, "Sample range $_ rank";
+            is $s->{in_file}, '<b>cc</b>', "Sample range $_ In";
+            is $s->{out_file}, "s$_$_", "Sample range $_ Out src";
+        }
     }
 };
 

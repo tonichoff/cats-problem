@@ -539,31 +539,49 @@ sub start_tag_Sample
 {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
-    my $r = $atts->{rank};
-    $self->error("Duplicate sample $r") if defined $self->{problem}{samples}->{$r};
-
-    $self->{current_sample} = $self->{problem}{samples}->{$r} = {
-        sample_id => $self->{id_gen}->($self, "Start_tag_Sample_with_rank_equal_$atts->{rank}"),
-        rank => $r
-    };
+    $self->{current_samples} =
+        CATS::Testset::parse_simple_rank($atts->{rank}, sub { $self->error(@_) });
+    my $ps = $self->{problem}->{samples} //= {};
+    for (@{$self->{current_samples}}) {
+        $self->error("Duplicate sample $_") if defined $ps->{$_};
+        $ps->{$_} = { sample_id => $self->{id_gen}->($self, "Sample_$_"), rank => $_ };
+    }
+    $self->{current_sample} = { in_file => '', out_file => '' };
 }
 
 sub end_tag_Sample
 {
     my CATS::Problem::Parser $self = shift;
-    undef $self->{current_sample};
+    my $ps = $self->{problem}->{samples};
+    for my $s (@{$self->{current_samples}}) {
+        for (qw(in_file out_file)) {
+            if(exists $ps->{$s}->{$_}) {
+                $self->error("Both src and inline data specified for sample $s $_")
+                     if $self->{current_sample}->{$_} ne '';
+            }
+            else {
+                $self->error("Neither src nor inline data specified for sample $s $_")
+                     if $self->{current_sample}->{$_} eq '';
+                $ps->{$s}->{$_} = $self->{current_sample}->{$_};
+            }
+        }
+    }
+    delete $self->{current_sample};
+    delete $self->{current_samples};
 }
 
 sub sample_in_out
 {
     my CATS::Problem::Parser $self = shift;
     my ($atts, $in_out) = @_;
-    if (my $src = $atts->{src}) {
-        my $src = apply_test_rank($src, $self->{current_sample}->{rank});
-        $self->{current_sample}->{$in_out} = $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
-    } else {
-        $self->{stml} = \$self->{current_sample}->{$in_out};
+    if ($atts->{src}) {
+        for (@{$self->{current_samples}}) {
+            my $src = apply_test_rank($atts->{src}, $_);
+            $self->{problem}->{samples}->{$_}->{$in_out} =
+                $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
+        }
     }
+    $self->{stml} = \$self->{current_sample}->{$in_out};
 }
 
 sub start_tag_SampleIn
