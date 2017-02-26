@@ -559,6 +559,7 @@ sub sample_in_out
     my CATS::Problem::Parser $self = shift;
     my ($atts, $in_out) = @_;
     if (my $src = $atts->{src}) {
+        my $src = apply_test_rank($src, $self->{current_sample}->{rank});
         $self->{current_sample}->{$in_out} = $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
     } else {
         $self->{stml} = \$self->{current_sample}->{$in_out};

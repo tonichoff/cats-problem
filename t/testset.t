@@ -31,16 +31,32 @@ my $testsets = {
     tdc3 => { tests => '6', depends_on => 'tdc2,t1' },
 };
 
+sub psr { CATS::Testset::parse_simple_rank($_[0], sub { die @_ }) }
 sub ptr { CATS::Testset::parse_test_rank($testsets, $_[0], sub { die @_ }, include_deps => $_[1]) }
 sub val { CATS::Testset::validate_testset($testsets, $_[1], $_[0], sub { die @_ }) }
 
 sub hu { my %h; $h{$_} = undef for @_; \%h; }
 sub h1 { my %h; $h{$_} = 1 for @_; \%h; }
 
-plan tests => 5;
+plan tests => 6;
+
+subtest 'simple', sub {
+    plan tests => 8;
+
+    is_deeply psr('1'), [ 1 ];
+    is_deeply psr('1,3'), [ 1, 3 ];
+    is_deeply psr('2-4'), [ 2 .. 4 ];
+    is_deeply psr(' 1, 7 - 8, 3- 6,9 '), [ 1, 3 .. 9 ];
+
+    throws_ok { psr('') } qr/empty/i;
+    throws_ok { psr(',') } qr/empty/i;
+    throws_ok { psr('?') } qr/bad/i;
+    throws_ok { psr('2,1-3') } qr/duplicate.*2/i;
+};
 
 subtest 'basic', sub {
     plan tests => 7;
+
     is_deeply(ptr('1'), hu(1));
     is_deeply(ptr('1,3'), hu(1, 3));
     is_deeply(ptr('2-4'), hu(2 .. 4));

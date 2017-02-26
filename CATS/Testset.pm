@@ -5,6 +5,25 @@ use warnings;
 
 sub is_scoring_group { defined $_[0]->{points} || $_[0]->{hide_details} || defined $_[0]->{depends_on} }
 
+sub parse_simple_rank
+{
+    my ($rank_spec, $on_error) = @_;
+    $on_error //= sub {};
+    my %result;
+    $rank_spec =~ s/\s+//g;
+    for (split ',', $rank_spec) {
+        /^(\d+)(?:-(\d+))?$/ or return $on_error->("Bad element '$_'");
+        my ($from, $to) = ($1, $2 || $1);
+        $from <= $to or return $on_error->("from > to");
+        for my $t ($from .. $to) {
+            $result{$t} and return $on_error->("Duplicate item $t");
+            $result{$t} = 1;
+        }
+    }
+    %result or return $on_error->('Empty rank specifier');
+    [ sort keys %result ];
+}
+
 sub parse_test_rank
 {
     my ($all_testsets, $rank_spec, $on_error, %p) = @_;
@@ -32,7 +51,7 @@ sub parse_test_rank
             elsif (/^(\d+)(?:-(\d+))?$/) {
                 my ($from, $to) = ($1, $2 || $1);
                 $from <= $to or die \"from > to";
-                for my $t ($from..$to) {
+                for my $t ($from .. $to) {
                     die \"Ambiguous scoring group for test $t"
                         if $scoring_group && $result{$t} && $result{$t} ne $scoring_group;
                     $result{$t} = $scoring_group;

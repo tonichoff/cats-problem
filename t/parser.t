@@ -2,12 +2,13 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 11;
+use Test::More tests => 12;
 use Test::Exception;
 
 use lib '..';
 use lib $FindBin::Bin;
 
+use CATS::Problem::Parser;
 use ParserMockup;
 
 sub parse { ParserMockup::make(@_)->parse }
@@ -306,6 +307,15 @@ subtest 'tag stack', sub {
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<SampleOut/>~),
     }) } qr/SampleOut.+Sample/, 'SampleOut outside SampleTest';
+};
+
+subtest 'apply_test_rank', sub {
+    plan tests => 5;
+    is CATS::Problem::Parser::apply_test_rank('abc', 9), 'abc', 'No rank';
+    is CATS::Problem::Parser::apply_test_rank('a%nc', 9), 'a9c', '1 digit';
+    is CATS::Problem::Parser::apply_test_rank('a%0nc', 9), 'a09c', '2 digits';
+    is CATS::Problem::Parser::apply_test_rank('a%00nc', 9), 'a009c', '3 digits';
+    is CATS::Problem::Parser::apply_test_rank('a%%%nc', 9), 'a%9c', 'Escape';
 };
 
 subtest 'test', sub {
