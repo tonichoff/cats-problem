@@ -104,4 +104,6 @@ $log_section_start_prefix = '>====== ';
 $log_section_end_prefix = '<====== ';
 $log_section_compile = 'compile';
 
+@limits_fields = qw(time_limit memory_limit);
+
 1;
