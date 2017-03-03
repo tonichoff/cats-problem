@@ -138,17 +138,21 @@ sub select_request {
         WHERE RG.group_id = ?~, { Slice => {} }, $req_id->{id});
 
     my $req_id_list = join ', ', ($req_id->{id}, @$element_req_ids);
+    my $limits_fields = join ', ', map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields;
 
     my $sources_info = $dbh->selectall_arrayref(qq~
         SELECT
             R.id, R.problem_id, R.contest_id, R.state, CA.is_jury, C.run_all_tests,
-            CP.status, S.fname, S.src, S.de_id
+            CP.status, CP.id as cpid, S.fname, S.src, S.de_id,
+            $limits_fields
         FROM reqs R
         INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
         INNER JOIN contests C ON C.id = R.contest_id
         LEFT JOIN sources S ON S.req_id = R.id
         LEFT JOIN default_de D ON D.id = S.de_id
         LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
+        LEFT JOIN limits CPL ON CPL.id = CP.limits_id
+        LEFT JOIN limits RL ON RL.id = R.limits_id
         WHERE R.id IN ($req_id_list)~, { Slice => {} }) or return;
 
     my %sources_info_hash = map { $_->{id} => $_ } @$sources_info;
