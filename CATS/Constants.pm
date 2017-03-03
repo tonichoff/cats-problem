@@ -106,4 +106,9 @@ $log_section_compile = 'compile';
 
 @limits_fields = qw(time_limit memory_limit);
 
+$judge_pin_locked  = 0;
+$judge_pin_req     = 1;
+$judge_pin_contest = 2;
+$judge_pin_any     = 3;
+
 1;
