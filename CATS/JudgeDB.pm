@@ -113,6 +113,24 @@ sub select_request {
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
+    my @params = ();
+    my $pin_condition = '';
+    if ($p->{pin_mode} == $cats::judge_pin_contest) {
+        $pin_condition =
+            'EXISTS (
+                SELECT 1
+                FROM contest_accounts CA
+                INNER JOIN judges J ON CA.account_id = J.account_id
+                WHERE R.contest_id = CA.contest_id AND J.id = ?
+            ) AND R.judge_id IS NULL OR';
+        push @params, $p->{jid};
+    }
+    elsif ($p->{pin_mode} == $cats::judge_pin_any) {
+        $pin_condition = 'R.judge_id IS NULL OR';
+    }
+
+    push @params, $p->{jid};
+
     my $req_id = $dbh->selectrow_hashref(qq~
         SELECT R.id
         FROM reqs R
@@ -130,8 +148,8 @@ sub select_request {
         )
         AND R.state = $cats::st_not_processed
         AND (CP.status <= $cats::problem_st_ready OR CA.is_jury = 1)
-        AND (R.judge_id IS NULL OR R.judge_id = ?) ROWS 1~, undef,
-        $p->{jid}) or return;
+        AND ($pin_condition R.judge_id = ?) ROWS 1~, undef,
+        @params) or return;
 
     my $element_req_ids = $dbh->selectcol_arrayref(q~
         SELECT RG.element_id as id
