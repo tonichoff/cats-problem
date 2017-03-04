@@ -3,6 +3,7 @@ package CATS::JudgeDB;
 use strict;
 use warnings;
 
+use CATS::Constants;
 use CATS::DB qw(new_id $dbh);
 
 sub get_judge_id {
@@ -110,7 +111,7 @@ sub select_request {
         $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
     $dbh->commit;
 
-    return if $p->{lock_counter};
+    return if $p->{pin_mode} == $cats::judge_pin_locked;
 
     my $req_id = $dbh->selectrow_hashref(qq~
         SELECT R.id
@@ -129,7 +130,7 @@ sub select_request {
         )
         AND R.state = $cats::st_not_processed
         AND (CP.status <= $cats::problem_st_ready OR CA.is_jury = 1)
-        AND (judge_id IS NULL OR judge_id = ?) ROWS 1~, undef,
+        AND (R.judge_id IS NULL OR R.judge_id = ?) ROWS 1~, undef,
         $p->{jid}) or return;
 
     my $element_req_ids = $dbh->selectcol_arrayref(q~
