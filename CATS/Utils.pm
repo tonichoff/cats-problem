@@ -339,7 +339,7 @@ sub escape_xml
 sub escape_url
 {
     my ($url) = @_;
-    $url =~ s/([\?=%;&])/sprintf '%%%02X', ord($1)/eg;
+    $url =~ s/([\?=%;&+\s])/sprintf '%%%02X', ord($1)/eg;
     $url;
 }
 
