@@ -90,15 +90,15 @@ sub save_log_dump {
 
 sub set_request_state {
     my ($p) = @_;
-    $dbh->do(qq~
+    $dbh->do(q~
         UPDATE reqs SET state = ?, failed_test = ?, result_time = CURRENT_TIMESTAMP
-        WHERE id = ? AND judge_id = ?~, {},
+        WHERE id = ? AND judge_id = ?~, undef,
         $p->{state}, $p->{failed_test}, $p->{req_id}, $p->{jid});
     if ($p->{state} == $cats::st_unhandled_error && defined $p->{problem_id} && defined $p->{contest_id}) {
-        $dbh->do(qq~
+        $dbh->do(q~
             UPDATE contest_problems SET status = ?
-            WHERE problem_id = ? AND contest_id = ?~, {},
-            $cats::problem_st_suspended, $p->{problem_id}, $p->{contest_id});
+            WHERE problem_id = ? AND contest_id = ? AND status < ?~, undef,
+            $cats::problem_st_suspended, $p->{problem_id}, $p->{contest_id}, $cats::problem_st_suspended);
     }
     $dbh->commit;
 }
