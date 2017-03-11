@@ -10,7 +10,7 @@ sub parse_tag_condition
     $on_error //= sub { die @_ };
     my $result = {};
     my $i = 0;
-    for (split /,/, $cond) {
+    for (split ',', $cond, -1) {
         $i++;
         my ($neg, $name, $value) = /^\s*(\!)?\s*([a-zA-Z][a-zA-Z0-9_]*)\s*(?:=\s*(\S+))?\s*$/;
         $name or $on_error->("Incorrect condition format in part $i");

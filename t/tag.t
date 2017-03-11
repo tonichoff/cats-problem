@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 23;
+use Test::More tests => 24;
 use Test::Exception;
 
 use lib '..';
@@ -12,8 +12,9 @@ use CATS::Problem::Tags;
 
 sub ptc { goto \&CATS::Problem::Tags::parse_tag_condition }
 
-throws_ok { ptc('1'); } qr/part 1/, 'Incorrect 1';
-throws_ok { ptc('a,!'); } qr/part 2/, 'Incorrect 2';
+throws_ok { ptc('1'); } qr/part 1/, 'incorrect 1';
+throws_ok { ptc('a,!'); } qr/part 2/, 'incorrect 2';
+throws_ok { ptc(',,'); } qr/part 1/, 'empty part 1';
 
 is_deeply ptc(undef), {}, 'parse undef';
 is_deeply ptc(''), {}, 'parse empty';
