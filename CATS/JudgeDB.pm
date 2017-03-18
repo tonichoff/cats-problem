@@ -191,8 +191,16 @@ sub select_request {
         $req->{src} = $element_req->{src};
         $req->{de_id} = $element_req->{de_id};
     } elsif (@{$req->{element_reqs}} > 1) {
-        warn 'multiple request elements are not supported at this time';
-        return;
+        my $different_problem_ids = scalar grep $_->{problem_id} != $req->{problem_id}, @{$req->{element_reqs}};
+        my $different_contests_ids = scalar grep $_->{contest_id} != $req->{contest_id}, @{$req->{element_reqs}};
+        if ($different_problem_ids || $different_contests_ids) {
+            warn 'group request and elements requests must be for the same problem and contest';
+            $dbh->do(q~
+                UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
+                $cats::st_unhandled_error, $p->{jid}, $req->{id});
+            $dbh->commit;
+            return;
+        }
     }
 
     $dbh->do(q~
