@@ -6,7 +6,7 @@ use warnings;
 use CATS::Constants;
 
 use fields qw(
-    contest_id id description checker statement constraints input_format output_format formal_input
+    contest_id id description checker interactor statement constraints input_format output_format formal_input
     json_data explanation tests testsets samples keywords current_tests
     imports solutions generators validators visualizers modules pictures attachments encoding
     old_title replace repo has_checker run_method
@@ -43,6 +43,7 @@ sub module_types()
     'generator' => $cats::generator_module,
     'validator' => $cats::validator_module,
     'visualizer' => $cats::visualizer_module,
+    'interactor' => $cats::interactor_module,
 }}
 
 

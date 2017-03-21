@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 13;
+use Test::More tests => 14;
 use Test::Exception;
 
 use lib '..';
@@ -641,4 +641,52 @@ subtest 'validator', sub {
     is $v->{inputFile}, '*STDIN', 'validator inputFile';
     is keys(%{$p->{tests}}), 1, 'validator test count';
     is $p->{tests}->{1}->{input_validator_id}, 't.pp', 'validator test validate';
+};
+
+subtest 'interactor', sub {
+    plan tests => 6;
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Interactor/>~),
+    }) } qr/Interactor.src/, 'Interactor without source';
+
+    my $p = parse({
+        'test.xml' => wrap_problem(q~
+<Interactor name="val" src="t.pp"/>
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+    is $p->{interactor}->{src}, 'q', 'interactor source';
+
+    my $parser = ParserMockup::make({
+        'test.xml' => wrap_problem(q~<Interactor src="t.pp"/><Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q'
+    });
+    $parser->parse;
+    is $parser->logger->{warnings}->[0], 'Interactor defined when run method is not interactive', 'interactor defined when not interactive';
+
+    $parser = ParserMockup::make({
+        'test.xml' => wrap_problem(q~<Run method="interactive" /><Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q'
+    });
+    $parser->parse;
+
+    is $parser->logger->{warnings}->[0], 'Interactor is not defined when run method is interactive (maybe used legacy interactor definition)', 'interactor not defined';
+    $parser = ParserMockup::make({
+        'test.xml' => wrap_problem(q~
+<Run method="interactive"/>
+<Interactor src="t.pp"/>
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q'});
+    $parser->parse;
+    is @{$parser->logger->{warnings}}, 0, 'interactor normal tag definiton';
+
+    $parser = ParserMockup::make({
+        'test.xml' => wrap_problem(q~
+<Interactor src="t.pp"/>
+<Run method="interactive"/>
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q'
+    });
+    $parser->parse;
+    is @{$parser->logger->{warnings}}, 0, 'interactor inverse tag definition';
 };
