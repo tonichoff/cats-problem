@@ -75,6 +75,7 @@ sub tag_handlers()
     Picture => { s => \&start_tag_Picture, r => ['src', 'name'] },
     Solution => { s => \&start_tag_Solution, r => ['src', 'name'] },
     Checker => { s => \&start_tag_Checker, r => ['src'] },
+    Interactor => { s => \&start_tag_Interactor, r => ['src'] },
     Generator => { s => \&start_tag_Generator, r => ['src', 'name'] },
     Validator => { s => \&start_tag_Validator, r => ['src', 'name'] },
     Visualizer => { s => \&start_tag_Visualizer, r => ['src', 'name'] },
@@ -224,6 +225,12 @@ sub validate
     $problem->{$_} && $problem->{description}->{"${_}_url"}
         and $self->warning("Both stml and url for $_") for qw(statement explanation);
     $problem->{has_checker} or $self->error('No checker specified');
+
+    $problem->{interactor} and $problem->{run_method} != $cats::rm_interactive
+        and $self->warning("Interactor defined when run method is not interactive");
+
+    $problem->{run_method} == $cats::rm_interactive and !$problem->{interactor}
+        and $self->warning("Interactor is not defined when run method is interactive (maybe used legacy interactor definition)");
 }
 
 sub inc_object_ref_count
@@ -449,6 +456,17 @@ sub start_tag_Checker
     $self->checker_added;
     $self->{problem}{checker} = {
         $self->problem_source_common_params($atts, 'checker'), style => $style
+    };
+}
+
+sub start_tag_Interactor
+{
+    (my CATS::Problem::Parser $self, my $atts) = @_;
+
+    $self->error("Found several interactors") if exists $self->{problem}{interactor};
+
+    $self->{problem}{interactor} = {
+        $self->problem_source_common_params($atts, 'interactor')
     };
 }
 
