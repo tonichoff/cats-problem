@@ -7,6 +7,10 @@ use parent 'CATS::Formal::Generators::TestlibBase';
 
 my $pe = '_constraint_result_';
 
+sub id {
+    'testlib_checker';
+}
+
 sub init {
     my ($self) = @_;
     $self->SUPER::init();

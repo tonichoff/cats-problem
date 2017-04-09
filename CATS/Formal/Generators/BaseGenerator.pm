@@ -10,4 +10,8 @@ sub new {
 sub generate {
     die "called abstract method BaseGenerator::generate";
 }
+
+sub id {
+    undef;
+}
 1;
