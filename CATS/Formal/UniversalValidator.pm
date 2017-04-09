@@ -16,7 +16,7 @@ sub new {
 }
 
 sub validate {
-    my ($self, $root, $is_files, %ioa) = @_;
+    my ($self, $root, %ioa) = @_;
     my @keys = qw(INPUT ANSWER OUTPUT);
     my $val = $self->{cur} = {
         parent => undef,
@@ -27,9 +27,6 @@ sub validate {
     foreach my $k (@keys){
         my $fd = $root->find_child($k) || next;
         my $text = $ioa{$k};
-        if ($is_files->{$k} eq 'file') {
-            $text = read_file($text);
-        }
         my $v = $self->validate_top($fd, $text);
         push @{$val->{children}}, $v;
         push @{$val->{val}}, {fd => $v->{fd}, val => $v->{val}};

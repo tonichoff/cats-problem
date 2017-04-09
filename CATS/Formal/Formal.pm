@@ -7,132 +7,43 @@ use File::Slurp;
 
 use CATS::Formal::Parser;
 use CATS::Formal::Error;
-use CATS::Formal::Generators::XML;
-use CATS::Formal::Generators::TestlibChecker;
-use CATS::Formal::Generators::TestlibValidator;
-use CATS::Formal::Generators::TestlibStdChecker;
 use CATS::Formal::UniversalValidator;
 
-use constant GENERATORS => {
-    xml                 => 'CATS::Formal::Generators::XML',
-    testlib_checker     => 'CATS::Formal::Generators::TestlibChecker',
-    testlib_std_checker => 'CATS::Formal::Generators::TestlibStdChecker',
-    testlib_validator   => 'CATS::Formal::Generators::TestlibValidator',
-};
-
-sub set_all {
-    my ($val) = @_;
-    my $res = {};
-    $res->{$_} = $val for qw(INPUT OUTPUT ANSWER);
-    return $res;
-}
-
-sub parse_descriptions {
-    my ($is_files, %descriptions) = @_;
+sub parse {
+    my (%descriptions) = @_;
     my $parser = CATS::Formal::Parser->new();
     my $fd;
     my @keys = ('INPUT', 'ANSWER', 'OUTPUT');
     foreach my $namespace (@keys) {
         my $text = $descriptions{$namespace};
         defined $text || next;
-        if (($is_files->{$namespace} // '') eq 'file') {
-            $text eq '' && next;
-            $text = read_file($text);
-        }
         $fd = $parser->parse($text, $namespace, $fd);
         $fd || return $fd;
     }
     return $fd;
 }
 
-sub generate_source {
-    my ($gen_id, $is_files, %descriptions) = @_;
-    my $fd_root = parse_descriptions($is_files, %descriptions);
-    unless ($fd_root) {
-        my $error = CATS::Formal::Error::get();
-        return {error => $error};
-    }
-    my $generator = GENERATORS()->{$gen_id} ||
-        return {error => "unknown generator $gen_id"};
-    my $res = $generator->new()->generate($fd_root);
-    unless ($res) {
-        return {error => CATS::Formal::Error::get()};
-    }
-    return {ok => $res};
-}
-
-sub generate_source_from_files {
-    my ($gen_id, %files) = @_;
-    return generate_source($gen_id, set_all('file'), %files);
-}
-
-sub write_res_to_file {
-    my ($res, $out) = @_;
-    if ($res->{error}) {
-        write_file($out, $res->{error});
-    } else {
-        write_file($out, $res->{ok});
-    }
-}
-
-sub generate_and_write {
-    my ($files, $gen_id, $out) = @_;
-    my $res = generate_source_from_files($gen_id, %$files);
-    write_res_to_file($res, $out);
-    return $res->{error};
-}
-
-sub part_copy {
-    my ($from_hash, $to_hash, $from_keys, $to_keys) = @_;
-    @$from_keys == @$to_keys or die;
-    for my $i (0 .. $#$from_keys) {
-        my $k = $from_keys->[$i];
-        $to_hash->{$to_keys->[$i]} = $from_hash->{$k} if exists $from_hash->{$k};
-    }
+sub generate {
+    my ($generator, %descriptions) = @_;
+    my $fd_root = parse(%descriptions);
+    return $fd_root && $generator->generate($fd_root);
 }
 
 sub validate {
-    my ($descriptions, $validate, $opt) = @_;
-    $opt ||= {};
-    my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
-    part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
-    my $fd_root = parse_descriptions($fd_is, %$descriptions);
-    unless ($fd_root) {
-        my $error = CATS::Formal::Error::get();
-        return $error;
-    }
-    my $data_is = set_all($opt->{data} || $opt->{all} || 'file');
-    part_copy($opt, $data_is, ['input_data', 'output_data', 'answer_data'], ['INPUT', 'OUTPUT', 'ANSWER']);
+    my ($descriptions, $validate) = @_;
+    my $fd_root = parse(%$descriptions) or return CATS::Formal::Error::get();;
     eval {
-        CATS::Formal::UniversalValidator->new()->validate($fd_root, $data_is, %$validate);
+        CATS::Formal::UniversalValidator->new()->validate($fd_root, %$validate);
     };
     CATS::Formal::Error::propagate_bug_error();
-    CATS::Formal::Error::get();
-}
-
-sub generate {
-    my ($fds, $gen_id, $out, $opt) = @_;
-    $opt ||= {};
-    $out ||= \*STDOUT;
-    my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
-    part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
-    my $res = generate_source($gen_id, $fd_is, %$fds);
-    unless ($res->{error}) {
-        write_res_to_file($res, $out);
-    }
-    return $res->{error};
+    return CATS::Formal::Error::get();
 }
 
 sub check_syntax {
-    my ($fds, $opt) = @_;
-    $opt ||= {};
-    my $fd_is = set_all($opt->{fd} || $opt->{all} || 'file');
-    part_copy($opt, $fd_is, ['input_fd', 'output_fd', 'answer_fd'], ['INPUT', 'OUTPUT', 'ANSWER']);
-    my $fd_root = parse_descriptions($fd_is, %$fds);
-    unless ($fd_root) {
-        return CATS::Formal::Error::get();
+    if (parse(@_)) {
+        return undef;
     }
-    undef;
+    return CATS::Formal::Error::get();
 }
 
 1;

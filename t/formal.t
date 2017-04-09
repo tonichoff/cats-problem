@@ -6,6 +6,9 @@ use File::Spec;
 use File::Slurp;
 use Cwd qw(abs_path getcwd chdir);
 
+use CATS::Formal::Generators::XML;
+use CATS::Formal::Generators::TestlibValidator;
+
 my $clear; BEGIN {$clear = 1;}
 my @tests;
 my $compiler;
@@ -91,11 +94,23 @@ sub clear {
     }
 }
 
+sub generate_and_write {
+    my ($generator, $file, $out) = @_;
+    my $src = read_file($file);
+    my $result = CATS::Formal::Formal::generate(
+        $generator,
+        INPUT => $src
+    ) || CATS::Formal::Error::get();
+    write_file("$out", $result);
+}
+
 sub prepare_testlib_validator {
     my ($file) = @_;
     my ($name, $dir, $suffix) = fileparse($file, '.fd');
-    CATS::Formal::Formal::generate_and_write(
-        {'INPUT' => $file}, 'testlib_validator', "$dir$name.cpp"
+    generate_and_write(
+        CATS::Formal::Generators::TestlibValidator->new(),
+        $file,
+        "$dir$name.cpp"
     );
     $compiler or return fail('undefined compiler');
     my $compile =
@@ -117,22 +132,26 @@ sub testlib_validate {
 }
 
 sub prepare_universal_validator {
+    my $src = read_file($_[0]);
     return {
-        INPUT => $_[0]
+        INPUT => $src
     };
 }
 
 sub universal_validate {
     my ($test_file, $from) = @_;
-    return CATS::Formal::Formal::validate($from, {INPUT => $test_file});
+    my $src = read_file($test_file);
+    return CATS::Formal::Formal::validate($from, {INPUT => $src});
 }
 
 sub run_parser_test {
     my ($test_obj) = @_;
     my $file = $test_obj->{file};
     my ($name, $dir, $suffix) = fileparse($file, '.fd');
-    CATS::Formal::Formal::generate_and_write(
-        {'INPUT' => $file}, 'xml', "$dir$name.out"
+    generate_and_write(
+        CATS::Formal::Generators::XML->new(),
+        $file,
+        "$dir$name.out"
     );
     compare_files_ok("$dir$name.ans", "$dir$name.out", $file);
 }

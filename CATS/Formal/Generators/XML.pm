@@ -9,4 +9,8 @@ sub generate {
     $_[1]->stringify;
 }
 
+sub id {
+    'xml';
+}
+
 1;

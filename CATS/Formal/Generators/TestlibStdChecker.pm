@@ -5,6 +5,10 @@ use warnings;
 
 use parent 'CATS::Formal::Generators::TestlibChecker';
 
+sub id {
+    'testlib_std_checker';
+}
+
 sub generate_description {
     my ($self, $fd) = @_;
     die "expect ROOT object" if $fd->{type} != CATS::Formal::Constants::FD_TYPES->{ROOT};
