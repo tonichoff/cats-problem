@@ -633,9 +633,20 @@ sub start_tag_Run
     my %methods = (
         default => $cats::rm_default,
         interactive => $cats::rm_interactive,
+        competitive => $cats::rm_competitive,
     );
     defined($self->{problem}{run_method} = $methods{$m})
         or $self->error("Unknown run method: '$m', must be one of: " . join ', ', keys %methods);
+
+    $self->{problem}{run_method} == $cats::rm_competitive && !defined $atts->{players_count}
+        and $self->error("Player count limit must be defined for competitive run method");
+
+     $self->{problem}{run_method} != $cats::rm_competitive && defined $atts->{players_count}
+        and $self->warning("Player count limit defined when run method is not competitive");
+
+    $self->{problem}{players_count} = CATS::Testset::parse_simple_rank($atts->{players_count}, sub { $self->error(@_) })
+        if $self->{problem}{run_method} == $cats::rm_competitive;
+
     $self->note("Run method set to '$m'");
 }
 

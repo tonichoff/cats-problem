@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 14;
+use Test::More tests => 15;
 use Test::Exception;
 
 use lib '..';
@@ -689,4 +689,74 @@ subtest 'interactor', sub {
     });
     $parser->parse;
     is @{$parser->logger->{warnings}}, 0, 'interactor inverse tag definition';
+};
+
+subtest 'run method', sub {
+    plan tests => 10;
+
+    my $p = parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+    is $p->{run_method}, $cats::rm_default, 'default run method';
+
+    $p = parse({
+        'test.xml' => wrap_problem(q~
+<Run method="default" />
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+    is $p->{run_method}, $cats::rm_default, 'run method = default';
+
+    $p = parse({
+        'test.xml' => wrap_problem(q~
+<Run method="interactive" />
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+    is $p->{run_method}, $cats::rm_interactive, 'run method = interactive';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Run method="asd" />
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    }) } qr/Unknown run method: /, 'bad run method';
+
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Run method="competitive" />
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    }) } qr/Player count limit must be defined for competitive run method/, 'competetive without player count';
+
+    my $parser = ParserMockup::make({
+        'test.xml' => wrap_problem(q~
+<Run method="default" players_count="1"/>
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+    my $p = $parser->parse;
+    my $w = $parser->logger->{warnings};
+    is scalar @$w, 1, 'players_count when not competitive warnings count';
+    is $w->[0], 'Player count limit defined when run method is not competitive', 'players_count when not competitive warning';
+
+    $p = parse({
+        'test.xml' => wrap_problem(q~
+<Run method="competitive" players_count="2,3-5"/>
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+    is $p->{run_method}, $cats::rm_competitive, 'run method = competitive';
+    is $p->{players_count}->[0], 2, 'run method = competitive, players_count = 2';
+
+    $p = parse({
+        'test.xml' => wrap_problem(q~
+<Run method="competitive" players_count="2,4-5"/>
+<Checker src="t.pp" style="testlib"/>~),
+        't.pp' => 'q',
+    });
+
+    is_deeply $p->{players_count}, [ 2, 4, 5 ], 'run method = competitive, players_count = 2,4-5';
 };

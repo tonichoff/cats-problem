@@ -96,6 +96,7 @@ $problem_st_hidden    = 4;
 # Values for problems.run_method.
 $rm_default = 0;
 $rm_interactive = 1;
+$rm_competitive = 2;
 
 $penalty = 20;
 
