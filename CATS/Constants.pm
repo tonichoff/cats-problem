@@ -88,10 +88,11 @@ $st_manually_rejected = 20;
 
 # Values for contest_problems.status. Order is important:
 $problem_st_manual    = 0; # Requre manual verification after judge acceptance.
-$problem_st_ready     = 1; # Judges process runs starting at or above this status.
-$problem_st_suspended = 2; # UI accepts submissions at or above this status.
-$problem_st_disabled  = 3; # UI displays problems at or above this status.
-$problem_st_hidden    = 4;
+$problem_st_ready     = 1; # Judges runs solutions at or above this status.
+$problem_st_compile   = 2; # Judges process runs starting at or above this status.
+$problem_st_suspended = 3; # UI accepts submissions at or above this status.
+$problem_st_disabled  = 4; # UI displays problems at or above this status.
+$problem_st_hidden    = 5;
 
 # Values for problems.run_method.
 $rm_default = 0;
