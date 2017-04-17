@@ -26,7 +26,7 @@ sub get_problem {
         SELECT
             id, title, upload_date, time_limit, memory_limit,
             input_file, output_file, std_checker, contest_id, formal_input,
-            run_method
+            run_method, players_count
         FROM problems WHERE id = ?~, { Slice => {}, ib_timestampformat => '%d-%m-%Y %H:%M:%S' }, $pid);
     $problem->{run_method} //= $cats::rm_default;
     $problem;
