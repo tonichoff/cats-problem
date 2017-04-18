@@ -358,12 +358,29 @@ sub start_tag_Problem
 
     my $problem = $self->{problem};
 
+    my $parse_memory_unit = sub {
+        my ($str, $convert_to, $limit_name) = @_;
+
+        $str or return undef;
+        $str =~ m/^(\d+)(M|K|B)?$/ or $self->error("Bad $limit_name limit");
+
+        my %m = (
+            B => 1,
+            K => 1 << 10,
+            M => 1 << 20,
+        );
+
+        my $bytes = $1 * $m{$2 || 'M'};
+
+        $bytes % $m{$convert_to} ? $self->error("Value of $limit_name must be in whole ${convert_to}bytes") : $bytes / $m{$convert_to};
+    };
+
     $problem->{description} = {
         title => $atts->{title},
         lang => $atts->{lang},
         time_limit => $atts->{tlimit},
-        memory_limit => $atts->{mlimit},
-        write_limit => $atts->{wlimit},
+        memory_limit => $parse_memory_unit->($atts->{mlimit}, 'M', 'memory'),
+        write_limit => $parse_memory_unit->($atts->{wlimit}, 'B', 'write'),
         difficulty => $atts->{difficulty},
         author => $atts->{author},
         input_file => $atts->{inputFile},

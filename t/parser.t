@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 15;
+use Test::More tests => 16;
 use Test::Exception;
 
 use lib '..';
@@ -43,7 +43,7 @@ subtest 'header', sub {
     plan tests => 8;
     my $d = parse({
         'test.xml' => wrap_xml(q~
-<Problem title="Title" lang="en" author="A. Uthor" tlimit="5" mlimit="6" wlimit="100" inputFile="input.txt" outputFile="output.txt">
+<Problem title="Title" lang="en" author="A. Uthor" tlimit="5" mlimit="6" wlimit="100B" inputFile="input.txt" outputFile="output.txt">
 <Checker src="checker.pp"/>
 </Problem>~),
     'checker.pp' => 'begin end.',
@@ -761,3 +761,31 @@ subtest 'run method', sub {
 
     is_deeply $p->{players_count}, [ 2, 4, 5 ], 'run method = competitive, players_count = 2,4-5';
 };
+
+subtest 'memory unit suffix', sub {
+    plan tests => 12;
+
+    my $parse = sub {
+        parse({
+        'test.xml' => wrap_xml(qq~
+<Problem title="asd" lang="en" tlimit="5" inputFile="asd" outputFile="asd" @_[0]>
+<Checker src="checker.pp"/>
+</Problem>~),
+        'checker.pp' => 'begin end.',
+        })->{description}
+    };
+
+    throws_ok { $parse->(q/mlimit="asd"/) } qr/Bad memory limit/, 'bad mlimit asd';
+    throws_ok { $parse->(q/mlimit="K"/) } qr/Bad memory limit/, 'bad mlimit K';
+    throws_ok { $parse->(q/mlimit="10K"/) } qr/Value of memory must be in whole Mbytes/, 'mlimit 10K';
+    is $parse->(q/mlimit="1024K"/)->{memory_limit}, 1, 'mlimit 1024K';
+    is $parse->(q/mlimit="1M"/)->{memory_limit}, 1, 'mlimit 1M';
+    is $parse->(q/mlimit="1"/)->{memory_limit}, 1, 'mlimit 1';
+
+    throws_ok { $parse->(q/wlimit="asd"/) } qr/Bad write limit/, 'bad wlimit asd';
+    throws_ok { $parse->(q/wlimit="K"/) } qr/Bad write limit/, 'bad wlimit K';
+    is $parse->(q/wlimit="10B"/)->{write_limit}, 10, 'wlimit 10B';
+    is $parse->(q/wlimit="2K"/)->{write_limit}, 2048, 'wlimit 2K';
+    is $parse->(q/wlimit="1M"/)->{write_limit}, 1048576, 'wlimit 1M';
+    is $parse->(q/wlimit="1"/)->{write_limit}, 1048576, 'wlimit 1';
+}
