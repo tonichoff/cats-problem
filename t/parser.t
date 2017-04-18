@@ -737,7 +737,7 @@ subtest 'run method', sub {
 <Checker src="t.pp" style="testlib"/>~),
         't.pp' => 'q',
     });
-    my $p = $parser->parse;
+    $p = $parser->parse;
     my $w = $parser->logger->{warnings};
     is scalar @$w, 1, 'players_count when not competitive warnings count';
     is $w->[0], 'Player count limit defined when run method is not competitive', 'players_count when not competitive warning';
