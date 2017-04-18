@@ -363,6 +363,7 @@ sub start_tag_Problem
         lang => $atts->{lang},
         time_limit => $atts->{tlimit},
         memory_limit => $atts->{mlimit},
+        write_limit => $atts->{wlimit},
         difficulty => $atts->{difficulty},
         author => $atts->{author},
         input_file => $atts->{inputFile},
