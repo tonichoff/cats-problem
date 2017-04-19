@@ -147,7 +147,7 @@ sub select_request {
             ) AND DE.code NOT IN ($p->{supported_DEs})
         )
         AND R.state = $cats::st_not_processed
-        AND (CP.status <= $cats::problem_st_compile_only OR CA.is_jury = 1)
+        AND (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1)
         AND ($pin_condition R.judge_id = ?) ROWS 1~, undef,
         @params) or return;
 
