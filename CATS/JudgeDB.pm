@@ -22,9 +22,11 @@ sub get_DEs {
 sub get_problem {
     my ($pid) = @_;
 
-    my $problem = $dbh->selectrow_hashref(q~
+    my $limits_str = join ', ', @cats::limits_fields;
+
+    my $problem = $dbh->selectrow_hashref(qq~
         SELECT
-            id, title, upload_date, time_limit, memory_limit,
+            id, title, upload_date, $limits_str,
             input_file, output_file, std_checker, contest_id, formal_input,
             run_method, players_count
         FROM problems WHERE id = ?~, { Slice => {}, ib_timestampformat => '%d-%m-%Y %H:%M:%S' }, $pid);
