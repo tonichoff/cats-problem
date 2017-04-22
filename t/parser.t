@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 16;
+use Test::More tests => 17;
 use Test::Exception;
 
 use lib '..';
@@ -788,4 +788,43 @@ subtest 'memory unit suffix', sub {
     is $parse->(q/wlimit="2K"/)->{write_limit}, 2048, 'wlimit 2K';
     is $parse->(q/wlimit="1M"/)->{write_limit}, 1048576, 'wlimit 1M';
     is $parse->(q/wlimit="1"/)->{write_limit}, 1048576, 'wlimit 1';
-}
+};
+
+subtest 'sources limit params', sub {
+    plan tests => 60;
+
+    my $test = sub {
+        my ($tag, $getter) = @_;
+
+        my $xml = $tag eq 'Checker' ? q~
+        <Checker src="t.pp" style="testlib" %s/>"~ : qq~
+        <$tag name="val" src="t.pp" \%s/><Checker src="t.pp" style="testlib"/>~;
+
+        my $parse = sub {
+            parse({
+                'test.xml' => wrap_problem(sprintf $xml, @_[0]),
+                'checker.pp' => 'begin end.', 't.pp' => 'q'
+            })
+        };
+
+        throws_ok { $parse->(q/memoryLimit="asd"/) } qr/Bad memory limit/, "bad memoryLimit asd: $tag";
+        throws_ok { $parse->(q/memoryLimit="K"/) } qr/Bad memory limit/, "bad memoryLimit K: $tag";
+        throws_ok { $parse->(q/memoryLimit="10K"/) } qr/Value of memory must be in whole Mbytes/, "memoryLimit 10K: $tag";
+        is $getter->($parse->(q/memoryLimit="1024K"/))->{memory_limit}, 1, "memoryLimit 1024K: $tag";
+        is $getter->($parse->(q/memoryLimit="1M"/))->{memory_limit}, 1, "memoryLimit 1M: $tag";
+        is $getter->($parse->(q/memoryLimit="1"/))->{memory_limit}, 1, "memoryLimit 1: $tag";
+
+        throws_ok { $parse->(q/writeLimit="asd"/) } qr/Bad write limit/, "bad writeLimit asd: $tag";
+        throws_ok { $parse->(q/writeLimit="K"/) } qr/Bad write limit/, "bad writeLimit K: $tag";
+        is $getter->($parse->(q/writeLimit="10B"/))->{write_limit}, 10, "writeLimit 10B: $tag";
+        is $getter->($parse->(q/writeLimit="2K"/))->{write_limit}, 2048, "writeLimit 2K: $tag";
+        is $getter->($parse->(q/writeLimit="1M"/))->{write_limit}, 1048576, "writeLimit 1M: $tag";
+        is $getter->($parse->(q/writeLimit="1"/))->{write_limit}, 1048576, "writeLimit 1: $tag";
+    };
+
+    $test->('Generator', sub { $_[0]->{generators}[0] });
+    $test->('Solution', sub { $_[0]->{solutions}[0] });
+    $test->('Visualizer', sub { $_[0]->{visualizers}[0] });
+    $test->('Checker', sub { $_[0]->{checker} });
+    $test->('Interactor', sub { $_[0]->{interactor} });
+};
