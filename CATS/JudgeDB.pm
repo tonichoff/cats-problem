@@ -205,12 +205,18 @@ sub select_request {
         }
     }
 
-    $dbh->do(q~
-        UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
-        $cats::st_install_processing, $p->{jid}, $req->{id});
-    $dbh->commit;
-
-    $req;
+    eval {
+        $dbh->do(q~
+            UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
+            $cats::st_install_processing, $p->{jid}, $req->{id});
+        $dbh->commit;
+        1;
+    } and return $req;
+    my $err = $@ // '';
+    $err =~ /concurrent transaction number is (\d+)/m or die $err;
+    # Another judge has probably acquired this problem concurrently.
+    warn "select_request: deadlock with transaction: $1";
+    undef;
 }
 
 sub delete_req_details {
