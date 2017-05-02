@@ -40,10 +40,10 @@ subtest 'trivial errors', sub {
 };
 
 subtest 'header', sub {
-    plan tests => 8;
+    plan tests => 9;
     my $d = parse({
         'test.xml' => wrap_xml(q~
-<Problem title="Title" lang="en" author="A. Uthor" tlimit="5" mlimit="6" wlimit="100B" inputFile="input.txt" outputFile="output.txt">
+<Problem title="Title" lang="en" author="A. Uthor" tlimit="5" mlimit="6" wlimit="100B" saveOutputPrefix="100B" inputFile="input.txt" outputFile="output.txt">
 <Checker src="checker.pp"/>
 </Problem>~),
     'checker.pp' => 'begin end.',
@@ -53,6 +53,7 @@ subtest 'header', sub {
     is $d->{lang}, 'en', 'lang';
     is $d->{time_limit}, 5, 'time';
     is $d->{memory_limit}, 6, 'memory';
+    is $d->{save_output_prefix}, 100, 'saveOutputPrefix';
     is $d->{write_limit}, 100, 'write';
     is $d->{input_file}, 'input.txt', 'input';
     is $d->{output_file}, 'output.txt', 'output';
@@ -775,15 +776,15 @@ subtest 'memory unit suffix', sub {
         })->{description}
     };
 
-    throws_ok { $parse->(q/mlimit="asd"/) } qr/Bad memory limit/, 'bad mlimit asd';
-    throws_ok { $parse->(q/mlimit="K"/) } qr/Bad memory limit/, 'bad mlimit K';
-    throws_ok { $parse->(q/mlimit="10K"/) } qr/Value of memory must be in whole Mbytes/, 'mlimit 10K';
+    throws_ok { $parse->(q/mlimit="asd"/) } qr/Bad value of 'mlimit'/, 'bad mlimit asd';
+    throws_ok { $parse->(q/mlimit="K"/) } qr/Bad value of 'mlimit'/, 'bad mlimit K';
+    throws_ok { $parse->(q/mlimit="10K"/) } qr/Value of 'mlimit' must be in whole Mbytes/, 'mlimit 10K';
     is $parse->(q/mlimit="1024K"/)->{memory_limit}, 1, 'mlimit 1024K';
     is $parse->(q/mlimit="1M"/)->{memory_limit}, 1, 'mlimit 1M';
     is $parse->(q/mlimit="1"/)->{memory_limit}, 1, 'mlimit 1';
 
-    throws_ok { $parse->(q/wlimit="asd"/) } qr/Bad write limit/, 'bad wlimit asd';
-    throws_ok { $parse->(q/wlimit="K"/) } qr/Bad write limit/, 'bad wlimit K';
+    throws_ok { $parse->(q/wlimit="asd"/) } qr/Bad value of 'wlimit'/, 'bad wlimit asd';
+    throws_ok { $parse->(q/wlimit="K"/) } qr/Bad value of 'wlimit'/, 'bad wlimit K';
     is $parse->(q/wlimit="10B"/)->{write_limit}, 10, 'wlimit 10B';
     is $parse->(q/wlimit="2K"/)->{write_limit}, 2048, 'wlimit 2K';
     is $parse->(q/wlimit="1M"/)->{write_limit}, 1048576, 'wlimit 1M';
@@ -807,15 +808,15 @@ subtest 'sources limit params', sub {
             })
         };
 
-        throws_ok { $parse->(q/memoryLimit="asd"/) } qr/Bad memory limit/, "bad memoryLimit asd: $tag";
-        throws_ok { $parse->(q/memoryLimit="K"/) } qr/Bad memory limit/, "bad memoryLimit K: $tag";
-        throws_ok { $parse->(q/memoryLimit="10K"/) } qr/Value of memory must be in whole Mbytes/, "memoryLimit 10K: $tag";
+        throws_ok { $parse->(q/memoryLimit="asd"/) } qr/Bad value of 'memoryLimit'/, "bad memoryLimit asd: $tag";
+        throws_ok { $parse->(q/memoryLimit="K"/) } qr/Bad value of 'memoryLimit'/, "bad memoryLimit K: $tag";
+        throws_ok { $parse->(q/memoryLimit="10K"/) } qr/Value of 'memoryLimit' must be in whole Mbytes/, "memoryLimit 10K: $tag";
         is $getter->($parse->(q/memoryLimit="1024K"/))->{memory_limit}, 1, "memoryLimit 1024K: $tag";
         is $getter->($parse->(q/memoryLimit="1M"/))->{memory_limit}, 1, "memoryLimit 1M: $tag";
         is $getter->($parse->(q/memoryLimit="1"/))->{memory_limit}, 1, "memoryLimit 1: $tag";
 
-        throws_ok { $parse->(q/writeLimit="asd"/) } qr/Bad write limit/, "bad writeLimit asd: $tag";
-        throws_ok { $parse->(q/writeLimit="K"/) } qr/Bad write limit/, "bad writeLimit K: $tag";
+        throws_ok { $parse->(q/writeLimit="asd"/) } qr/Bad value of 'writeLimit'/, "bad writeLimit asd: $tag";
+        throws_ok { $parse->(q/writeLimit="K"/) } qr/Bad value of 'writeLimit'/, "bad writeLimit K: $tag";
         is $getter->($parse->(q/writeLimit="10B"/))->{write_limit}, 10, "writeLimit 10B: $tag";
         is $getter->($parse->(q/writeLimit="2K"/))->{write_limit}, 2048, "writeLimit 2K: $tag";
         is $getter->($parse->(q/writeLimit="1M"/))->{write_limit}, 1048576, "writeLimit 1M: $tag";

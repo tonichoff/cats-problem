@@ -28,7 +28,7 @@ sub get_problem {
         SELECT
             id, title, upload_date, $limits_str,
             input_file, output_file, std_checker, contest_id, formal_input,
-            run_method, players_count
+            run_method, players_count, save_output_prefix
         FROM problems WHERE id = ?~, { Slice => {}, ib_timestampformat => '%d-%m-%Y %H:%M:%S' }, $pid);
     $problem->{run_method} //= $cats::rm_default;
     $problem;
@@ -229,6 +229,9 @@ sub delete_req_details {
 sub insert_req_details {
     my (%p) = @_;
 
+    my ($output, $size) = map $p{$_}, qw(output size);
+    delete $p{$_} for qw(output size);
+
     $dbh->do(
         sprintf(
             q~INSERT INTO req_details (%s) VALUES (%s)~,
@@ -236,6 +239,11 @@ sub insert_req_details {
         ),
         undef, values %p
     );
+
+    $dbh->do(q~
+        INSERT INTO solution_output (req_id, test_rank, output, size, create_time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)~, undef,
+        $p{req_id}, $p{test_rank}, $output, $size) if $size;
+
     $dbh->commit;
 }
 

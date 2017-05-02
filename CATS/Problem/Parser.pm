@@ -353,10 +353,10 @@ sub end_tag_JsonData
 }
 
 sub parse_memory_unit {
-    my ($str, $convert_to, $limit_name, $on_error) = @_;
+    my ($atts, $attrib_name, $convert_to, $on_error) = @_;
 
-    $str or return undef;
-    $str =~ m/^(\d+)(M|K|B)?$/ or $on_error->("Bad $limit_name limit");
+    $atts->{$attrib_name} or return undef;
+    $atts->{$attrib_name} =~ m/^(\d+)(M|K|B)?$/ or $on_error->("Bad value of '$attrib_name'");
 
     my %m = (
         B => 1,
@@ -366,7 +366,7 @@ sub parse_memory_unit {
 
     my $bytes = $1 * $m{$2 || 'M'};
 
-    $bytes % $m{$convert_to} ? $on_error->("Value of $limit_name must be in whole ${convert_to}bytes") : $bytes / $m{$convert_to};
+    $bytes % $m{$convert_to} ? $on_error->("Value of '$attrib_name' must be in whole ${convert_to}bytes") : $bytes / $m{$convert_to};
 };
 
 sub start_tag_Problem
@@ -379,8 +379,9 @@ sub start_tag_Problem
         title => $atts->{title},
         lang => $atts->{lang},
         time_limit => $atts->{tlimit},
-        memory_limit => parse_memory_unit($atts->{mlimit}, 'M', 'memory', sub { $self->error(@_) }),
-        write_limit => parse_memory_unit($atts->{wlimit}, 'B', 'write', sub { $self->error(@_) }),
+        memory_limit => parse_memory_unit($atts, 'mlimit', 'M', sub { $self->error(@_) }),
+        write_limit => parse_memory_unit($atts, 'wlimit', 'B', sub { $self->error(@_) }),
+        save_output_prefix => parse_memory_unit($atts, 'saveOutputPrefix', 'B', sub { $self->error(@_) }),
         difficulty => $atts->{difficulty},
         author => $atts->{author},
         input_file => $atts->{inputFile},
@@ -446,8 +447,8 @@ sub problem_source_common_params
         de_code => $atts->{de_code},
         guid => $atts->{export},
         time_limit => $atts->{timeLimit},
-        memory_limit => parse_memory_unit($atts->{memoryLimit}, 'M', 'memory', sub { $self->error(@_) }),
-        write_limit => parse_memory_unit($atts->{writeLimit}, 'B', 'write', sub { $self->error(@_) }),
+        memory_limit => parse_memory_unit($atts ,'memoryLimit', 'M', sub { $self->error(@_) }),
+        write_limit => parse_memory_unit($atts, 'writeLimit', 'B', sub { $self->error(@_) }),
         name => $atts->{name},
     );
 }
