@@ -390,6 +390,7 @@ sub state_to_display
         presentation_error =>    $state == $cats::st_presentation_error,
         time_limit_exceeded =>   $state == $cats::st_time_limit_exceeded,
         memory_limit_exceeded => $state == $cats::st_memory_limit_exceeded,
+        write_limit_exceeded =>  $state == $cats::st_write_limit_exceeded,
         runtime_error =>         $state == $cats::st_runtime_error,
         compilation_error =>     $state == $cats::st_compilation_error,
         idleness_limit_exceeded=>$state == $cats::st_idleness_limit_exceeded,
