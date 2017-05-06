@@ -382,6 +382,8 @@ sub start_tag_Problem
         memory_limit => parse_memory_unit($atts, 'mlimit', 'M', sub { $self->error(@_) }),
         write_limit => parse_memory_unit($atts, 'wlimit', 'B', sub { $self->error(@_) }),
         save_output_prefix => parse_memory_unit($atts, 'saveOutputPrefix', 'B', sub { $self->error(@_) }),
+        save_input_prefix => parse_memory_unit($atts, 'saveInputPrefix', 'B', sub { $self->error(@_) }),
+        save_answer_prefix => parse_memory_unit($atts, 'saveAnswerPrefix', 'B', sub { $self->error(@_) }),
         difficulty => $atts->{difficulty},
         author => $atts->{author},
         input_file => $atts->{inputFile},

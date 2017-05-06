@@ -40,10 +40,11 @@ subtest 'trivial errors', sub {
 };
 
 subtest 'header', sub {
-    plan tests => 9;
+    plan tests => 11;
     my $d = parse({
         'test.xml' => wrap_xml(q~
-<Problem title="Title" lang="en" author="A. Uthor" tlimit="5" mlimit="6" wlimit="100B" saveOutputPrefix="100B" inputFile="input.txt" outputFile="output.txt">
+<Problem title="Title" lang="en" author="A. Uthor" tlimit="5" mlimit="6" wlimit="100B"
+    saveOutputPrefix="100B" saveInputPrefix="200B" saveAnswerPrefix="300B" inputFile="input.txt" outputFile="output.txt">
 <Checker src="checker.pp"/>
 </Problem>~),
     'checker.pp' => 'begin end.',
@@ -54,6 +55,8 @@ subtest 'header', sub {
     is $d->{time_limit}, 5, 'time';
     is $d->{memory_limit}, 6, 'memory';
     is $d->{save_output_prefix}, 100, 'saveOutputPrefix';
+    is $d->{save_input_prefix}, 200, 'saveInputPrefix';
+    is $d->{save_answer_prefix}, 300, 'saveAnswerPrefix';
     is $d->{write_limit}, 100, 'write';
     is $d->{input_file}, 'input.txt', 'input';
     is $d->{output_file}, 'output.txt', 'output';
