@@ -258,5 +258,26 @@ sub insert_req_details {
     $dbh->commit;
 }
 
+sub save_input_test_data {
+    my ($problem_id, $test_rank, $input, $input_size) = @_;
+
+    $dbh->do(q~
+        UPDATE tests SET in_file = ?, in_file_size = ?
+            WHERE problem_id = ? AND rank = ? AND in_file IS NULL~, undef,
+        $input, $input_size, $problem_id, $test_rank);
+
+    $dbh->commit;
+}
+
+sub save_answer_test_data {
+    my ($problem_id, $test_rank, $answer, $answer_size) = @_;
+
+    $dbh->do(q~
+        UPDATE tests SET out_file = ?, out_file_size = ?
+            WHERE problem_id = ? AND rank = ? AND out_file IS NULL~, undef,
+        $answer, $answer_size, $problem_id, $test_rank);
+
+    $dbh->commit;
+}
 
 1;
