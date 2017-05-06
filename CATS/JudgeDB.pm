@@ -28,7 +28,7 @@ sub get_problem {
         SELECT
             id, title, upload_date, $limits_str,
             input_file, output_file, std_checker, contest_id, formal_input,
-            run_method, players_count, save_output_prefix
+            run_method, players_count, save_output_prefix, save_input_prefix, save_answer_prefix
         FROM problems WHERE id = ?~, { Slice => {}, ib_timestampformat => '%d-%m-%Y %H:%M:%S' }, $pid);
     $problem->{run_method} //= $cats::rm_default;
     $problem;
