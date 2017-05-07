@@ -23,6 +23,7 @@ our @EXPORT = qw(
     encodings
     source_encodings
     redirect_url_function
+    group_digits
 );
 our %EXPORT_TAGS = (all => [ @EXPORT ]);
 
@@ -442,6 +443,14 @@ sub encodings { {'UTF-8' => 1, 'WINDOWS-1251' => 1, 'KOI8-R' => 1, 'CP866' => 1,
 sub source_encodings
 {
     [ map {{ enc => $_, selected => $_ eq $_[0] }} sort keys %{encodings()} ];
+}
+
+sub group_digits {
+    my ($num, $sep) = @_;
+    my $len = length $_[0];
+    my $p = $len % 3;
+    join $sep // ' ', ($p ? substr($_[0], 0, $p) : ()),
+        map substr($_[0], $p + $_ * 3, 3), 0..int($len / 3) - 1;
 }
 
 1;
