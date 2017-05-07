@@ -769,7 +769,7 @@ subtest 'memory unit suffix', sub {
     my $parse = sub {
         parse({
         'test.xml' => wrap_xml(qq~
-<Problem title="asd" lang="en" tlimit="5" inputFile="asd" outputFile="asd" @_[0]>
+<Problem title="asd" lang="en" tlimit="5" inputFile="asd" outputFile="asd" $_[0]>
 <Checker src="checker.pp"/>
 </Problem>~),
         'checker.pp' => 'begin end.',
@@ -803,7 +803,7 @@ subtest 'sources limit params', sub {
 
         my $parse = sub {
             parse({
-                'test.xml' => wrap_problem(sprintf $xml, @_[0]),
+                'test.xml' => wrap_problem(sprintf $xml, $_[0]),
                 'checker.pp' => 'begin end.', 't.pp' => 'q'
             })
         };
