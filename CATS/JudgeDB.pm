@@ -55,18 +55,13 @@ sub get_problem_tests {
     my ($pid) = @_;
 
     $dbh->selectall_arrayref(q~
-        SELECT generator_id, input_validator_id, rank, param, std_solution_id,
-        CASE
-            WHEN in_file_size IS NULL THEN in_file
-            ELSE NULL
-        END AS in_file,
-        CASE
-            WHEN out_file_size IS NULL THEN out_file
-            ELSE NULL
-        END AS out_file,
-        in_file_size,
-        out_file_size,
-        gen_group
+        SELECT
+            generator_id, input_validator_id, rank, param, std_solution_id,
+            CASE WHEN in_file_size  IS NULL THEN in_file  ELSE NULL END AS in_file,
+            CASE WHEN out_file_size IS NULL THEN out_file ELSE NULL END AS out_file,
+            in_file_size,
+            out_file_size,
+            gen_group
         FROM tests WHERE problem_id = ? ORDER BY rank~, { Slice => {} },
         $pid);
 }
