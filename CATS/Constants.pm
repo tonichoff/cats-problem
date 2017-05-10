@@ -105,8 +105,8 @@ $penalty = 20;
 @problem_codes = ('A'..'Z', '1'..'9');
 sub is_good_problem_code { $_[0] =~ /^[A-Z1-9]$/ }
 
-# Length of input file prefix displayed to user.
-$infile_cut = 30;
+# Length of test file prefix displayed to user.
+$test_file_cut = 30;
 
 $log_section_start_prefix = '>====== ';
 $log_section_end_prefix = '<====== ';

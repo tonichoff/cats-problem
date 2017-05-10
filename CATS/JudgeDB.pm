@@ -28,7 +28,7 @@ sub get_problem {
         SELECT
             id, title, upload_date, $limits_str,
             input_file, output_file, std_checker, contest_id, formal_input,
-            run_method, players_count, save_output_prefix
+            run_method, players_count, save_output_prefix, save_input_prefix, save_answer_prefix
         FROM problems WHERE id = ?~, { Slice => {}, ib_timestampformat => '%d-%m-%Y %H:%M:%S' }, $pid);
     $problem->{run_method} //= $cats::rm_default;
     $problem;
@@ -55,7 +55,18 @@ sub get_problem_tests {
     my ($pid) = @_;
 
     $dbh->selectall_arrayref(q~
-        SELECT generator_id, input_validator_id, rank, param, std_solution_id, in_file, out_file, gen_group
+        SELECT generator_id, input_validator_id, rank, param, std_solution_id,
+        CASE
+            WHEN in_file_size IS NULL THEN in_file
+            ELSE NULL
+        END AS in_file,
+        CASE
+            WHEN out_file_size IS NULL THEN out_file
+            ELSE NULL
+        END AS out_file,
+        in_file_size,
+        out_file_size,
+        gen_group
         FROM tests WHERE problem_id = ? ORDER BY rank~, { Slice => {} },
         $pid);
 }
@@ -247,5 +258,26 @@ sub insert_req_details {
     $dbh->commit;
 }
 
+sub save_input_test_data {
+    my ($problem_id, $test_rank, $input, $input_size) = @_;
+
+    $dbh->do(q~
+        UPDATE tests SET in_file = ?, in_file_size = ?
+            WHERE problem_id = ? AND rank = ? AND in_file IS NULL~, undef,
+        $input, $input_size, $problem_id, $test_rank);
+
+    $dbh->commit;
+}
+
+sub save_answer_test_data {
+    my ($problem_id, $test_rank, $answer, $answer_size) = @_;
+
+    $dbh->do(q~
+        UPDATE tests SET out_file = ?, out_file_size = ?
+            WHERE problem_id = ? AND rank = ? AND out_file IS NULL~, undef,
+        $answer, $answer_size, $problem_id, $test_rank);
+
+    $dbh->commit;
+}
 
 1;
