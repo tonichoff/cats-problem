@@ -30,10 +30,10 @@ sub generate {
 }
 
 sub validate {
-    my ($descriptions, $validate) = @_;
+    my ($descriptions, $validate, $skip_on_missed_data) = @_;
     my $fd_root = parse(%$descriptions) or return CATS::Formal::Error::get();;
     eval {
-        CATS::Formal::UniversalValidator->new()->validate($fd_root, %$validate);
+        CATS::Formal::UniversalValidator->new()->validate($fd_root, $validate, $skip_on_missed_data);
     };
     CATS::Formal::Error::propagate_bug_error();
     return CATS::Formal::Error::get();

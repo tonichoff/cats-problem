@@ -16,7 +16,7 @@ sub new {
 }
 
 sub validate {
-    my ($self, $root, %ioa) = @_;
+    my ($self, $root, $ioa, $skip_on_missed_data) = @_;
     my @keys = qw(INPUT ANSWER OUTPUT);
     my $val = $self->{cur} = {
         parent => undef,
@@ -26,7 +26,8 @@ sub validate {
     };
     foreach my $k (@keys){
         my $fd = $root->find_child($k) || next;
-        my $text = $ioa{$k};
+        next if $skip_on_missed_data && !defined $ioa->{$k};
+        my $text = $ioa->{$k};
         my $v = $self->validate_top($fd, $text);
         push @{$val->{children}}, $v;
         push @{$val->{val}}, {fd => $v->{fd}, val => $v->{val}};
