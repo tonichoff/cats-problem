@@ -68,7 +68,7 @@ BEGIN {
 }
 
 use lib $root_dir;
-use Test::More tests => 1 + scalar @tests;
+use Test::More tests => 3 + scalar @tests;
 my @suffix_to_save = qw(.fd .in .ans);
 
 sub compare_files_ok {
@@ -202,6 +202,30 @@ sub run_validator_tests{
 BEGIN {use_ok('CATS::Formal::Formal')};
 
 $_->{run}->($_) for @tests;
+
+{
+    my $error = CATS::Formal::Formal::validate({
+        INPUT => "integer name=A;",
+        OUTPUT => "integer name=A, range=[0, 10000];",
+    }, {
+        OUTPUT => "1000"
+    },
+        1
+    );
+    is($error, undef, "Enable: skip validation if data is missed");
+}
+
+{
+    my $error = CATS::Formal::Formal::validate({
+            INPUT => "integer name=A",
+            OUTPUT => "integer name=A, range=[0, INPUT.A];",
+        }, {
+            OUTPUT => "1000"
+        },
+        0
+    );
+    isnt($error, undef, "Disable: skip validation if data is missed");
+}
 
 clear("$tests_dir/parser");
 clear("$tests_dir/validator");
