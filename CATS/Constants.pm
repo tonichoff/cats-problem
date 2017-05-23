@@ -119,4 +119,8 @@ $judge_pin_req     = 1;
 $judge_pin_contest = 2;
 $judge_pin_any     = 3;
 
+# Count of de_bits* bitfields in reqs table
+$de_req_bitfields_count = 2;
+$de_req_bitfield_size = 62;
+
 1;
