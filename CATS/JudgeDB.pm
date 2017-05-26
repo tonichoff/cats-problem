@@ -385,10 +385,21 @@ sub select_request {
     my $dev_env = CATS::DevEnv->new(get_DEs);
     return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
 
-    my $request_des_condition = join ' AND ', map "BIN_AND(RDEBC.de_bits$_, ?) = RDEBC.de_bits$_", 1..$cats::de_req_bitfields_count;
-    my $problem_des_condition = join ' AND ', map "BIN_AND(PDEBC.de_bits$_, ?) = PDEBC.de_bits$_", 1..$cats::de_req_bitfields_count;
+    my $des_cond_fmt = sub {
+        my ($table) = @_;
+        my $cond =
+            join ' AND ', map "BIN_AND($table.de_bits$_, ?) = $table.de_bits$_",
+                1..$cats::de_req_bitfields_count;
+        qq~
+        (CASE
+            WHEN $table.version IS NULL THEN 1
+            WHEN $table.version = ? THEN (CASE WHEN $cond THEN 1 ELSE 0 END)
+            ELSE 1
+        END) = 1~;
+    };
+    my $des_condition = $des_cond_fmt->('RDEBC') . ' AND ' . $des_cond_fmt->('PDEBC');
 
-    my @params = ( (extract_de_bitmap($p)) x 2, ($dev_env->version) x 2 );
+    my @params = ($dev_env->version, extract_de_bitmap($p)) x 2;
 
     my $pin_condition = '';
 
@@ -414,11 +425,12 @@ sub select_request {
             INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
             LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
             INNER JOIN problems P ON P.id = R.problem_id
-            LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id AND (RDEBC.version != ? OR $request_des_condition)
-            LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id AND (PDEBC.version != ? OR $problem_des_condition)
+            LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id
+            LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id
         WHERE
             R.state = $cats::st_not_processed AND
             (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1) AND
+            $des_condition AND
             ($pin_condition R.judge_id = ?) ROWS 1~, undef,
         @params) or return;
 
