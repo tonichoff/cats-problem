@@ -5,6 +5,7 @@ use warnings;
 
 use CATS::Constants;
 use CATS::DB qw(new_id $dbh);
+use CATS::DevEnv;
 
 sub get_judge_id {
     my ($sid) = @_;
@@ -15,8 +16,17 @@ sub get_judge_id {
 }
 
 sub get_DEs {
-    $dbh->selectall_arrayref(q~
-        SELECT id, code, description, memory_handicap FROM default_de~, { Slice => {} });
+    my ($p) = @_;
+    my $condition = join ' AND ', ($p->{active_only} ? ('in_contests = 1') : ()), ($p->{id} ? ('id = ?') : ());
+    $condition = 'WHERE ' . $condition if $condition;
+    {
+        des => $dbh->selectall_arrayref(qq~
+            SELECT id, code, description, file_ext, default_file_ext
+            FROM default_de
+            $condition ORDER BY code~, { Slice => {} },
+            $p->{id} ? ($p->{id}) : ()),
+        version => current_de_version()
+    }
 }
 
 sub get_problem {
@@ -96,8 +106,256 @@ sub save_log_dump {
     }
 }
 
+sub copy_req_tree_info {
+    my ($req_tree, @reqs) = @_;
+    for my $req (@reqs) {
+        $req_tree->{$req->{id}}->{$_} = $req->{$_} for keys %$req;
+    }
+}
+
+sub add_info_to_req_tree {
+    my ($needed_info, $req_ids, $req_tree) = @_;
+
+    $needed_info //= {};
+    $req_tree //= {};
+
+    my $needed_fields = join ', ', qw(R.id R.elements_count), @{$needed_info->{fields} // []};
+    my $needed_tables = join ' ', @{$needed_info->{tables} // []};
+    my $req_ids_list = join ', ', $req_ids ? @$req_ids : keys %$req_tree or return {};
+
+    warn "add_info_to_req_tree. $req_ids_list";
+
+    my $reqs = $dbh->selectall_arrayref(qq~
+        SELECT $needed_fields
+        FROM reqs R
+            $needed_tables
+        WHERE R.id IN ($req_ids_list)~, { Slice => {} });
+
+    copy_req_tree_info($req_tree, @$reqs);
+
+    $req_tree;
+}
+
+sub get_req_tree {
+    my ($req_ids, $p, $req_tree) = @_;
+
+    $req_ids && @$req_ids or return {};
+    $req_tree //= {};
+
+    warn 'get_req_tree. given ids: ', join ', ', @$req_ids;
+
+    my $level_req_tree = add_info_to_req_tree($p, $req_ids);
+
+    my @reqs_to_next_level = grep {
+        $_->{elements_count} &&
+        !defined $req_tree->{$_->{id}} &&
+        (!$p->{on_level_filter} || $p->{on_level_filter}->($_))
+    } values %$level_req_tree;
+
+    copy_req_tree_info($req_tree, values %$level_req_tree);
+
+    warn 'get_req_tree. filtered to next level: ', join ', ', map $_->{id}, @reqs_to_next_level;
+
+    @reqs_to_next_level or return $req_tree;
+
+    my $req_ids_to_next_level_list = join ', ', map $_->{id}, @reqs_to_next_level;
+    my $req_elements = $dbh->selectall_arrayref(qq~
+        SELECT RG.group_id, RG.element_id
+        FROM req_groups RG
+        WHERE RG.group_id IN ($req_ids_to_next_level_list)~, { Slice => {} });
+
+    for my $req_element (@$req_elements) {
+        warn "get_req_tree. link: $req_element->{group_id}->$req_element->{element_id}";
+        $req_tree->{$req_element->{element_id}} //= {};
+        #push @{$req_tree->{$req_element->{element_id}}->{parents} //= []}, $req_tree->{$req_element->{group_id}};
+        push @{$req_tree->{$req_element->{group_id}}->{elements} //= []}, $req_tree->{$req_element->{element_id}};
+    }
+
+    for my $req (@reqs_to_next_level) {
+        if (@{$req_tree->{$req->{id}}->{elements} //= []} != $req->{elements_count}) {
+            die "elements_count mismatch on request: $req->{id}";
+        }
+    }
+
+    my @unvisited_ids = grep !defined $req_tree->{$_}->{id}, map $_->{element_id}, @$req_elements;
+    return @unvisited_ids ? get_req_tree(\@unvisited_ids, $p, $req_tree) : $req_tree;
+}
+
+sub ensure_request_de_bitmap_cache {
+    my ($req_ids, $dev_env, $select_all) = @_;
+
+    $req_ids or return {};
+
+    if (!ref($req_ids)) {
+        $req_ids = [ $req_ids ];
+    } elsif (ref($req_ids) ne 'ARRAY') {
+        die 'req_ids is not neither reference to ARRAY or scalar';
+    }
+
+    @$req_ids or return {};
+
+    $dev_env //= CATS::DevEnv->new(get_DEs);
+
+    my $req_tree = get_req_tree($req_ids, {
+        fields => [
+            'S.de_id',
+            'RDEBC.version as de_version',
+            de_bitmap_str('RDEBC'),
+        ],
+        tables => [
+            'LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id',
+            'LEFT JOIN sources S ON S.req_id = R.id',
+        ],
+        on_level_filter => $select_all ? undef : sub {
+            $dev_env->is_good_version($_[0]->{de_version});
+        },
+    });
+
+    my @needed_update_reqs;
+    my $collect_needed_update_req_ids;
+    $collect_needed_update_req_ids = sub {
+        my $req = shift;
+
+        my @bitmap;
+
+        if (!$dev_env->is_good_version($req->{de_version})) {
+            if ($req->{elements_count} > 0) {
+                warn "ensure_request_de_bitmap_cache. req $req->{id} needs update recursively";
+                @bitmap = (0) x $cats::de_req_bitfields_count;
+                for my $req_element (@{$req->{elements}}) {
+                    my @element_bitmap = $collect_needed_update_req_ids->($req_element);
+                    $bitmap[$_] |= $element_bitmap[$_] for 0..$cats::de_req_bitfields_count-1;
+                }
+            } else {
+                warn "ensure_request_de_bitmap_cache. req $req->{id} needs update";
+                @bitmap = $dev_env->bitmap_by_ids($req->{de_id});
+            }
+            my %de_bitfields_hash = get_de_bitfields_hash(@bitmap);
+            $req->{$_} = $de_bitfields_hash{$_} for keys %de_bitfields_hash;
+            $req->{bitmap} = [ @bitmap ];
+            push @needed_update_reqs, $req;
+        } else {
+            @bitmap = extract_de_bitmap($req);
+        }
+
+        warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
+
+        @bitmap;
+    };
+
+    $collect_needed_update_req_ids->($req_tree->{$_}) for @$req_ids;
+
+    @needed_update_reqs or return $req_tree;
+
+    my $update_req_ids_list = join ', ', map $_->{id}, @needed_update_reqs;
+    $dbh->do(qq~
+        DELETE FROM req_de_bitmap_cache RDEBC
+        WHERE RDEBC.req_id IN ($update_req_ids_list)~);
+
+    my $set_bitmap_cache_str = join ', ', map "de_bits$_", 1..$cats::de_req_bitfields_count;
+    my $q_str = join ', ', map '?', 1..$cats::de_req_bitfields_count;
+    my $c = $dbh->prepare(qq~
+        INSERT INTO req_de_bitmap_cache (req_id, version, $set_bitmap_cache_str) VALUES (?, ?, $q_str)~);
+
+    $c->execute($_->{id}, $dev_env->version, @{$_->{bitmap}}) for @needed_update_reqs;
+
+    if ($dev_env->is_good_version(current_de_version())) {
+        $dbh->commit;
+        warn 'ensure_request_de_bitmap_cache. updated reqs: ', join ', ', map $_->{id}, @needed_update_reqs;
+    } else {
+        $dbh->rollback;
+        warn 'ensure_request_de_bitmap_cache. concurrent de change detected. trying again';
+        goto &ensure_request_de_bitmap_cache;
+    }
+
+    $req_tree;
+}
+
+sub extract_de_bitmap {
+    map $_[0]->{"de_bits$_"}, 1..$cats::de_req_bitfields_count;
+}
+
+sub de_bitmap_str {
+    my ($table) = @_;
+    join ', ', map { join '.', $table, "de_bits$_" } 1..$cats::de_req_bitfields_count;
+}
+
+sub get_de_bitfields_hash {
+    my @bitfields = @_;
+
+    map { +"de_bits$_" => $bitfields[$_ - 1] || 0 } 1..$cats::de_req_bitfields_count;
+}
+
+sub check_des_supported {
+    my ($given_des, $our_des) = @_;
+    0 == grep { ($given_des->[$_] & $our_des->[$_]) != $given_des->[$_] } 0..$cats::de_req_bitfields_count-1;
+}
+
+sub current_de_version {
+    $dbh->selectrow_array(q~
+        SELECT GEN_ID(de_bitmap_cache_seq, 0) FROM RDB$DATABASE~);
+}
+
+sub ensure_problem_de_bitmap_cache {
+    my ($problem_id, $dev_env) = @_ or return;
+
+    $dev_env //= CATS::DevEnv->new(get_DEs);
+
+    my ($problem_de_version) = $dbh->selectrow_array(q~
+        SELECT PDEBC.version
+        FROM problems P
+            LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id
+        WHERE P.id = ?~, { Slice => {} },
+        $problem_id);
+
+    return if $problem_de_version && $dev_env->version == $problem_de_version;
+
+    my $de_ids = $dbh->selectcol_arrayref(q~
+        SELECT de_id FROM problem_sources
+        WHERE problem_id = ?~, undef,
+        $problem_id);
+
+    warn $problem_de_version
+        ? 'ensure_problem_de_bitmap_cache. update existing debc'
+        : 'ensure_problem_de_bitmap_cache. create new problem debc';
+
+    my @de_bitmap = $dev_env->bitmap_by_ids(@$de_ids);
+    my $update_debc_str = join ', ', map "de_bits$_ = ?", 1..$cats::de_req_bitfields_count;
+    my $insert_debc_str = join ', ', map "de_bits$_", 1..$cats::de_req_bitfields_count;
+    my $q_str = join ', ', map '?', 1..$cats::de_req_bitfields_count;
+    my $sql = !defined $problem_de_version
+    ? qq~
+        INSERT INTO problem_de_bitmap_cache (
+            version, $insert_debc_str, problem_id
+        ) VALUES (
+            ?, $q_str, ?
+        )~
+    : qq~
+        UPDATE problem_de_bitmap_cache
+            SET version = ?, $update_debc_str
+        WHERE problem_id = ?~;
+    $dbh->do($sql, undef, $dev_env->version, @de_bitmap, $problem_id);
+
+    $dbh->commit;
+
+    warn 'new problem de bits: ', join ', ', @de_bitmap;
+
+    return \@de_bitmap;
+}
+
+sub invalidate_de_bitmap_cache {
+    $dbh->do(q~
+        DELETE FROM req_de_bitmap_cache~);
+    $dbh->do(q~
+        DELETE FROM problem_de_bitmap_cache~);
+    $dbh->selectrow_array(q~
+        SELECT NEXT VALUE FOR de_bitmap_cache_seq FROM RDB$DATABASE~);
+    $dbh->commit;
+}
+
 sub set_request_state {
     my ($p) = @_;
+
     $dbh->do(q~
         UPDATE reqs SET state = ?, failed_test = ?, result_time = CURRENT_TIMESTAMP
         WHERE id = ? AND judge_id = ?~, undef,
@@ -108,6 +366,9 @@ sub set_request_state {
             WHERE problem_id = ? AND contest_id = ? AND status < ?~, undef,
             $cats::problem_st_suspended, $p->{problem_id}, $p->{contest_id}, $cats::problem_st_suspended);
     }
+    $dbh->do(q~
+        DELETE FROM req_de_bitmap_cache WHERE req_id = ?~, undef,
+        $p->{req_id}); # Clear cache to save space after testing.
     $dbh->commit;
 }
 
@@ -121,8 +382,16 @@ sub select_request {
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
-    my @params = ();
+    my $dev_env = CATS::DevEnv->new(get_DEs);
+    return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
+
+    my $request_des_condition = join ' AND ', map "BIN_AND(RDEBC.de_bits$_, ?) = RDEBC.de_bits$_", 1..$cats::de_req_bitfields_count;
+    my $problem_des_condition = join ' AND ', map "BIN_AND(PDEBC.de_bits$_, ?) = PDEBC.de_bits$_", 1..$cats::de_req_bitfields_count;
+
+    my @params = ( (extract_de_bitmap($p)) x 2, ($dev_env->version) x 2 );
+
     my $pin_condition = '';
+
     if ($p->{pin_mode} == $cats::judge_pin_contest) {
         $pin_condition =
             'EXISTS (
@@ -139,85 +408,110 @@ sub select_request {
 
     push @params, $p->{jid};
 
-    my $req_id = $dbh->selectrow_hashref(qq~
-        SELECT R.id
+    my $sel_req = $dbh->selectrow_hashref(qq~
+        SELECT R.id, R.problem_id, R.elements_count, RDEBC.version AS request_de_version, PDEBC.version AS problem_de_version
         FROM reqs R
-        INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
-        LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM sources S
-            INNER JOIN default_de DE ON DE.id = S.de_id
-            WHERE (S.req_id = R.id OR EXISTS (
-                SELECT 1 FROM
-                req_groups RG
-                WHERE RG.group_id = R.id AND RG.element_id = S.req_id)
-            ) AND DE.code NOT IN ($p->{supported_DEs})
-        )
-        AND R.state = $cats::st_not_processed
-        AND (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1)
-        AND ($pin_condition R.judge_id = ?) ROWS 1~, undef,
+            INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
+            LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
+            INNER JOIN problems P ON P.id = R.problem_id
+            LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id AND (RDEBC.version != ? OR $request_des_condition)
+            LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id AND (PDEBC.version != ? OR $problem_des_condition)
+        WHERE
+            R.state = $cats::st_not_processed AND
+            (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1) AND
+            ($pin_condition R.judge_id = ?) ROWS 1~, undef,
         @params) or return;
 
-    my $element_req_ids = $dbh->selectcol_arrayref(q~
-        SELECT RG.element_id as id
-        FROM req_groups RG
-        WHERE RG.group_id = ?~, { Slice => {} }, $req_id->{id});
-
-    my $req_id_list = join ', ', ($req_id->{id}, @$element_req_ids);
-    my $limits_fields = join ', ', map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields;
-
-    my $sources_info = $dbh->selectall_arrayref(qq~
-        SELECT
-            R.id, R.problem_id, R.contest_id, R.state, CA.is_jury, C.run_all_tests,
-            CP.status, CP.id as cpid, S.fname, S.src, S.de_id,
-            $limits_fields
-        FROM reqs R
-        INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
-        INNER JOIN contests C ON C.id = R.contest_id
-        LEFT JOIN sources S ON S.req_id = R.id
-        LEFT JOIN default_de D ON D.id = S.de_id
-        LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
-        LEFT JOIN limits CPL ON CPL.id = CP.limits_id
-        LEFT JOIN limits RL ON RL.id = R.limits_id
-        WHERE R.id IN ($req_id_list)~, { Slice => {} }) or return;
-
-    my %sources_info_hash = map { $_->{id} => $_ } @$sources_info;
-
-    my $req = $sources_info_hash{$req_id->{id}};
-
-    $req->{element_reqs} = [];
-
-    for my $element_req_id (@$element_req_ids) {
-        push @{$req->{element_reqs}}, $sources_info_hash{$element_req_id};
-    }
-
-    if (@{$req->{element_reqs}} == 1) {
-        my $element_req = $req->{element_reqs}->[0];
-        $req->{problem_id} = $element_req->{problem_id};
-        $req->{fname} = $element_req->{fname};
-        $req->{src} = $element_req->{src};
-        $req->{de_id} = $element_req->{de_id};
-    } elsif (@{$req->{element_reqs}} > 1) {
-        my $different_problem_ids = scalar grep $_->{problem_id} != $req->{problem_id}, @{$req->{element_reqs}};
-        my $different_contests_ids = scalar grep $_->{contest_id} != $req->{contest_id}, @{$req->{element_reqs}};
-        if ($different_problem_ids || $different_contests_ids) {
-            warn 'group request and elements requests must be for the same problem and contest';
-            $dbh->do(q~
-                UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
-                $cats::st_unhandled_error, $p->{jid}, $req->{id});
-            $dbh->commit;
+    if (!$dev_env->is_good_version($sel_req->{problem_de_version})) {
+        return if $sel_req->{problem_de_version} && $sel_req->{problem_de_version} > $dev_env->version;
+        warn "update problem de cache: $sel_req->{id}";
+        my $updated_de = ensure_problem_de_bitmap_cache($sel_req->{problem_id}, $dev_env, 1);
+        if (!check_des_supported($updated_de, [ extract_de_bitmap($p) ])) {
+            warn "can't check this problem";
             return;
         }
     }
 
+    my $req_tree;
+
+    if (!$dev_env->is_good_version($sel_req->{request_de_version})) {
+        return if $sel_req->{request_de_version} && $sel_req->{request_de_version} > $dev_env->version;
+        warn "update request de cache: $sel_req->{id}";
+        $req_tree = ensure_request_de_bitmap_cache($sel_req->{id}, $dev_env);
+        my $updated_de = $req_tree->{$sel_req->{id}}->{bitmap};
+        if (!check_des_supported($updated_de, [ extract_de_bitmap($p) ])) {
+            warn "can't check this request";
+            return;
+        }
+    } else {
+        $req_tree = $sel_req->{elements_count} ?
+            get_req_tree([ $sel_req->{id} ]) :
+            { $sel_req->{id} => $sel_req };
+    }
+
+    add_info_to_req_tree({
+        fields => [
+            qw(R.id R.problem_id R.contest_id R.state CA.is_jury C.run_all_tests
+            CP.status S.fname S.src S.de_id), 'CP.id as cpid',
+            map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields
+        ],
+        tables => [
+            'INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id',
+            'INNER JOIN contests C ON C.id = R.contest_id',
+            'LEFT JOIN sources S ON S.req_id = R.id',
+            'LEFT JOIN default_de D ON D.id = S.de_id',
+            'LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id',
+            'LEFT JOIN limits CPL ON CPL.id = CP.limits_id',
+            'LEFT JOIN limits RL ON RL.id = R.limits_id',
+        ],
+    }, undef, $req_tree);
+
+    my $check_req;
+    $check_req = sub {
+        my ($req, $level) = @_;
+        $level //= 0;
+
+        if ($level > 2) {
+            warn 'request group is too deep';
+            return 0;
+        }
+
+        if($req->{elements_count} == 1) {
+            my $element_req = $req->{elements}->[0];
+            $check_req->($element_req, $level + 1) or return 0;
+            $req->{$_} = $element_req->{$_} for qw(problem_id fname src de_id);
+        } elsif ($req->{elements_count} > 1) {
+            if ($level != 0) {
+                warn 'group has too many elements ot its level';
+                return 0;
+            }
+            my $different_problem_ids = scalar grep $_->{problem_id} != $req_tree->{$sel_req->{id}}->{problem_id}, @{$req->{elements}};
+            my $different_contests_ids = scalar grep $_->{contest_id} != $req_tree->{$sel_req->{id}}->{contest_id}, @{$req->{elements}};
+            if ($different_problem_ids || $different_contests_ids) {
+                warn 'group request and elements requests must be for the same problem and contest';
+                return 0;
+            }
+            $check_req->($_, $level + 1) or return 0 for @{$req->{elements}};
+        }
+
+        return 1;
+    };
+
     eval {
-        $dbh->do(q~
-            UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
-            $cats::st_install_processing, $p->{jid}, $req->{id});
-        $dbh->commit;
+        my $set_state = sub {
+            $dbh->do(q~
+                UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
+                $_[0], $p->{jid}, $sel_req->{id});
+            $dbh->commit;
+        };
+        if (!$check_req->($req_tree->{$sel_req->{id}})) {
+            $set_state->($cats::st_unhandled_error);
+            return;
+        } else {
+            $set_state->($cats::st_install_processing);
+        }
         1;
-    } and return $req;
+    } and return $req_tree->{$sel_req->{id}};
     my $err = $@ // '';
     $err =~ /concurrent transaction number is (\d+)/m or die $err;
     # Another judge has probably acquired this problem concurrently.
