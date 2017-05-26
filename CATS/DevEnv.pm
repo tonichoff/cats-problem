@@ -5,7 +5,7 @@ use warnings;
 
 use fields qw(_des _de_version);
 
-use CATS::DB;
+use CATS::Constants;
 use CATS::Utils;
 
 sub new {
@@ -29,7 +29,7 @@ sub by_file_extension {
 
     my (undef, undef, undef, undef, $ext) = CATS::Utils::split_fname(lc $file_name);
 
-    for my $de (@{$self->{_des}}) {
+    for my $de (@{$self->des}) {
         grep { return $de if $_ eq $ext } split_exts($de);
     }
 
@@ -62,13 +62,15 @@ sub bitmap_by {
     my $de_bitfield_num = 0;
     my $curr_de_bitfield = 0;
 
+    use bigint; # Make sure 64-bit integers work on 32-bit platforms.
+
     for my $code (@codes) {
         my $de = $getter->($code) or die "$code not found in de list";
         $de_bitfield_num = int($de->{index} / $cats::de_req_bitfield_size);
 
         die 'too many de codes to fit in db' if $de_bitfield_num > $cats::de_req_bitfields_count - 1;
 
-        $res[$de_bitfield_num] |= 1 << $de->{index};
+        $res[$de_bitfield_num] |= 1 << ($de->{index} % $cats::de_req_bitfield_size);
     }
 
     @res;
