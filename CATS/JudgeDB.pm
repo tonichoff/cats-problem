@@ -286,11 +286,6 @@ sub get_de_bitfields_hash {
     map { +"de_bits$_" => $bitfields[$_ - 1] || 0 } 1..$cats::de_req_bitfields_count;
 }
 
-sub check_des_supported {
-    my ($given_des, $our_des) = @_;
-    0 == grep { ($given_des->[$_] & $our_des->[$_]) != $given_des->[$_] } 0..$cats::de_req_bitfields_count-1;
-}
-
 sub current_de_version {
     $dbh->selectrow_array(q~
         SELECT GEN_ID(de_bitmap_cache_seq, 0) FROM RDB$DATABASE~);
@@ -438,7 +433,7 @@ sub select_request {
         return if $sel_req->{problem_de_version} && $sel_req->{problem_de_version} > $dev_env->version;
         warn "update problem de cache: $sel_req->{id}";
         my $updated_de = ensure_problem_de_bitmap_cache($sel_req->{problem_id}, $dev_env, 1);
-        if (!check_des_supported($updated_de, [ extract_de_bitmap($p) ])) {
+        if (!CATS::DevEnv::check_supported($updated_de, [ extract_de_bitmap($p) ])) {
             warn "can't check this problem";
             return;
         }
@@ -451,7 +446,7 @@ sub select_request {
         warn "update request de cache: $sel_req->{id}";
         $req_tree = ensure_request_de_bitmap_cache($sel_req->{id}, $dev_env);
         my $updated_de = $req_tree->{$sel_req->{id}}->{bitmap};
-        if (!check_des_supported($updated_de, [ extract_de_bitmap($p) ])) {
+        if (!CATS::DevEnv::check_supported($updated_de, [ extract_de_bitmap($p) ])) {
             warn "can't check this request";
             return;
         }

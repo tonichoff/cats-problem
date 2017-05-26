@@ -96,4 +96,11 @@ sub is_good_version {
     defined $_[1] && $_[1] == $_[0]->version;
 }
 
+sub check_supported {
+    my ($given_des, $our_des) = @_;
+    use bigint; # Make sure 64-bit integers work on 32-bit platforms.
+    # 64-bit integers come from database as strings, ensure conversion.
+    0 == grep $given_des->[$_] != ($given_des->[$_] & (0 + $our_des->[$_])), 0 .. $cats::de_req_bitfields_count - 1;
+}
+
 1;
