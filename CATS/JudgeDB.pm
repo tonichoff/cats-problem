@@ -144,15 +144,12 @@ sub get_req_tree {
 
     warn 'get_req_tree. given ids: ', join ', ', @$req_ids;
 
-    my $level_req_tree = add_info_to_req_tree($p, $req_ids);
+    add_info_to_req_tree($p, $req_ids, $req_tree);
 
     my @reqs_to_next_level = grep {
         $_->{elements_count} &&
-        !defined $req_tree->{$_->{id}} &&
         (!$p->{on_level_filter} || $p->{on_level_filter}->($_))
-    } values %$level_req_tree;
-
-    copy_req_tree_info($req_tree, values %$level_req_tree);
+    } map $req_tree->{$_}, @$req_ids;
 
     warn 'get_req_tree. filtered to next level: ', join ', ', map $_->{id}, @reqs_to_next_level;
 
