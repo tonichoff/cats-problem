@@ -144,15 +144,12 @@ sub get_req_tree {
 
     warn 'get_req_tree. given ids: ', join ', ', @$req_ids;
 
-    my $level_req_tree = add_info_to_req_tree($p, $req_ids);
+    add_info_to_req_tree($p, $req_ids, $req_tree);
 
     my @reqs_to_next_level = grep {
         $_->{elements_count} &&
-        !defined $req_tree->{$_->{id}} &&
         (!$p->{on_level_filter} || $p->{on_level_filter}->($_))
-    } values %$level_req_tree;
-
-    copy_req_tree_info($req_tree, values %$level_req_tree);
+    } map $req_tree->{$_}, @$req_ids;
 
     warn 'get_req_tree. filtered to next level: ', join ', ', map $_->{id}, @reqs_to_next_level;
 
@@ -192,6 +189,8 @@ sub ensure_request_de_bitmap_cache {
         die 'req_ids is not neither reference to ARRAY or scalar';
     }
 
+    warn "ensure_request_de_bitmap_cache. enter with req_ids: ", join ', ', @$req_ids;
+
     @$req_ids or return {};
 
     $dev_env //= CATS::DevEnv->new(get_DEs);
@@ -207,7 +206,7 @@ sub ensure_request_de_bitmap_cache {
             'LEFT JOIN sources S ON S.req_id = R.id',
         ],
         on_level_filter => $select_all ? undef : sub {
-            $dev_env->is_good_version($_[0]->{de_version});
+            !$dev_env->is_good_version($_[0]->{de_version});
         },
     });
 
@@ -232,14 +231,16 @@ sub ensure_request_de_bitmap_cache {
             }
             my %de_bitfields_hash = get_de_bitfields_hash(@bitmap);
             $req->{$_} = $de_bitfields_hash{$_} for keys %de_bitfields_hash;
-            $req->{bitmap} = [ @bitmap ];
             push @needed_update_reqs, $req;
         } else {
+            warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
             @bitmap = extract_de_bitmap($req);
         }
 
-        warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
-
+        $req->{bitmap} = [ @bitmap ];
+        $req->{de_version} = $dev_env->version;
+        my %bitfields_hash = get_de_bitfields_hash(@bitmap);
+        $req->{$_} = $bitfields_hash{$_} for keys %bitfields_hash;
         @bitmap;
     };
 
