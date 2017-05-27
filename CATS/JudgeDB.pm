@@ -207,7 +207,7 @@ sub ensure_request_de_bitmap_cache {
             'LEFT JOIN sources S ON S.req_id = R.id',
         ],
         on_level_filter => $select_all ? undef : sub {
-            $dev_env->is_good_version($_[0]->{de_version});
+            !$dev_env->is_good_version($_[0]->{de_version});
         },
     });
 
