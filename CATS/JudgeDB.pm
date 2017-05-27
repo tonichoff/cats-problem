@@ -189,6 +189,8 @@ sub ensure_request_de_bitmap_cache {
         die 'req_ids is not neither reference to ARRAY or scalar';
     }
 
+    warn "ensure_request_de_bitmap_cache. enter with req_ids: ", join ', ', @$req_ids;
+
     @$req_ids or return {};
 
     $dev_env //= CATS::DevEnv->new(get_DEs);
@@ -229,14 +231,16 @@ sub ensure_request_de_bitmap_cache {
             }
             my %de_bitfields_hash = get_de_bitfields_hash(@bitmap);
             $req->{$_} = $de_bitfields_hash{$_} for keys %de_bitfields_hash;
-            $req->{bitmap} = [ @bitmap ];
             push @needed_update_reqs, $req;
         } else {
+            warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
             @bitmap = extract_de_bitmap($req);
         }
 
-        warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
-
+        $req->{bitmap} = [ @bitmap ];
+        $req->{de_version} = $dev_env->version;
+        my %bitfields_hash = get_de_bitfields_hash(@bitmap);
+        $req->{$_} = $bitfields_hash{$_} for keys %bitfields_hash;
         @bitmap;
     };
 
