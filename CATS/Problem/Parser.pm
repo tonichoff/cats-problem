@@ -5,6 +5,7 @@ use warnings;
 
 use Encode;
 use JSON::XS;
+use List::Util qw(sum);
 use XML::Parser::Expat;
 
 use CATS::Constants;
@@ -201,16 +202,18 @@ sub validate
 
     my $check_order = sub {
         my ($objects, $name) = @_;
+        my @sorted;
         for (1 .. keys %$objects) {
             exists $objects->{$_} or $self->error("Missing $name #$_");
+            push @sorted, $objects->{$_};
         }
+        @sorted;
     };
 
     my $problem = $self->{problem};
     $self->apply_test_defaults;
-    $check_order->($problem->{tests}, 'test');
-    my @t = values %{$problem->{tests}};
-    for (sort {$a->{rank} <=> $b->{rank}} @t) {
+    my @t = $check_order->($problem->{tests}, 'test');
+    for (@t) {
         my $error = validate_test($_) or next;
         $self->error("$error for test $_->{rank}");
     }
@@ -220,7 +223,12 @@ sub validate
         map CATS::Testset::pack_rank_spec(@$_), @no_points) if @{$no_points[0]} && @{$no_points[1]};
     $self->validate_testsets;
 
-    $check_order->($problem->{samples}, 'sample');
+    for ($check_order->($problem->{samples}, 'sample')) {
+        my $error = validate_sample($_);
+        $self->error("$error for sample $_->{rank}") if $error;
+        $_->{in_file} //= $_->{in_text};
+        $_->{out_file} //= $_->{out_text};
+    }
 
     $problem->{run_method} ||= $cats::rm_default;
 
@@ -577,6 +585,21 @@ sub start_tag_Import
     }
 }
 
+sub validate_sample_src {
+    my ($sample, $tag, $fields) = @_;
+    [
+      "Neither src nor inline data specified for $tag",
+      undef,
+      "Both src and inline data specified for $tag"
+    ]->[sum 0, map defined $sample->{$_} ? 1 : 0, @$fields];
+}
+
+sub validate_sample {
+    my ($sample) = @_;
+    validate_sample_src($sample, 'SampleIn', [ 'in_file', 'in_text' ]) ||
+    validate_sample_src($sample, 'SampleOut', [ 'out_file', 'out_text' ]);
+}
+
 sub start_tag_Sample
 {
     (my CATS::Problem::Parser $self, my $atts) = @_;
@@ -585,30 +608,20 @@ sub start_tag_Sample
         CATS::Testset::parse_simple_rank($atts->{rank}, sub { $self->error(@_) });
     my $ps = $self->{problem}->{samples} //= {};
     for (@{$self->{current_samples}}) {
-        $self->error("Duplicate sample $_") if defined $ps->{$_};
-        $ps->{$_} = { sample_id => $self->{id_gen}->($self, "Sample_$_"), rank => $_ };
+        $ps->{$_} //= { sample_id => $self->{id_gen}->($self, "Sample_$_"), rank => $_ };
     }
-    $self->{current_sample} = { in_file => '', out_file => '' };
+    $self->{current_sample_data} = { in_text => '', out_text => '' };
 }
 
 sub end_tag_Sample
 {
     my CATS::Problem::Parser $self = shift;
-    my $ps = $self->{problem}->{samples};
-    for my $s (@{$self->{current_samples}}) {
-        for (qw(in_file out_file)) {
-            if (exists $ps->{$s}->{$_}) {
-                $self->error("Both src and inline data specified for sample $s $_")
-                     if $self->{current_sample}->{$_} ne '';
-            }
-            else {
-                $self->error("Neither src nor inline data specified for sample $s $_")
-                     if $self->{current_sample}->{$_} eq '';
-                $ps->{$s}->{$_} = $self->{current_sample}->{$_};
-            }
-        }
+    for my $f (qw(in_text out_text)) {
+        my $t = $self->{current_sample_data}->{$f};
+        $t ne '' or next;
+        $self->{problem}->{samples}->{$_}->{$f} = $t for @{$self->{current_samples}};
     }
-    delete $self->{current_sample};
+    delete $self->{current_sample_data};
     delete $self->{current_samples};
 }
 
@@ -617,27 +630,20 @@ sub sample_in_out
     my CATS::Problem::Parser $self = shift;
     my ($atts, $in_out) = @_;
     if ($atts->{src}) {
-        my $ps = $self->{problem}->{samples};
         for (@{$self->{current_samples}}) {
             my $src = apply_test_rank($atts->{src}, $_);
-            defined $ps->{$_}->{$in_out}
-                and $self->error(sprintf "Redefined attribute 'src' for %s %d", $self->current_tag, $_);
-            $ps->{$_}->{$in_out} =
-                $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
+            my $f = \$self->{problem}->{samples}->{$_}->{$in_out . '_file'};
+            defined $$f  and $self->error(sprintf "Redefined attribute 'src' for %s %d", $self->current_tag, $_);
+            $$f = $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
         }
     }
-    $self->{stml} = \$self->{current_sample}->{$in_out};
+    my $d = $self->{current_sample_data};
+    $self->error('Redefined text for ' . $self->current_tag) if $d->{$in_out . '_text'} ne '';
+    $self->{stml} = \$d->{$in_out . '_text'};
 }
 
-sub start_tag_SampleIn
-{
-    $_[0]->sample_in_out($_[1], 'in_file');
-}
-
-sub start_tag_SampleOut
-{
-    $_[0]->sample_in_out($_[1], 'out_file');
-}
+sub start_tag_SampleIn { $_[0]->sample_in_out($_[1], 'in') }
+sub start_tag_SampleOut { $_[0]->sample_in_out($_[1], 'out') }
 
 sub start_tag_Keyword
 {

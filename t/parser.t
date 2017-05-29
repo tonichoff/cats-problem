@@ -324,7 +324,7 @@ subtest 'apply_test_rank', sub {
 };
 
 subtest 'sample', sub {
-    plan tests => 34;
+    plan tests => 36;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample/>~),
@@ -334,10 +334,10 @@ subtest 'sample', sub {
     }) } qr/Missing.*1/, 'missing sample';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"/>~),
-    }) } qr/Neither.*1 in_file/, 'missing in_file';
+    }) } qr/Neither.*SampleIn.*1/, 'missing SampleIn';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>w</SampleIn></Sample>~),
-    }) } qr/Neither.*1 out_file/, 'missing out_file';
+    }) } qr/Neither.*SampleOut.*1/, 'missing SampleOut';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/></Sample>~),
     }) } qr/'t01.in'/, 'Sample with nonexinsting input file';
@@ -349,12 +349,12 @@ subtest 'sample', sub {
             'test.xml' => wrap_problem(q~
 <Sample rank="1"><SampleIn src="s"><tt>zz</tt></SampleIn><SampleOut>ww</SampleOut></Sample>~),
         's' => 'a',
-    }) } qr/Both.*1 in_file/, 'Sample with duplicate input';
+    }) } qr/Both.*SampleIn.*1/, 'Sample with duplicate input';
     throws_ok { parse({
             'test.xml' => wrap_problem(q~
 <Sample rank="1"><SampleIn><tt>zz</tt></SampleIn><SampleOut src="s">ww</SampleOut></Sample>~),
         's' => 'a',
-    }) } qr/Both.*1 out_file/, 'Sample with duplicate output';
+    }) } qr/Both.*SampleOut.*1/, 'Sample with duplicate output';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/><SampleIn src="t01.in"/></Sample>~),
         't01.in' => 'z',
@@ -363,6 +363,12 @@ subtest 'sample', sub {
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleOut src="t01.in"/><SampleOut src="t01.in"/></Sample>~),
         't01.in' => 'z',
     }) } qr/Redefined.*SampleOut.*1/, 'Sample with duplicate output file';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>ii</SampleIn><SampleIn>jj</SampleIn></Sample>~),
+    }) } qr/Redefined text for SampleIn/, 'Sample with duplicate input text';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>i</SampleIn><SampleOut>a</SampleOut><SampleOut>b</SampleOut></Sample>~),
+    }) } qr/Redefined text for SampleOut/, 'Sample with duplicate output text';
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~
@@ -385,7 +391,11 @@ subtest 'sample', sub {
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~
-<Sample rank="1-3"><SampleIn src="s%n"/><SampleOut src="out"/></Sample>
+<Sample rank="1-2"><SampleIn src="s%n"/></Sample>
+<Sample rank="2-3"><SampleOut src="out"/></Sample>
+<Sample rank="3"><SampleIn>s33</SampleIn></Sample>
+<Sample rank="1"><SampleOut>out</SampleOut></Sample>
+
 <Checker src="checker.pp"/>~),
             'checker.pp' => 'zz',
             's1' => 's11',
