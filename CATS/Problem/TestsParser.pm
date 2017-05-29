@@ -5,8 +5,7 @@ use warnings;
 
 use CATS::Testset;
 
-sub apply_test_rank
-{
+sub apply_test_rank {
     my ($v, $rank) = @_;
     defined $v && $rank or return $v;
     #$v = '' unless defined $v;
@@ -17,8 +16,7 @@ sub apply_test_rank
     $v;
 }
 
-sub validate_test
-{
+sub validate_test {
     my ($test) = @_;
     defined $test->{in_file} || $test->{generator_id}
         or return 'No input source';
@@ -35,8 +33,7 @@ sub validate_test
     undef;
 }
 
-sub set_test_attr
-{
+sub set_test_attr {
     my CATS::Problem::Parser $self = shift;
     my ($test, $attr, $value) = @_;
     defined $value or return;
@@ -45,8 +42,7 @@ sub set_test_attr
     $test->{$attr} = $value;
 }
 
-sub add_test
-{
+sub add_test {
     (my CATS::Problem::Parser $self, my $atts, my $rank) = @_;
     $rank =~ /^\d+$/ && $rank > 0 && $rank < 1000
         or $self->error("Bad rank: '$rank'");
@@ -55,15 +51,13 @@ sub add_test
     push @{$self->{current_tests}}, $t;
 }
 
-sub parse_test_rank
-{
+sub parse_test_rank {
     (my CATS::Problem::Parser $self, my $rank_spec) = @_;
     keys %{CATS::Testset::parse_test_rank(
         $self->{problem}{testsets}, $rank_spec, sub { $self->error(@_) })};
 }
 
-sub start_tag_Test
-{
+sub start_tag_Test {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     if ($atts->{rank} eq '*') { #=~ /^\s*\*\s*$/)
         $self->{current_tests} = [ $self->{test_defaults} ||= {} ];
@@ -74,8 +68,7 @@ sub start_tag_Test
     }
 }
 
-sub start_tag_TestRange
-{
+sub start_tag_TestRange {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     $atts->{from} <= $atts->{to}
         or $self->error('TestRange.from > TestRange.to');
@@ -84,40 +77,34 @@ sub start_tag_TestRange
     $self->warning("Deprecated tag 'TestRange', use 'Test' instead");
 }
 
-sub end_tag_Test
-{
+sub end_tag_Test {
     my CATS::Problem::Parser $self = shift;
     undef $self->{current_tests};
 }
 
-sub do_In_src
-{
+sub do_In_src {
     (my CATS::Problem::Parser $self, my $test, my $attr) = @_;
     my $src = apply_test_rank($attr, $test->{rank});
     ('in_file', $self->{source}->read_member($src, "Invalid test input file reference: '$src'"));
 }
 
-sub do_In_param
-{
+sub do_In_param {
     ('param', apply_test_rank($_[2], $_[1]->{rank}))
 }
 
-sub do_In_use
-{
+sub do_In_use {
     (my CATS::Problem::Parser $self, my $test, my $attr) = @_;
     my $use = apply_test_rank($attr, $test->{rank});
     ('generator_id', $self->get_imported_id($use) || $self->get_named_object($use)->{id});
 }
 
-sub do_In_genAll
-{
+sub do_In_genAll {
     (my CATS::Problem::Parser $self, my $test, my $attr) = @_;
     my $gg = $self->{gen_groups};
     ('gen_group', $gg->{$test->{generator_id}} ||= 1 + keys %$gg);
 }
 
-sub start_tag_In
-{
+sub start_tag_In {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my @t = @{$self->{current_tests}};
@@ -149,8 +136,7 @@ sub start_tag_In
     }
 }
 
-sub start_tag_Out
-{
+sub start_tag_Out {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my @t = @{$self->{current_tests}};
@@ -178,8 +164,7 @@ sub start_tag_Out
     }
 }
 
-sub apply_test_defaults
-{
+sub apply_test_defaults {
     my CATS::Problem::Parser $self = shift;
     my $d = $self->{test_defaults};
     for my $attr (qw(generator_id input_validator_id param std_solution_id points gen_group)) {
@@ -188,8 +173,7 @@ sub apply_test_defaults
     }
 }
 
-sub start_tag_Testset
-{
+sub start_tag_Testset {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     my $n = $atts->{name};
     my $problem = $self->{problem};
@@ -204,8 +188,7 @@ sub start_tag_Testset
     $self->note("Testset $n added");
 }
 
-sub validate_testsets
-{
+sub validate_testsets {
     (my CATS::Problem::Parser $self) = @_;
     my $all_testsets = $self->{problem}->{testsets};
     for my $ts (sort keys %$all_testsets) {
