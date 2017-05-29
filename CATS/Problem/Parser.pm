@@ -96,6 +96,8 @@ sub tag_handlers()
     Run => { s => \&start_tag_Run, r => ['method'] },
 }}
 
+sub current_tag { $_[0]->{tag_stack}->[-1] }
+
 sub required_attributes
 {
     my CATS::Problem::Parser $self = shift;
@@ -246,7 +248,7 @@ sub on_start_tag
 
     my $h = tag_handlers()->{$el};
     if (my $stml = $self->{stml}) {
-        $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->{tag_stack}->[-1]);
+        $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->current_tag);
         if ($el eq 'include') {
             my $name = $atts{src} or
                 return $self->error(q~Missing required 'src' attribute of 'include' tag~);
@@ -619,7 +621,7 @@ sub sample_in_out
         for (@{$self->{current_samples}}) {
             my $src = apply_test_rank($atts->{src}, $_);
             defined $ps->{$_}->{$in_out}
-                and $self->error(sprintf "Redefined attribute 'src' for %s %d", $self->{tag_stack}->[-1], $_);
+                and $self->error(sprintf "Redefined attribute 'src' for %s %d", $self->current_tag, $_);
             $ps->{$_}->{$in_out} =
                 $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
         }
