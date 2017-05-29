@@ -358,12 +358,11 @@ subtest 'sample', sub {
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/><SampleIn src="t01.in"/></Sample>~),
         't01.in' => 'z',
-    }) } qr/Redefined.*in_file/, 'Sample with duplicate input file';
+    }) } qr/Redefined.*SampleIn.*1/, 'Sample with duplicate input file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleOut src="t01.in"/><SampleOut src="t01.in"/></Sample>~),
         't01.in' => 'z',
-    }) } qr/Redefined.*out_file/, 'Sample with duplicate output file';
-
+    }) } qr/Redefined.*SampleOut.*1/, 'Sample with duplicate output file';
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~

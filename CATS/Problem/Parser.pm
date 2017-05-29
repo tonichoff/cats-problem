@@ -619,7 +619,7 @@ sub sample_in_out
         for (@{$self->{current_samples}}) {
             my $src = apply_test_rank($atts->{src}, $_);
             defined $ps->{$_}->{$in_out}
-                and $self->error("Redefined attribute '$in_out' for sample $_");
+                and $self->error(sprintf "Redefined attribute 'src' for %s %d", $self->{tag_stack}->[-1], $_);
             $ps->{$_}->{$in_out} =
                 $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
         }
