@@ -244,7 +244,7 @@ sub ensure_request_de_bitmap_cache {
         @bitmap;
     };
 
-    $collect_needed_update_req_ids->($req_tree->{$_}) for @$req_ids;
+    $collect_needed_update_req_ids->($req_tree->{$_}) for keys %$req_tree;
 
     @needed_update_reqs or return $req_tree;
 
