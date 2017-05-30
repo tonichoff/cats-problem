@@ -434,11 +434,14 @@ subtest 'sample', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 41;
+    plan tests => 43;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
     }) } qr/Test.rank/, 'Test without rank';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="999999"/>~),
+    }) } qr/Bad rank/, 'Test with bad rank';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="2"/>~),
     }) } qr/Missing test #1/, 'Missing test 1';
@@ -476,6 +479,9 @@ subtest 'test', sub {
         't01.in' => 'z',
         't01.out' => 'q',
     }) } qr/Redefined attribute 'out_file'/, 'Test with duplicate Out';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="2"></Test><Test rank="1"></Test>~),
+    }) } qr/No input source for test 1/, 'Test errors in rank order';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="1" points="A"><In src="t01.in"/><Out src="t01.out"/></Test>~),
         't01.in' => 'z',
