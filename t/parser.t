@@ -324,7 +324,7 @@ subtest 'apply_test_rank', sub {
 };
 
 subtest 'sample', sub {
-    plan tests => 36;
+    plan tests => 37;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample/>~),
@@ -340,35 +340,38 @@ subtest 'sample', sub {
     }) } qr/Neither.*SampleOut.*1/, 'missing SampleOut';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/></Sample>~),
-    }) } qr/'t01.in'/, 'Sample with nonexinsting input file';
+    }) } qr/'t01.in'/, 'Sample with nonexisting input file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/><SampleOut src="t01.out"/></Sample>~),
         't01.in' => 'z',
-    }) } qr/'t01.out'/, 'Sample with nonexinsting output file';
+    }) } qr/'t01.out'/, 'Sample with nonexisting output file';
     throws_ok { parse({
             'test.xml' => wrap_problem(q~
 <Sample rank="1"><SampleIn src="s"><tt>zz</tt></SampleIn><SampleOut>ww</SampleOut></Sample>~),
         's' => 'a',
-    }) } qr/Both.*SampleIn.*1/, 'Sample with duplicate input';
+    }) } qr/Redefined source.*SampleIn.*1/, 'Sample with duplicate input';
     throws_ok { parse({
             'test.xml' => wrap_problem(q~
 <Sample rank="1"><SampleIn><tt>zz</tt></SampleIn><SampleOut src="s">ww</SampleOut></Sample>~),
         's' => 'a',
-    }) } qr/Both.*SampleOut.*1/, 'Sample with duplicate output';
+    }) } qr/Redefined source.*SampleOut.*1/, 'Sample with duplicate output';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn src="t01.in"/><SampleIn src="t01.in"/></Sample>~),
         't01.in' => 'z',
-    }) } qr/Redefined.*SampleIn.*1/, 'Sample with duplicate input file';
+    }) } qr/Redefined source.*SampleIn.*1/, 'Sample with duplicate input file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleOut src="t01.in"/><SampleOut src="t01.in"/></Sample>~),
         't01.in' => 'z',
-    }) } qr/Redefined.*SampleOut.*1/, 'Sample with duplicate output file';
+    }) } qr/Redefined source.*SampleOut.*1/, 'Sample with duplicate output file';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>ii</SampleIn><SampleIn>jj</SampleIn></Sample>~),
-    }) } qr/Redefined text for SampleIn/, 'Sample with duplicate input text';
+    }) } qr/Redefined source for SampleIn.*1/, 'Sample with duplicate input text';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>ii</SampleIn><SampleIn/></Sample>~),
+    }) } qr/Neither.*SampleOut/, 'SampleIn with empty content';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Sample rank="1"><SampleIn>i</SampleIn><SampleOut>a</SampleOut><SampleOut>b</SampleOut></Sample>~),
-    }) } qr/Redefined text for SampleOut/, 'Sample with duplicate output text';
+    }) } qr/Redefined source for SampleOut.*1/, 'Sample with duplicate output text';
     {
         my $p = parse({
             'test.xml' => wrap_problem(q~

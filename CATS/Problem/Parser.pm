@@ -90,8 +90,8 @@ sub tag_handlers()
     In => { s => \&start_tag_In, in => ['Test', 'TestRange'] },
     Out => { s => \&start_tag_Out, in => ['Test', 'TestRange'] },
     Sample => { s => \&start_tag_Sample, e => \&end_tag_Sample, r => ['rank'] },
-    SampleIn => { s => \&start_tag_SampleIn, e => \&end_stml, in => ['Sample'] },
-    SampleOut => { s => \&start_tag_SampleOut, e => \&end_stml, in => ['Sample'] },
+    SampleIn => { start_end_tag_SampleInOut('in_file'), in => ['Sample'] },
+    SampleOut => { start_end_tag_SampleInOut('out_file'), in => ['Sample'] },
     Keyword => { s => \&start_tag_Keyword, r => ['code'] },
     Testset => { s => \&start_tag_Testset, r => ['name', 'tests'] },
     Run => { s => \&start_tag_Run, r => ['method'] },
@@ -585,19 +585,11 @@ sub start_tag_Import
     }
 }
 
-sub validate_sample_src {
-    my ($sample, $tag, $fields) = @_;
-    [
-      "Neither src nor inline data specified for $tag",
-      undef,
-      "Both src and inline data specified for $tag"
-    ]->[sum 0, map defined $sample->{$_} ? 1 : 0, @$fields];
-}
-
 sub validate_sample {
     my ($sample) = @_;
-    validate_sample_src($sample, 'SampleIn', [ 'in_file', 'in_text' ]) ||
-    validate_sample_src($sample, 'SampleOut', [ 'out_file', 'out_text' ]);
+    !defined $sample->{in_file} ? 'Neither src nor inline data specified for SampleIn' :
+    !defined $sample->{out_file} ? 'Neither src nor inline data specified for SampleOut' :
+    undef;
 }
 
 sub start_tag_Sample
@@ -607,43 +599,53 @@ sub start_tag_Sample
     $self->{current_samples} =
         CATS::Testset::parse_simple_rank($atts->{rank}, sub { $self->error(@_) });
     my $ps = $self->{problem}->{samples} //= {};
-    for (@{$self->{current_samples}}) {
-        $ps->{$_} //= { sample_id => $self->{id_gen}->($self, "Sample_$_"), rank => $_ };
-    }
-    $self->{current_sample_data} = { in_text => '', out_text => '' };
+    $ps->{$_} //= { sample_id => $self->{id_gen}->($self, "Sample_$_"), rank => $_ }
+        for @{$self->{current_samples}};
 }
 
-sub end_tag_Sample
-{
+sub end_tag_Sample {
     my CATS::Problem::Parser $self = shift;
-    for my $f (qw(in_text out_text)) {
-        my $t = $self->{current_sample_data}->{$f};
-        $t ne '' or next;
-        $self->{problem}->{samples}->{$_}->{$f} = $t for @{$self->{current_samples}};
-    }
     delete $self->{current_sample_data};
     delete $self->{current_samples};
 }
 
-sub sample_in_out
-{
+sub sample_inout_file {
+    (my CATS::Problem::Parser $self, my $rank, my $in_out) = @_;
+    my $f = \$self->{problem}->{samples}->{$rank}->{$in_out};
+    defined $$f and $self->error(sprintf "Redefined source for %s %d", $self->current_tag, $rank);
+    $f;
+}
+
+sub start_sample_in_out {
     my CATS::Problem::Parser $self = shift;
     my ($atts, $in_out) = @_;
     if ($atts->{src}) {
         for (@{$self->{current_samples}}) {
+            my $f = $self->sample_inout_file($_, $in_out);
             my $src = apply_test_rank($atts->{src}, $_);
-            my $f = \$self->{problem}->{samples}->{$_}->{$in_out . '_file'};
-            defined $$f  and $self->error(sprintf "Redefined attribute 'src' for %s %d", $self->current_tag, $_);
             $$f = $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
         }
     }
-    my $d = $self->{current_sample_data};
-    $self->error('Redefined text for ' . $self->current_tag) if $d->{$in_out . '_text'} ne '';
-    $self->{stml} = \$d->{$in_out . '_text'};
+    $self->{stml} = \($self->{current_sample_data}->{$in_out} = '');
 }
 
-sub start_tag_SampleIn { $_[0]->sample_in_out($_[1], 'in') }
-sub start_tag_SampleOut { $_[0]->sample_in_out($_[1], 'out') }
+sub end_sample_in_out {
+    (my CATS::Problem::Parser $self, my $in_out) = @_;
+    $self->end_stml;
+    my $t = $self->{current_sample_data}->{$in_out};
+    return if $t eq '';
+    for (@{$self->{current_samples}}) {
+        ${$self->sample_inout_file($_, $in_out)}= $t;
+    }
+}
+
+sub start_end_tag_SampleInOut {
+    my ($in_out) = @_;
+    (
+        s => sub { $_[0]->start_sample_in_out($_[1], $in_out) },
+        e => sub { $_[0]->end_sample_in_out($in_out) },
+    );
+}
 
 sub start_tag_Keyword
 {
