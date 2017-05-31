@@ -434,7 +434,7 @@ subtest 'sample', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 43;
+    plan tests => 52;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -459,6 +459,10 @@ subtest 'test', sub {
         't01.in' => 'z',
     }) } qr/Redefined attribute 'in_file'/, 'Test with duplicate In';
     throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/><In>zzz</In></Test>~),
+        't01.in' => 'z',
+    }) } qr/Redefined attribute 'in_file'/, 'Test with duplicate In text';
+    throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="1"><In src="t01.in"/></Test>~),
         't01.in' => 'z',
     }) } qr/No output source for test 1/, 'Test without Out';
@@ -479,6 +483,10 @@ subtest 'test', sub {
         't01.in' => 'z',
         't01.out' => 'q',
     }) } qr/Redefined attribute 'out_file'/, 'Test with duplicate Out';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In>zz</In><Out src="t01.out"/><Out>out</Out></Test>~),
+        't01.out' => 'q',
+    }) } qr/Redefined attribute 'out_file'/, 'Test with duplicate Out text';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="2"></Test><Test rank="1"></Test>~),
     }) } qr/No input source for test 1/, 'Test errors in rank order';
@@ -502,6 +510,24 @@ subtest 'test', sub {
         is $t->{rank}, 1, 'Test 1 rank';
         is $t->{in_file}, 'z', 'Test 1 In src';
         is $t->{out_file}, 'q', 'Test 1 Out src';
+    }
+
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Test rank="1"><In/><In>in1</In><Out/></Test>
+<Test rank="1"><Out>out1</Out></Test>
+<Test rank="2"><In>in2</In><Out>out2</Out></Test>
+<Checker src="checker.pp"/>~),
+            'checker.pp' => 'z',
+        });
+        is scalar(keys %{$p->{tests}}), 2, 'Test text';
+        for (1..2) {
+            my $t = $p->{tests}->{$_};
+            is $t->{rank}, $_, 'Test text rank';
+            is $t->{in_file}, "in$_", 'Test text In';
+            is $t->{out_file}, "out$_", 'Test text Out';
+        }
     }
 
     {
@@ -685,7 +711,8 @@ subtest 'interactor', sub {
         't.pp' => 'q'
     });
     $parser->parse;
-    is $parser->logger->{warnings}->[0], 'Interactor defined when run method is not interactive', 'interactor defined when not interactive';
+    is $parser->logger->{warnings}->[0],
+        'Interactor defined when run method is not interactive', 'interactor defined when not interactive';
 
     $parser = ParserMockup::make({
         'test.xml' => wrap_problem(q~<Run method="interactive" /><Checker src="t.pp" style="testlib"/>~),
@@ -693,7 +720,9 @@ subtest 'interactor', sub {
     });
     $parser->parse;
 
-    is $parser->logger->{warnings}->[0], 'Interactor is not defined when run method is interactive (maybe used legacy interactor definition)', 'interactor not defined';
+    is $parser->logger->{warnings}->[0],
+        'Interactor is not defined when run method is interactive (maybe used legacy interactor definition)',
+        'interactor not defined';
     $parser = ParserMockup::make({
         'test.xml' => wrap_problem(q~
 <Run method="interactive"/>
@@ -763,7 +792,8 @@ subtest 'run method', sub {
     $p = $parser->parse;
     my $w = $parser->logger->{warnings};
     is scalar @$w, 1, 'players_count when not competitive warnings count';
-    is $w->[0], 'Player count limit defined when run method is not competitive', 'players_count when not competitive warning';
+    is $w->[0], 'Player count limit defined when run method is not competitive',
+        'players_count when not competitive warning';
 
     $p = parse({
         'test.xml' => wrap_problem(q~

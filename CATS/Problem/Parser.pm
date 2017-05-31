@@ -87,8 +87,8 @@ sub tag_handlers()
     Test => { s => \&start_tag_Test, e => \&end_tag_Test, r => ['rank'] },
     TestRange => {
         s => \&start_tag_TestRange, e => \&end_tag_Test, r => ['from', 'to'] },
-    In => { s => \&start_tag_In, in => ['Test', 'TestRange'] },
-    Out => { s => \&start_tag_Out, in => ['Test', 'TestRange'] },
+    In => { s => \&start_tag_In, e => \&end_tag_In, in => ['Test', 'TestRange'] },
+    Out => { s => \&start_tag_Out, e => \&end_tag_Out, in => ['Test', 'TestRange'] },
     Sample => { s => \&start_tag_Sample, e => \&end_tag_Sample, r => ['rank'] },
     SampleIn => { start_end_tag_SampleInOut('in_file'), in => ['Sample'] },
     SampleOut => { start_end_tag_SampleInOut('out_file'), in => ['Sample'] },

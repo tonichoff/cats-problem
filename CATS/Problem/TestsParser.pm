@@ -79,7 +79,8 @@ sub start_tag_TestRange {
 
 sub end_tag_Test {
     my CATS::Problem::Parser $self = shift;
-    undef $self->{current_tests};
+    delete $self->{current_test_data};
+    delete $self->{current_tests};
 }
 
 sub do_In_src {
@@ -134,6 +135,7 @@ sub start_tag_In {
                 $self->get_imported_id($validate) || $self->get_named_object($validate)->{id});
         }
     }
+    $self->{stml} = \($self->{current_test_data}->{in_file} = '');
 }
 
 sub start_tag_Out {
@@ -142,11 +144,10 @@ sub start_tag_Out {
     my @t = @{$self->{current_tests}};
 
     if (defined $atts->{src}) {
-        my (@valid, @invalid);
+        my (@invalid);
         for (@t) {
             my $src = apply_test_rank($atts->{'src'}, $_->{rank});
             if (defined (my $m = $self->{source}->read_member($src))) {
-                push @valid, $m;
                 $self->set_test_attr($_, 'out_file', $m);
             }
             else {
@@ -162,7 +163,19 @@ sub start_tag_Out {
             $self->set_test_attr($_, 'std_solution_id', $self->get_named_object($use)->{id});
         }
     }
+    $self->{stml} = \($self->{current_test_data}->{out_file} = '');
 }
+
+sub end_tag_InOut {
+    my ($self, $in_out) = @_;
+    $self->end_stml;
+    my $t = $self->{current_test_data}->{$in_out};
+    return if $t eq '';
+    $self->set_test_attr($_, $in_out, $t) for @{$self->{current_tests}};
+}
+
+sub end_tag_In { $_[0]->end_tag_InOut('in_file') }
+sub end_tag_Out { $_[0]->end_tag_InOut('out_file') }
 
 sub apply_test_defaults {
     my CATS::Problem::Parser $self = shift;
