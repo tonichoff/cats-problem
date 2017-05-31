@@ -180,9 +180,9 @@ sub end_tag_Out { $_[0]->end_tag_InOut('out_file') }
 sub apply_test_defaults {
     my CATS::Problem::Parser $self = shift;
     my $d = $self->{test_defaults};
-    for my $attr (qw(generator_id input_validator_id param std_solution_id points gen_group)) {
-        $d->{$attr} or next;
-        $_->{$attr} ||= $d->{$attr} for values %{$self->{problem}{tests}};
+    for my $attr (qw(generator_id input_validator_id param std_solution_id points gen_group in_file out_file)) {
+        defined $d->{$attr} or next;
+        $_->{$attr} //= $d->{$attr} for values %{$self->{problem}{tests}};
     }
 }
 

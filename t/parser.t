@@ -434,7 +434,7 @@ subtest 'sample', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 52;
+    plan tests => 57;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -567,6 +567,33 @@ subtest 'test', sub {
             is $t->{param}, "!$_", "Gen $_ param";
             is $t->{generator_id}, 'gen.pp', "Gen $_ In";
             is $t->{std_solution_id}, 'sol.pp', "Gen $_ Out";
+        }
+    }
+
+    {
+        my $p = parse({
+            'test.xml' => wrap_problem(q~
+<Solution name="sol" src="sol.pp"/>
+<Solution name="sol1" src="sol1.pp"/>
+<Test rank="*"><In>def</In><Out use="sol"/></Test>
+<Test rank="1"><In src="01.in"/></Test>
+<Test rank="2"><Out use="sol1"/></Test>
+<Checker src="chk.pp"/>~),
+            'sol.pp' => 'z',
+            'sol1.pp' => 'z',
+            '01.in' => 'zz',
+            'chk.pp' => 'z',
+        });
+        is scalar(keys %{$p->{tests}}), 2, 'Default test_count';
+        {
+            my $t = $p->{tests}->{1};
+            is $t->{in_file}, 'zz', 'Default 1 in';
+            is $t->{std_solution_id}, 'sol.pp', 'Default 1 out';
+        }
+        {
+            my $t = $p->{tests}->{2};
+            is $t->{in_file}, 'def', 'Default 2 in';
+            is $t->{std_solution_id}, 'sol1.pp', 'Default 2 out';
         }
     }
 
