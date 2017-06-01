@@ -410,11 +410,12 @@ sub select_request {
         push @params, $p->{jid};
     }
     elsif ($p->{pin_mode} == $cats::judge_pin_any) {
-        $pin_condition = 'R.judge_id IS NULL OR';
+        $pin_condition = 'R.judge_id IS NULL AND C.pinned_judges_only = 0 OR';
     }
 
     push @params, $p->{jid};
 
+    # Left joins with contest_problems in case the problem was removed from contest after submission.
     my $sel_req = $dbh->selectrow_hashref(qq~
         SELECT
             R.id, R.problem_id, R.elements_count,
@@ -423,6 +424,7 @@ sub select_request {
         FROM reqs R
             INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
             LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
+            INNER JOIN contests C ON C.id = R.contest_id
             INNER JOIN problems P ON P.id = R.problem_id
             LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id
             LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id
