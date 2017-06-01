@@ -244,7 +244,7 @@ sub ensure_request_de_bitmap_cache {
         @bitmap;
     };
 
-    $collect_needed_update_req_ids->($req_tree->{$_}) for keys %$req_tree;
+    $collect_needed_update_req_ids->($_) for values %$req_tree;
 
     @needed_update_reqs or return $req_tree;
 
@@ -416,7 +416,10 @@ sub select_request {
     push @params, $p->{jid};
 
     my $sel_req = $dbh->selectrow_hashref(qq~
-        SELECT R.id, R.problem_id, R.elements_count, RDEBC.version AS request_de_version, PDEBC.version AS problem_de_version
+        SELECT
+            R.id, R.problem_id, R.elements_count,
+            RDEBC.version AS request_de_version,
+            PDEBC.version AS problem_de_version
         FROM reqs R
             INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
             LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
@@ -493,8 +496,10 @@ sub select_request {
                 warn 'group has too many elements ot its level';
                 return 0;
             }
-            my $different_problem_ids = scalar grep $_->{problem_id} != $req_tree->{$sel_req->{id}}->{problem_id}, @{$req->{elements}};
-            my $different_contests_ids = scalar grep $_->{contest_id} != $req_tree->{$sel_req->{id}}->{contest_id}, @{$req->{elements}};
+            my $different_problem_ids =
+                scalar grep $_->{problem_id} != $req_tree->{$sel_req->{id}}->{problem_id}, @{$req->{elements}};
+            my $different_contests_ids =
+                scalar grep $_->{contest_id} != $req_tree->{$sel_req->{id}}->{contest_id}, @{$req->{elements}};
             if ($different_problem_ids || $different_contests_ids) {
                 warn 'group request and elements requests must be for the same problem and contest';
                 return 0;
@@ -549,7 +554,8 @@ sub insert_req_details {
     );
 
     $dbh->do(q~
-        INSERT INTO solution_output (req_id, test_rank, output, output_size, create_time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)~, undef,
+        INSERT INTO solution_output (req_id, test_rank, output, output_size, create_time)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)~, undef,
         $p{req_id}, $p{test_rank}, $output, $output_size) if $output_size;
 
     $dbh->commit;
