@@ -34,6 +34,7 @@ sub checker_type_names()
     legacy => $cats::checker,
     testlib => $cats::testlib_checker,
     partial => $cats::partial_checker,
+    multiple => $cats::multiple_checker,
 }}
 
 sub module_types()

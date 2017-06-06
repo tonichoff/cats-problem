@@ -483,7 +483,7 @@ sub start_tag_Checker
 
     my $style = $atts->{style} || 'legacy';
     CATS::Problem::checker_type_names->{$style}
-        or $self->error(q~Unknown checker style (must be 'legacy', 'testlib' or 'partial')~);
+        or $self->error(q~Unknown checker style (must be 'legacy', 'testlib', 'partial' or 'multiple')~);
     $style ne 'legacy'
         or $self->warning('Legacy checker found!');
     $self->checker_added;

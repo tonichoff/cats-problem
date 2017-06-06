@@ -31,6 +31,7 @@ $visualizer = 11;
 $visualizer_module = 12;
 $interactor = 13;
 $interactor_module = 14;
+$multiple_checker = 15;
 
 %source_module_names = (
     $generator => 'generator',
@@ -48,6 +49,7 @@ $interactor_module = 14;
     $visualizer_module => 'visualizer module',
     $interactor => 'interactor',
     $interactor_module => 'interactor module',
+    $multiple_checker => 'multiple checker',
 );
 
 # Map source types to module types.
@@ -61,6 +63,7 @@ $interactor_module = 14;
     $validator => $validator_module,
     $visualizer => $visualizer_module,
     $interactor => $interactor_module,
+    $multiple_checker => $checker_module,
 );
 
 # Values for reqs.state.
