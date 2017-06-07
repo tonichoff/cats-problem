@@ -479,6 +479,8 @@ sub select_request {
         ],
     }, undef, $req_tree);
 
+    my @testing_req_ids = ($sel_req->{id});
+
     my $check_req;
     $check_req = sub {
         my ($req, $level) = @_;
@@ -509,14 +511,16 @@ sub select_request {
             $check_req->($_, $level + 1) or return 0 for @{$req->{elements}};
         }
 
+        push @testing_req_ids, $req->{id} if $sel_req->{elements_count} > 1 && $level == 1;
+
         return 1;
     };
 
     eval {
         my $set_state = sub {
-            $dbh->do(q~
-                UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~, undef,
-                $_[0], $p->{jid}, $sel_req->{id});
+            my $c = $dbh->prepare(q~
+                UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
+            $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
             $dbh->commit;
         };
         if (!$check_req->($req_tree->{$sel_req->{id}})) {
