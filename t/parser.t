@@ -739,7 +739,7 @@ subtest 'interactor', sub {
     });
     $parser->parse;
     is $parser->logger->{warnings}->[0],
-        'Interactor defined when run method is not interactive', 'interactor defined when not interactive';
+        'Interactor defined when run method is not interactive or competitive', 'interactor defined when not interactive or competitive';
 
     $parser = ParserMockup::make({
         'test.xml' => wrap_problem(q~<Run method="interactive" /><Checker src="t.pp" style="testlib"/>~),
@@ -748,7 +748,7 @@ subtest 'interactor', sub {
     $parser->parse;
 
     is $parser->logger->{warnings}->[0],
-        'Interactor is not defined when run method is interactive (maybe used legacy interactor definition)',
+        'Interactor is not defined when run method is interactive or competitive (maybe used legacy interactor definition)',
         'interactor not defined';
     $parser = ParserMockup::make({
         'test.xml' => wrap_problem(q~

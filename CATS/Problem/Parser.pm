@@ -236,11 +236,12 @@ sub validate
         and $self->warning("Both stml and url for $_") for qw(statement explanation);
     $problem->{has_checker} or $self->error('No checker specified');
 
-    $problem->{interactor} and $problem->{run_method} != $cats::rm_interactive
-        and $self->warning("Interactor defined when run method is not interactive");
+    my $need_interactor = $problem->{run_method} == $cats::rm_interactive || $problem->{run_method} == $cats::rm_competitive;
+    $problem->{interactor} && !$need_interactor
+        and $self->warning("Interactor defined when run method is not interactive or competitive");
 
-    $problem->{run_method} == $cats::rm_interactive and !$problem->{interactor}
-        and $self->warning("Interactor is not defined when run method is interactive (maybe used legacy interactor definition)");
+    !$problem->{interactor} && $need_interactor
+        and $self->warning("Interactor is not defined when run method is interactive or competitive (maybe used legacy interactor definition)");
 }
 
 sub inc_object_ref_count
@@ -482,7 +483,7 @@ sub start_tag_Checker
 
     my $style = $atts->{style} || 'legacy';
     CATS::Problem::checker_type_names->{$style}
-        or $self->error(q~Unknown checker style (must be 'legacy', 'testlib' or 'partial')~);
+        or $self->error(q~Unknown checker style (must be 'legacy', 'testlib', 'partial' or 'multiple')~);
     $style ne 'legacy'
         or $self->warning('Legacy checker found!');
     $self->checker_added;
