@@ -38,7 +38,9 @@ sub needs_login { !defined $_[0]->{sid} }
 sub post {
   my ($self, $params) = @_;
   $self->{log}->note("POST $self->{root}/main.pl " . join(' ', @$params)) if $self->{verbose};
-  decode_json($self->{agent}->request(POST "$self->{root}/main.pl", $params)->{_content});
+  my $r = $self->{agent}->request(POST "$self->{root}/main.pl", $params);
+  $r->is_success or die $r->status_line;
+  decode_json($r->content);
 }
 
 sub login {
