@@ -30,6 +30,7 @@ sub new {
         verbose => $verbose,
     };
     $self->{agent}->proxy('http', $proxy) if $proxy;
+    $self->{agent}->timeout(100);
     return bless $self => $class;
 }
 
@@ -105,7 +106,8 @@ sub download_without_using_url {
         cid => $self->{cid},
         sid => $self->{sid},
     ]);
-    my @problems = grep $_->{name} eq $self->{name}, @{$response->{problems}};
+    my @problems = grep $_->{name} eq $self->{name} || ($_->{code} // '') eq $self->{name},
+        @{$response->{problems}};
     @problems != 1 and $log->error(@problems . " problems have name '$self->{name}'");
     $self->{agent}->request(GET "$self->{root}/$problems[0]->{package_url}");
 }
