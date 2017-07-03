@@ -547,6 +547,7 @@ sub start_tag_Module
         de_code => $atts->{de_code},
         guid => $atts->{export}, type => $atts->{type},
         type_code => CATS::Problem::module_types()->{$atts->{type}},
+        main => $atts->{main},
     };
 }
 
