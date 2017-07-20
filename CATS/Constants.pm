@@ -2,11 +2,6 @@ package cats;
 
 $anonymous_login = 'anonymous';
 
-@templates = (
-    { id => "std", path => "./../templates/std" },
-    { id => "alt", path => "./../templates/alt" }
-);
-
 @langs = qw(ru en);
 
 # Values problem_sources.stype.
