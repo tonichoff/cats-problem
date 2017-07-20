@@ -9,12 +9,6 @@ $anonymous_login = 'anonymous';
 
 @langs = qw(ru en);
 
-# Bit flag values for accounts.srole. Root includes all other roles.
-$srole_root = 0;
-$srole_user = 1;
-$srole_contests_creator = 2;
-$srole_messages_moderator = 4;
-
 # Values problem_sources.stype.
 $generator = 0;
 $solution = 1;
