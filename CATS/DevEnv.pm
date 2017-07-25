@@ -59,14 +59,11 @@ sub bitmap_by {
 
     my @res = map 0, 1..$cats::de_req_bitfields_count;
 
-    my $de_bitfield_num = 0;
-    my $curr_de_bitfield = 0;
-
     use bigint; # Make sure 64-bit integers work on 32-bit platforms.
 
     for my $code (@codes) {
         my $de = $getter->($code) or die "$code not found in de list";
-        $de_bitfield_num = int($de->{index} / $cats::de_req_bitfield_size);
+        my $de_bitfield_num = int($de->{index} / $cats::de_req_bitfield_size);
 
         die 'too many de codes to fit in db' if $de_bitfield_num > $cats::de_req_bitfields_count - 1;
 
@@ -76,6 +73,21 @@ sub bitmap_by {
     @res;
 }
 
+sub by_bitmap {
+    my ($self, $bitmap) = @_;
+
+    my @res = map 0, 1..$cats::de_req_bitfields_count;
+
+    use bigint; # Make sure 64-bit integers work on 32-bit platforms.
+
+    grep {
+        my $de_bitfield_num = int($_->{index} / $cats::de_req_bitfield_size);
+        die 'too many de codes to fit in db' if $de_bitfield_num > $cats::de_req_bitfields_count - 1;
+        my $bit = 1 << ($_->{index} % $cats::de_req_bitfield_size);
+        $bitmap->[$de_bitfield_num] & $bit;
+    } @{$self->des};
+}
+
 sub bitmap_by_ids {
     my $self = shift;
     my $id_to_de = { map { $_->{id} => $_ } @{$self->{_des}} };
@@ -83,6 +95,12 @@ sub bitmap_by_ids {
 }
 
 sub bitmap_by_codes {
+    my $self = shift;
+    my $code_to_de = { map { $_->{code} => $_ } @{$self->{_des}} };
+    $self->bitmap_by(sub { $code_to_de->{$_[0]} }, @_);
+}
+
+sub codes_by_bitmap {
     my $self = shift;
     my $code_to_de = { map { $_->{code} => $_ } @{$self->{_des}} };
     $self->bitmap_by(sub { $code_to_de->{$_[0]} }, @_);

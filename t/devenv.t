@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 17;
+use Test::More tests => 18;
 use Test::Exception;
 
 use lib '..';
@@ -62,4 +62,9 @@ sub cs { goto &CATS::DevEnv::check_supported }
     ok cs([ "$given", 342 ], [ "$our", 0x3_ffff ]), 'check_supported 64 yes';
     ok !cs([ 2, 0 ], [ '1000000000000000', 0 ]), 'check_supported 64 no';
 
+}
+
+{
+    my $de = CATS::DevEnv->new({ version => 1, des => [ map +{ code => $_ }, 1..10 ] });
+    is_deeply [ map $_->{code}, $de->by_bitmap([ 9, 0 ]) ], [ 1, 4 ], 'by_bitmap';
 }
