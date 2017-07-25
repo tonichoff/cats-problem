@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use CATS::Constants;
-use CATS::DB qw(new_id $dbh);
+use CATS::DB;
 use CATS::DevEnv;
 
 sub get_judge_id {
@@ -123,7 +123,7 @@ sub add_info_to_req_tree {
     my $needed_tables = join ' ', @{$needed_info->{tables} // []};
     my $req_ids_list = join ', ', $req_ids ? @$req_ids : keys %$req_tree or return {};
 
-    warn "add_info_to_req_tree. $req_ids_list";
+    #warn "add_info_to_req_tree. $req_ids_list";
 
     my $reqs = $dbh->selectall_arrayref(qq~
         SELECT $needed_fields
@@ -142,7 +142,7 @@ sub get_req_tree {
     $req_ids && @$req_ids or return {};
     $req_tree //= {};
 
-    warn 'get_req_tree. given ids: ', join ', ', @$req_ids;
+    #warn 'get_req_tree. given ids: ', join ', ', @$req_ids;
 
     add_info_to_req_tree($p, $req_ids, $req_tree);
 
@@ -151,7 +151,7 @@ sub get_req_tree {
         (!$p->{on_level_filter} || $p->{on_level_filter}->($_))
     } map $req_tree->{$_}, @$req_ids;
 
-    warn 'get_req_tree. filtered to next level: ', join ', ', map $_->{id}, @reqs_to_next_level;
+    #warn 'get_req_tree. filtered to next level: ', join ', ', map $_->{id}, @reqs_to_next_level;
 
     @reqs_to_next_level or return $req_tree;
 
@@ -381,6 +381,8 @@ sub select_request {
     my $dev_env = CATS::DevEnv->new(get_DEs);
     return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
 
+    # If DE cache is absent or obsolete, select request and try to refresh the cache.
+    # Otherwise, select only if the judge supports all DEs indicated by the cached bitmap.
     my $des_cond_fmt = sub {
         my ($table) = @_;
         my $cond =
@@ -436,6 +438,7 @@ sub select_request {
         @params) or return;
 
     if (!$dev_env->is_good_version($sel_req->{problem_de_version})) {
+        # Our cache is behind judge's -- postpone until next API call.
         return if $sel_req->{problem_de_version} && $sel_req->{problem_de_version} > $dev_env->version;
         warn "update problem de cache: $sel_req->{id}";
         my $updated_de = ensure_problem_de_bitmap_cache($sel_req->{problem_id}, $dev_env, 1);
@@ -448,6 +451,7 @@ sub select_request {
     my $req_tree;
 
     if (!$dev_env->is_good_version($sel_req->{request_de_version})) {
+        # Our cache is behind judge's -- postpone until next API call.
         return if $sel_req->{request_de_version} && $sel_req->{request_de_version} > $dev_env->version;
         warn "update request de cache: $sel_req->{id}";
         $req_tree = ensure_request_de_bitmap_cache($sel_req->{id}, $dev_env);
