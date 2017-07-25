@@ -368,17 +368,34 @@ sub set_request_state {
     $dbh->commit;
 }
 
+sub update_judge_de_bitmap {
+    my ($p, $dev_env) = @_;
+    my $jid = { judge_id => $p->{jid} };
+    my $jbmp = {
+        version => $dev_env->version,
+        map { +"de_bits$_" => $p->{"de_bits$_"} } 1..$cats::de_req_bitfields_count
+    };
+    my $cache = CATS::DB::select_row('judge_de_bitmap_cache', '*', $jid);
+    if (!$cache) {
+        $dbh->do(_u $sql->insert('judge_de_bitmap_cache', { %$jid, %$jbmp }));
+    }
+    elsif (grep $cache->{$_} ne $jbmp->{$_}, keys %$jbmp) {
+        $dbh->do(_u $sql->update('judge_de_bitmap_cache', $jbmp, $jid));
+    }
+}
+
 sub select_request {
     my ($p) = @_;
 
+    my $dev_env = CATS::DevEnv->new(get_DEs);
     $dbh->do(q~
         UPDATE judges SET is_alive = 1, alive_date = CURRENT_TIMESTAMP WHERE id = ?~, undef,
         $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
+    update_judge_de_bitmap($p, $dev_env);
     $dbh->commit;
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
-    my $dev_env = CATS::DevEnv->new(get_DEs);
     return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
 
     # If DE cache is absent or obsolete, select request and try to refresh the cache.
