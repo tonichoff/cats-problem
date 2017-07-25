@@ -384,20 +384,8 @@ sub update_judge_de_bitmap {
     }
 }
 
-sub select_request {
-    my ($p) = @_;
-
-    my $dev_env = CATS::DevEnv->new(get_DEs);
-    $dbh->do(q~
-        UPDATE judges SET is_alive = 1, alive_date = CURRENT_TIMESTAMP WHERE id = ?~, undef,
-        $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
-    update_judge_de_bitmap($p, $dev_env);
-    $dbh->commit;
-
-    return if $p->{pin_mode} == $cats::judge_pin_locked;
-
-    return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
-
+sub dev_envs_condition {
+    my ($p, $de_version) = @_;
     # If DE cache is absent or obsolete, select request and try to refresh the cache.
     # Otherwise, select only if the judge supports all DEs indicated by the cached bitmap.
     my $des_cond_fmt = sub {
@@ -414,7 +402,24 @@ sub select_request {
     };
     my $des_condition = $des_cond_fmt->('RDEBC') . ' AND ' . $des_cond_fmt->('PDEBC');
 
-    my @params = ($dev_env->version, extract_de_bitmap($p)) x 2;
+    ($des_condition, ($de_version, extract_de_bitmap($p)) x 2);
+}
+
+sub select_request {
+    my ($p) = @_;
+
+    my $dev_env = CATS::DevEnv->new(get_DEs);
+    $dbh->do(q~
+        UPDATE judges SET is_alive = 1, alive_date = CURRENT_TIMESTAMP WHERE id = ?~, undef,
+        $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
+    update_judge_de_bitmap($p, $dev_env);
+    $dbh->commit;
+
+    return if $p->{pin_mode} == $cats::judge_pin_locked;
+
+    return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
+
+    my ($des_condition, @params) = dev_envs_condition($p, $dev_env->version);
 
     my $pin_condition = '';
 
