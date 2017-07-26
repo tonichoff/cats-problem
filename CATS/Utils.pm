@@ -7,22 +7,22 @@ use Exporter qw(import);
 
 our @EXPORT = qw(
     blob_mimetype
-    coalesce
-    mode_str
-    file_type
-    file_type_long
     chop_str
-    split_fname
-    untabify
-    unquote
-    escape_xml
-    url_function
-    source_hash
+    coalesce
     date_to_iso
     encodings
-    source_encodings
-    redirect_url_function
+    escape_xml
+    file_type
+    file_type_long
     group_digits
+    mode_str
+    redirect_url_function
+    source_encodings
+    source_hash
+    split_fname
+    unquote
+    untabify
+    url_function
 );
 our %EXPORT_TAGS = (all => [ @EXPORT ]);
 
@@ -34,13 +34,10 @@ use constant {
     S_IFGITLINK => 0160000,
 };
 
-
 sub coalesce { defined && return $_ for @_ }
 
-
 # submodule/subproject, a commit object reference
-sub S_ISGITLINK
-{
+sub S_ISGITLINK {
     my $mode = shift;
 
     return (($mode & S_IFMT) == S_IFGITLINK)
@@ -48,8 +45,7 @@ sub S_ISGITLINK
 
 # mimetype related functions
 
-sub mimetype_guess_file
-{
+sub mimetype_guess_file {
     my ($filename, $mimemap) = @_;
     -r $mimemap or return undef;
 
@@ -68,8 +64,7 @@ sub mimetype_guess_file
     return $mimemap{$1};
 }
 
-sub mimetype_guess
-{
+sub mimetype_guess {
     my $filename = shift;
     my $mime;
     $filename =~ /\./ or return undef;
@@ -78,8 +73,7 @@ sub mimetype_guess
     return $mime;
 }
 
-sub blob_mimetype
-{
+sub blob_mimetype {
     my ($fd, $filename) = @_;
 
     if ($filename) {
@@ -105,10 +99,8 @@ sub blob_mimetype
     }
 }
 
-
 # convert file mode in octal to symbolic file mode string
-sub mode_str
-{
+sub mode_str {
     my $mode = oct shift;
 
     if (S_ISGITLINK($mode)) {
@@ -129,9 +121,7 @@ sub mode_str
     }
 }
 
-
-sub file_type
-{
+sub file_type {
     my $mode = shift;
 
     if ($mode !~ m/^[0-7]+$/) {
@@ -153,10 +143,8 @@ sub file_type
     }
 }
 
-
 # convert file mode in octal to file type description string
-sub file_type_long
-{
+sub file_type_long {
     my $mode = shift;
 
     if ($mode !~ m/^[0-7]+$/) {
@@ -182,17 +170,14 @@ sub file_type_long
     }
 }
 
-
-sub split_fname
-{
+sub split_fname {
     my $path = shift;
 
     my ($vol, $dir, $fname, $name, $ext);
 
     my $volRE = '(?:^(?:[a-zA-Z]:|(?:\\\\\\\\|//)[^\\\\/]+[\\\\/][^\\\\/]+)?)';
     my $dirRE = '(?:(?:.*[\\\\/](?:\.\.?$)?)?)';
-    if ($path =~ m/($volRE)($dirRE)(.*)$/)
-    {
+    if ($path =~ m/($volRE)($dirRE)(.*)$/) {
         $vol = $1;
         $dir = $2;
         $fname = $3;
@@ -211,8 +196,7 @@ sub split_fname
 }
 
 # escape tabs (convert tabs to spaces)
-sub untabify
-{
+sub untabify {
     my $line = shift;
 
     while ((my $pos = index($line, "\t")) != -1) {
@@ -226,8 +210,7 @@ sub untabify
 }
 
 # git may return quoted and escaped filenames
-sub unquote
-{
+sub unquote {
     my $str = shift;
 
     sub unq {
@@ -266,8 +249,7 @@ sub unquote
 # $len and $len+$add_len. If there is no word boundary there,
 # chop at $len+$add_len. Do not chop if chopped part plus ellipsis
 # (marking chopped part) would be longer than given string.
-sub chop_str
-{
+sub chop_str {
     my $str = shift;
     my $len = shift;
     my $add_len = shift || 10;
@@ -324,9 +306,7 @@ sub chop_str
     }
 }
 
-
-sub escape_xml
-{
+sub escape_xml {
     my $t = shift;
 
     $t =~ s/&/&amp;/g;
@@ -336,43 +316,34 @@ sub escape_xml
     return $t;
 }
 
-sub escape_url
-{
+sub escape_url {
     my ($url) = @_;
     $url =~ s/([\?=%;&+\s])/sprintf '%%%02X', ord($1)/eg;
     $url;
 }
 
-sub gen_url_params
-{
+sub gen_url_params {
     my (%p) = @_;
     map { defined $p{$_} ? "$_=" . escape_url($p{$_}) : () } 'f', sort grep $_ ne 'f', keys %p;
 }
 
-
-sub redirect_url_function
-{
+sub redirect_url_function {
     my ($u, %p) = @_;
     "$u?" . join ';', gen_url_params(%p);
 }
 
-
-sub url_function
-{
+sub url_function {
     redirect_url_function('main.pl', f => @_)
 }
 
-
 # unused
-sub generate_password
-{
+sub generate_password {
     my @ch1 = ('e', 'y', 'u', 'i', 'o', 'a');
     my @ch2 = ('w', 'r', 't', 'p', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm');
 
     my $passwd = '';
 
-    for (1..3)
-    {
+    for (1..3) {
         $passwd .= @ch1[rand(@ch1)];
         $passwd .= @ch2[rand(@ch2)];
     }
@@ -380,27 +351,21 @@ sub generate_password
     return $passwd;
 }
 
-sub balance_brackets
-{
+sub balance_brackets {
     my $text = shift;
     my @extr = extract_bracketed($text, '()');
     $extr[0];
 }
 
-
-sub balance_tags
-{
+sub balance_tags {
     my ($text, $tag1, $tag2) = @_;
     my @extr = extract_tagged($text, $tag1, $tag2, undef);
     $extr[0];
 }
 
-
-sub source_hash
-{
+sub source_hash {
     Digest::MD5::md5_hex(Encode::encode_utf8($_[0]));
 }
-
 
 sub date_to_iso {
     $_[0] =~ /^\s*(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)\s*$/;
@@ -409,8 +374,7 @@ sub date_to_iso {
 
 sub encodings { {'UTF-8' => 1, 'WINDOWS-1251' => 1, 'KOI8-R' => 1, 'CP866' => 1, 'UCS-2LE' => 1} }
 
-sub source_encodings
-{
+sub source_encodings {
     [ map {{ enc => $_, selected => $_ eq $_[0] }} sort keys %{encodings()} ];
 }
 
