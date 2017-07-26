@@ -17,7 +17,6 @@ our @EXPORT = qw(
     unquote
     escape_xml
     url_function
-    state_to_display
     source_hash
     date_to_iso
     encodings
@@ -380,36 +379,6 @@ sub generate_password
 
     return $passwd;
 }
-
-
-sub state_to_display
-{
-    my ($state, $use_rejected) = @_;
-    defined $state or die 'no state!';
-    my %error = (
-        wrong_answer =>          $state == $cats::st_wrong_answer,
-        presentation_error =>    $state == $cats::st_presentation_error,
-        time_limit_exceeded =>   $state == $cats::st_time_limit_exceeded,
-        memory_limit_exceeded => $state == $cats::st_memory_limit_exceeded,
-        write_limit_exceeded =>  $state == $cats::st_write_limit_exceeded,
-        runtime_error =>         $state == $cats::st_runtime_error,
-        compilation_error =>     $state == $cats::st_compilation_error,
-        idleness_limit_exceeded=>$state == $cats::st_idleness_limit_exceeded,
-        manually_rejected =>     $state == $cats::st_manually_rejected,
-    );
-    (
-        not_processed =>         $state == $cats::st_not_processed,
-        unhandled_error =>       $state == $cats::st_unhandled_error,
-        install_processing =>    $state == $cats::st_install_processing,
-        testing =>               $state == $cats::st_testing,
-        awaiting_verification => $state == $cats::st_awaiting_verification,
-        accepted =>              $state == $cats::st_accepted,
-        ($use_rejected ? (rejected => 0 < grep $_, values %error) : %error),
-        security_violation =>    $state == $cats::st_security_violation,
-        ignore_submit =>         $state == $cats::st_ignore_submit,
-    );
-}
-
 
 sub balance_brackets
 {
