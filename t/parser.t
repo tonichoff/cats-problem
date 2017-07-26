@@ -161,7 +161,7 @@ subtest 'sources', sub {
 };
 
 subtest 'text', sub {
-    plan tests => 11;
+    plan tests => 12;
     my $p = parse({
         'test.xml' => wrap_problem(q~
 <Checker src="checker.pp"/>
@@ -189,6 +189,14 @@ statement</ProblemStatement>
     });
     is $p1->{statement}, 'outside<b class="  z  "> inside </b>', 'tag reconstruction';
     is $p1->{constraints}, 'beforeincludedafter', 'include';
+
+    my $p2 = parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="checker.pp"/>
+<ProblemStatement>&amp;&lt;&gt;&quot;</ProblemStatement>~),
+        'checker.pp' => 'z',
+    });
+    is $p2->{statement}, '&amp;&lt;&gt;&quot;', 'xml characters';
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<ZZZ></ZZZ>~),

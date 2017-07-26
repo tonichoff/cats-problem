@@ -307,13 +307,12 @@ sub chop_str {
 }
 
 sub escape_xml {
-    my $t = shift;
-
+    my ($t) = @_;
     $t =~ s/&/&amp;/g;
     $t =~ s/>/&gt;/g;
     $t =~ s/</&lt;/g;
-
-    return $t;
+    $t =~ s/"/&quot;/g;
+    $t;
 }
 
 sub escape_url {
