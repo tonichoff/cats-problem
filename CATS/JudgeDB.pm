@@ -379,7 +379,7 @@ sub update_judge_de_bitmap {
     if (!$cache) {
         $dbh->do(_u $sql->insert('judge_de_bitmap_cache', { %$jid, %$jbmp }));
     }
-    elsif (grep $cache->{$_} ne $jbmp->{$_}, keys %$jbmp) {
+    elsif (grep +($cache->{$_} // '') ne ($jbmp->{$_} // ''), keys %$jbmp) {
         $dbh->do(_u $sql->update('judge_de_bitmap_cache', $jbmp, $jid));
     }
 }
@@ -402,7 +402,7 @@ sub dev_envs_condition {
     };
     my $des_condition = $des_cond_fmt->('RDEBC') . ' AND ' . $des_cond_fmt->('PDEBC');
 
-    ($des_condition, ($de_version, extract_de_bitmap($p)) x 2);
+    ($des_condition, map $_ // '', ($de_version, extract_de_bitmap($p)) x 2);
 }
 
 sub select_request {
@@ -567,7 +567,9 @@ sub select_request {
 sub delete_req_details {
     my ($req_id) = @_;
 
-    $dbh->do(q~DELETE FROM req_details WHERE req_id = ?~, undef, $req_id);
+    $dbh->do(q~
+        DELETE FROM req_details WHERE req_id = ?~, undef,
+        $req_id);
     $dbh->commit;
 }
 
@@ -578,8 +580,8 @@ sub insert_req_details {
     delete $p{$_} for qw(output output_size);
 
     $dbh->do(
-        sprintf(
-            q~INSERT INTO req_details (%s) VALUES (%s)~,
+        sprintf(q~
+            INSERT INTO req_details (%s) VALUES (%s)~,
             join(', ', keys %p), join(', ', ('?') x keys %p)
         ),
         undef, values %p
