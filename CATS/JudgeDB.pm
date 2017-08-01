@@ -85,8 +85,23 @@ sub is_problem_uptodate {
         $pid, $date);
 }
 
+# Returns undef if the req was assigned to another judge, false if req state is enforced.
+sub is_req_owned_by {
+    my ($req_id, $judge_id) = @_;
+    $judge_id or die;
+    my ($st) = $dbh->selectrow_array(q~
+        SELECT state FROM reqs WHERE id = ? AND judge_id = ?~, undef,
+        $req_id, $judge_id) or return;
+    $st == $cats::st_install_processing || $st == $cats::st_testing;
+}
+
 sub save_log_dump {
-    my ($req_id, $dump) = @_;
+    my ($req_id, $dump, $judge_id) = @_;
+
+    my $is_owned = is_req_owned_by($req_id, $judge_id);
+    # If jury just forced the request state, but did not reassign to another judge,
+    # save the log up to this moment.
+    defined $is_owned or return;
 
     my $id = $dbh->selectrow_array(q~
         SELECT id FROM log_dumps WHERE req_id = ?~, undef,
@@ -104,6 +119,8 @@ sub save_log_dump {
         $c->bind_param(3, $req_id);
         $c->execute;
     }
+    # Optimize a commit away since save_log_dump is immediately followed by set_request_state.
+    $is_owned or $dbh->commit;
 }
 
 sub copy_req_tree_info {
@@ -352,19 +369,24 @@ sub invalidate_de_bitmap_cache {
 sub set_request_state {
     my ($p) = @_;
 
+    is_req_owned_by($p->{req_id}, $p->{jid}) or return;
     $dbh->do(q~
         UPDATE reqs SET state = ?, failed_test = ?, result_time = CURRENT_TIMESTAMP
         WHERE id = ? AND judge_id = ?~, undef,
         $p->{state}, $p->{failed_test}, $p->{req_id}, $p->{jid});
+
+    # Suspend further problem testing on unhandled error.
     if ($p->{state} == $cats::st_unhandled_error && defined $p->{problem_id} && defined $p->{contest_id}) {
         $dbh->do(q~
             UPDATE contest_problems SET status = ?
             WHERE problem_id = ? AND contest_id = ? AND status < ?~, undef,
             $cats::problem_st_suspended, $p->{problem_id}, $p->{contest_id}, $cats::problem_st_suspended);
     }
+
+    # Clear cache to save space after testing.
     $dbh->do(q~
         DELETE FROM req_de_bitmap_cache WHERE req_id = ?~, undef,
-        $p->{req_id}); # Clear cache to save space after testing.
+        $p->{req_id});
     $dbh->commit;
 }
 
@@ -565,19 +587,24 @@ sub select_request {
 }
 
 sub delete_req_details {
-    my ($req_id) = @_;
+    my ($req_id, $judge_id) = @_;
+
+    is_req_owned_by($req_id, $judge_id) or return;
 
     $dbh->do(q~
         DELETE FROM req_details WHERE req_id = ?~, undef,
         $req_id);
     $dbh->commit;
+    1;
 }
 
 sub insert_req_details {
     my (%p) = @_;
 
+    is_req_owned_by($p{req_id}, $p{judge_id}) or return;
+
     my ($output, $output_size) = map $p{$_}, qw(output output_size);
-    delete $p{$_} for qw(output output_size);
+    delete $p{$_} for qw(output output_size judge_id);
 
     $dbh->do(
         sprintf(q~
@@ -593,6 +620,7 @@ sub insert_req_details {
         $p{req_id}, $p{test_rank}, $output, $output_size) if $output_size;
 
     $dbh->commit;
+    1;
 }
 
 sub save_input_test_data {
