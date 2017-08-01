@@ -189,7 +189,7 @@ sub ensure_request_de_bitmap_cache {
         die 'req_ids is not neither reference to ARRAY or scalar';
     }
 
-    warn "ensure_request_de_bitmap_cache. enter with req_ids: ", join ', ', @$req_ids;
+    #warn "ensure_request_de_bitmap_cache. enter with req_ids: ", join ', ', @$req_ids;
 
     @$req_ids or return {};
 
@@ -219,21 +219,21 @@ sub ensure_request_de_bitmap_cache {
 
         if (!$dev_env->is_good_version($req->{de_version})) {
             if ($req->{elements_count} > 0) {
-                warn "ensure_request_de_bitmap_cache. req $req->{id} needs update recursively";
+                #warn "ensure_request_de_bitmap_cache. req $req->{id} needs update recursively";
                 @bitmap = (0) x $cats::de_req_bitfields_count;
                 for my $req_element (@{$req->{elements}}) {
                     my @element_bitmap = $collect_needed_update_req_ids->($req_element);
                     $bitmap[$_] |= $element_bitmap[$_] for 0..$cats::de_req_bitfields_count-1;
                 }
             } else {
-                warn "ensure_request_de_bitmap_cache. req $req->{id} needs update";
+                #warn "ensure_request_de_bitmap_cache. req $req->{id} needs update";
                 @bitmap = $dev_env->bitmap_by_ids($req->{de_id});
             }
             my %de_bitfields_hash = get_de_bitfields_hash(@bitmap);
             $req->{$_} = $de_bitfields_hash{$_} for keys %de_bitfields_hash;
             push @needed_update_reqs, $req;
         } else {
-            warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
+            #warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
             @bitmap = extract_de_bitmap($req);
         }
 
@@ -262,7 +262,7 @@ sub ensure_request_de_bitmap_cache {
 
     if ($dev_env->is_good_version(current_de_version())) {
         $dbh->commit;
-        warn 'ensure_request_de_bitmap_cache. updated reqs: ', join ', ', map $_->{id}, @needed_update_reqs;
+        #warn 'ensure_request_de_bitmap_cache. updated reqs: ', join ', ', map $_->{id}, @needed_update_reqs;
     } else {
         $dbh->rollback;
         warn 'ensure_request_de_bitmap_cache. concurrent de change detected. trying again';
