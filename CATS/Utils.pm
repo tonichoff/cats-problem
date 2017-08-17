@@ -8,7 +8,6 @@ use Exporter qw(import);
 our @EXPORT = qw(
     blob_mimetype
     chop_str
-    coalesce
     date_to_iso
     encodings
     escape_xml
@@ -33,8 +32,6 @@ use Text::Balanced qw(extract_tagged extract_bracketed);
 use constant {
     S_IFGITLINK => 0160000,
 };
-
-sub coalesce { defined && return $_ for @_ }
 
 # submodule/subproject, a commit object reference
 sub S_ISGITLINK {
