@@ -16,6 +16,7 @@ our @EXPORT = qw(
     group_digits
     mode_str
     redirect_url_function
+    sanitize_file_name
     source_encodings
     source_hash
     split_fname
@@ -380,6 +381,12 @@ sub group_digits {
     my $p = $len % 3;
     join $sep // ' ', ($p ? substr($_[0], 0, $p) : ()),
         map substr($_[0], $p + $_ * 3, 3), 0..int($len / 3) - 1;
+}
+
+sub sanitize_file_name {
+    $_[0] && $_[0] =~ /[^_a-zA-Z0-9\.\\\:\$]/ or return;
+    $_[0] =~ tr/_a-zA-Z0-9\.\\:$/x/c;
+    1;
 }
 
 1;
