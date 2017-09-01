@@ -10,9 +10,10 @@ our %EXPORT_TAGS = (all => [ @EXPORT ]);
 # This is a template file, you should adjust parameters below
 # and copy this file to the same folder, but with .template extenison removed.
 
+use FindBin;
 use File::Spec;
 
-our $db_dsn = 'dbi:Firebird:dbname=<path-to-your-database>;host=<your-host>;ib_charset=UTF8;';
+our $db_dsn = 'dbi:Firebird:dbname=<path-to-your-database>;host=<your-host>;ib_charset=UTF8;ib_role=';
 our $db_user = '<your-username>';
 our $db_password = '<your-password>';
 
@@ -37,12 +38,8 @@ our %ip_aliases = (
 our $judge_alive_interval = 1.0;
 
 our $cats_dir;
-sub cats_dir()
-{
-    $cats_dir ||=
-        $ENV{CATS_DIR} ||
-        File::Spec->catdir((File::Spec->splitpath(File::Spec->rel2abs($0)))[0, 1]) ||
-        '/usr/local/apache/CATS/cgi-bin/';
+sub cats_dir() {
+    $cats_dir ||= $ENV{CATS_DIR} || $FindBin::Bin || '/usr/local/apache/CATS/cgi-bin/';
 }
 
 our $repos_dir = cats_dir() . 'repos/';
