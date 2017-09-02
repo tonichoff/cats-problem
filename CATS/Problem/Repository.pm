@@ -876,7 +876,7 @@ sub git
 {
     my ($self, $git_tail) = @_;
     my @lines = exec_or_die("git --git-dir=$self->{git_dir} --work-tree=$self->{dir} $git_tail");
-    $self->{logger}->note(join "\n", @lines) if exists $self->{logger};
+    $self->{logger}->note(Encode::decode_utf8(join "\n", @lines)) if exists $self->{logger};
     return @lines;
 }
 
