@@ -21,7 +21,7 @@ sub get_DEs {
     $condition = 'WHERE ' . $condition if $condition;
     {
         des => $dbh->selectall_arrayref(qq~
-            SELECT id, code, description, file_ext, default_file_ext
+            SELECT id, code, description, file_ext, default_file_ext, memory_handicap
             FROM default_de
             $condition ORDER BY code~, { Slice => {} },
             $p->{id} ? ($p->{id}) : ()),
