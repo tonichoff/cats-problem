@@ -33,8 +33,7 @@ use CATS::Utils qw(blob_mimetype untabify unquote mode_str file_type file_type_l
 
 my $tmp_template = 'zipXXXXXX';
 
-sub parse_author
-{
+sub parse_author {
     my $author = Encode::encode_utf8($_[0]);
     $author = DEFAULT_AUTHOR if !defined $author || $author eq '';
     $author = (split ',', $author)[0];
@@ -43,8 +42,7 @@ sub parse_author
     return $1;
 }
 
-sub parse_date
-{
+sub parse_date {
     my $epoch = shift;
     my $tz = shift || "-0000";
 
@@ -59,7 +57,7 @@ sub parse_date
         month => $months[$mon],
         rfc2822 => sprintf('%s, %d %s %4d %02d:%02d:%02d +0000', $days[$wday], $mday, $months[$mon], 1900+$year, $hour ,$min, $sec),
         'mday-time' => sprintf('%d %s %02d:%02d', $mday, $months[$mon], $hour, $min),
-        'iso-8601'  => sprintf('%04d-%02d-%02dT%02d:%02d:%02dZ', 1900+$year, 1+$mon, $mday, $hour ,$min, $sec)
+        'iso-8601' => sprintf('%04d-%02d-%02dT%02d:%02d:%02dZ', 1900+$year, 1+$mon, $mday, $hour ,$min, $sec)
     );
 
     my ($tz_sign, $tz_hour, $tz_min) = $tz =~ m/^([-+])(\d\d)(\d\d)$/;
@@ -74,43 +72,40 @@ sub parse_date
 }
 
 # is current raw difftree line of file deletion
-sub is_deleted
-{
+sub is_deleted {
     my ($self, $diffinfo) = @_;
     return defined $diffinfo->{to_id} && $diffinfo->{to_id} eq ('0' x 40);
 }
 
-sub diff_line_class
-{
+sub diff_line_class {
     my ($self, $line, $from, $to) = @_;
 
     # ordinary diff
     my $num_sign = 1;
     # combined diff
-    if ($from && $to && ref($from->{href}) eq "ARRAY") {
+    if ($from && $to && ref($from->{href}) eq 'ARRAY') {
         $num_sign = scalar @{$from->{href}};
     }
 
     my @diff_line_classifier = (
-        { regexp => qr/^\@\@{$num_sign} /, class => "chunk_header"},
-        { regexp => qr/^\\/,               class => "incomplete"  },
-        { regexp => qr/^ {$num_sign}/,     class => "ctx" },
+        { regexp => qr/^\@\@{$num_sign} /, class => 'chunk_header'},
+        { regexp => qr/^\\/,               class => 'incomplete'  },
+        { regexp => qr/^ {$num_sign}/,     class => 'ctx' },
         # classifier for context must come before classifier add/rem,
         # or we would have to use more complicated regexp, for example
         # qr/(?= {0,$m}\+)[+ ]{$num_sign}/, where $m = $num_sign - 1;
-        { regexp => qr/^[+ ]{$num_sign}/,   class => "add" },
-        { regexp => qr/^[- ]{$num_sign}/,   class => "rem" },
+        { regexp => qr/^[+ ]{$num_sign}/,  class => 'add' },
+        { regexp => qr/^[- ]{$num_sign}/,  class => 'rem' },
     );
     for my $clsfy (@diff_line_classifier) {
-        return $clsfy->{class} if ($line =~ $clsfy->{regexp});
+        return $clsfy->{class} if $line =~ $clsfy->{regexp};
     }
 
     # fallback
     return '';
 }
 
-sub format_difftree
-{
+sub format_difftree {
     my ($self, @difftree) = @_;
     my $difftree = [];
     foreach my $diff (@difftree) {
@@ -139,11 +134,12 @@ sub format_difftree
         } elsif ($diff->{status} eq 'D') { # deleted
             $difftree_line->{status} = 'deleted';
             $difftree_line->{status_string} = "deleted $from_file_type";
-        } elsif ($diff->{status} eq 'M' || $diff->{status} eq "T") { # modified, or type changed
+        } elsif ($diff->{status} eq 'M' || $diff->{status} eq 'T') { # modified, or type changed
             $difftree_line->{status} = 'changed';
             if ($diff->{from_mode} != $diff->{to_mode}) {
                 $difftree_line->{status_string} = 'changed';
-                $difftree_line->{status_string} .= " from $from_file_type to $to_file_type" if $from_file_type ne $to_file_type;
+                $difftree_line->{status_string} .= " from $from_file_type to $to_file_type"
+                    if $from_file_type ne $to_file_type;
                 if (($from_mode_oct & 0777) != ($to_mode_oct & 0777)) {
                     if ($from_mode_str && $to_mode_str) {
                         $difftree_line->{status_string} .= " mode: $from_mode_str->$to_mode_str";
@@ -161,8 +157,9 @@ sub format_difftree
             }
             my %status_name = ('R' => 'moved', 'C' => 'copied');
             $difftree_line->{status} = $status_name{$diff->{status}};
-            $difftree_line->{status_string} = sprintf('%s from %s with %d%%%s', $difftree_line->{status},
-                                                        $diff->{from_file}, int $diff->{similarity}, $mode_chng);
+            $difftree_line->{status_string} = sprintf(
+                '%s from %s with %d%%%s', $difftree_line->{status},
+                $diff->{from_file}, int $diff->{similarity}, $mode_chng);
         } # we should not encounter Unmerged (U) or Unknown (X) status
         push @{$difftree}, $difftree_line;
     }
@@ -170,14 +167,13 @@ sub format_difftree
 }
 
 # process patch (diff) line (not to be used for diff headers),
-sub format_diff_line
-{
+sub format_diff_line {
     my ($self, $line, $diff_class, $from, $to) = @_;
 
     chomp $line;
     $line = untabify($line);
 
-    $line = $self->format_unidiff_chunk_header($line, $from, $to) if ($from && $to && $line =~ m/^\@{2} /);
+    $line = $self->format_unidiff_chunk_header($line, $from, $to) if $from && $to && $line =~ m/^\@{2} /;
 
     my $diff_classes = 'diff';
     $diff_classes .= " $diff_class" if ($diff_class);
@@ -186,8 +182,7 @@ sub format_diff_line
 
 # assumes that $from and $to are defined and correctly filled,
 # and that $line holds a line of chunk header for unified diff
-sub format_unidiff_chunk_header
-{
+sub format_unidiff_chunk_header {
     my ($self, $line, $from, $to) = @_;
 
     my ($from_text, $from_start, $from_lines, $to_text, $to_start, $to_lines, $section) =
@@ -201,8 +196,7 @@ sub format_unidiff_chunk_header
 
 # Format removed and added line, mark changed part.
 # Implementation is based on contrib/diff-highlight
-sub format_rem_add_lines_pair
-{
+sub format_rem_add_lines_pair {
     my ($self, $rem, $add) = @_;
 
     # We need to untabify lines before split()'ing them;
@@ -222,7 +216,7 @@ sub format_rem_add_lines_pair
     while ($prefix_len < $shorter) {
         last if ($rem[$prefix_len] ne $add[$prefix_len]);
 
-        $prefix_has_nonspace = 1 if ($rem[$prefix_len] !~ /\s/);
+        $prefix_has_nonspace = 1 if $rem[$prefix_len] !~ /\s/;
         $prefix_len++;
     }
 
@@ -249,8 +243,7 @@ sub format_rem_add_lines_pair
 }
 
 # HTML-format diff context, removed and added lines.
-sub format_ctx_rem_add_lines
-{
+sub format_ctx_rem_add_lines {
     my ($self, $ctx, $rem, $add) = @_;
     my (@new_ctx, @new_rem, @new_add);
 
@@ -270,8 +263,7 @@ sub format_ctx_rem_add_lines
     return (@new_ctx, @new_rem, @new_add);
 }
 
-sub format_diff_chunk
-{
+sub format_diff_chunk {
     my ($self, $from, $to, @chunk) = @_;
     my (@ctx, @rem, @add);
 
@@ -331,8 +323,7 @@ sub format_diff_chunk
 }
 
 # parse extended diff header line, before patch itself
-sub format_extended_diff_header_line
-{
+sub format_extended_diff_header_line {
     my ($self, $line, $diffinfo, $from, $to) = @_;
     # match <path>
     $line .= $from->{file} if $line =~ s!^((copy|rename) from ).*$!$1! && $from->{href};
@@ -362,8 +353,7 @@ sub format_extended_diff_header_line
 }
 
 # format git diff header line, i.e. "diff --(git|combined|cc) ..."
-sub format_git_diff_header_line
-{
+sub format_git_diff_header_line {
     my ($self, $line, $diffinfo, $from, $to) = @_;
 
     $line =~ s!^(diff (.*?) )"?a/.*$!$1!;
@@ -373,8 +363,7 @@ sub format_git_diff_header_line
     return $line;
 }
 
-sub format_page_path
-{
+sub format_page_path {
     my ($self, $name, $type, $hb) = @_;
     my @dirname = split '/', join '', $self->git('rev-parse --show-toplevel');
     my $project = pop @dirname;
@@ -418,8 +407,7 @@ sub format_page_path
 }
 
 # parse line of git-diff-tree "raw" output
-sub parse_difftree_raw_line
-{
+sub parse_difftree_raw_line {
     my ($self, $line) = @_;
     my %res;
 
@@ -488,8 +476,7 @@ sub parse_diff_from_to_header
     $to->{header} = $line =~ m!^\+\+\+ "?b/! ? '+++ b/' . $to->{file} : $line;
 }
 
-sub parse_patches
-{
+sub parse_patches {
     my ($self, $difftree, $lines, $hash, $hash_parent) = @_;
 
     my $patch_idx = 0;
@@ -535,7 +522,8 @@ sub parse_patches
 
         # git diff header
         $patch_number++;
-        $patch_desc->{header} = $self->format_git_diff_header_line($patch_line, $diffinfo, $patch_desc->{from}, $patch_desc->{to});
+        $patch_desc->{header} = $self->format_git_diff_header_line(
+            $patch_line, $diffinfo, $patch_desc->{from}, $patch_desc->{to});
 
         $patch_desc->{extended_header} = [];
     EXTENDED_HEADER:
@@ -543,7 +531,8 @@ sub parse_patches
             chomp $patch_line;
 
             last EXTENDED_HEADER if ($patch_line =~ m/^--- |^diff /);
-            push @{$patch_desc->{extended_header}}, $self->format_extended_diff_header_line($patch_line, $diffinfo, $patch_desc->{from}, $patch_desc->{to});
+            push @{$patch_desc->{extended_header}},
+                $self->format_extended_diff_header_line($patch_line, $diffinfo, $patch_desc->{from}, $patch_desc->{to});
         }
 
         # from-file/to-file diff header
@@ -556,7 +545,8 @@ sub parse_patches
         $patch_line = shift @$lines;
         chomp $patch_line;
 
-        $self->parse_diff_from_to_header($last_patch_line, $patch_line, $diffinfo, $patch_desc->{from}, $patch_desc->{to});
+        $self->parse_diff_from_to_header(
+            $last_patch_line, $patch_line, $diffinfo, $patch_desc->{from}, $patch_desc->{to});
 
         # the patch itself
     LINE:
@@ -568,7 +558,8 @@ sub parse_patches
             my $class = $self->diff_line_class($patch_line, $patch_desc->{from}, $patch_desc->{to});
 
             if ($class eq 'chunk_header') {
-                push @{$patch_desc->{chunks}}, $self->format_diff_chunk($patch_desc->{from}, $patch_desc->{to}, @chunk);
+                push @{$patch_desc->{chunks}},
+                    $self->format_diff_chunk($patch_desc->{from}, $patch_desc->{to}, @chunk);
                 @chunk = ();
             }
 
@@ -585,8 +576,7 @@ sub parse_patches
     return \@patches;
 }
 
-sub parse_commit_text
-{
+sub parse_commit_text {
     my ($self, $commit_lines, $withparents) = @_;
     my %co;
     pop @$commit_lines; # Remove '\0'
@@ -653,8 +643,7 @@ sub parse_commit_text
     return %co;
 }
 
-sub commit_diff
-{
+sub commit_diff {
     my ($self, %co) = @_;
     @{$co{parents}} <= 1 or die 'Too many parents'; # TODO?
     # my $hash_parent_param = @{$co{'parents'}} > 1 ? '--cc' : $co{'parent'} || '--root';
@@ -674,29 +663,25 @@ sub commit_diff
     return (difftree => $self->format_difftree(@difftree), patches => $patches);
 }
 
-sub parse_commit
-{
+sub parse_commit {
     my ($self, $sha) = @_;
     return $self->parse_commit_text([ $self->git("rev-list --header --max-count=1 $sha") ], 1);
 }
 
-sub commit_info
-{
+sub commit_info {
     my ($self, $sha, $enc) = @_;
     my %co = $self->parse_commit($sha);
     return { info => \%co, $self->commit_diff(%co, encoding => $enc), log => $self->{log} };
 }
 
 # format tree entry (row of git_tree)
-sub format_tree_entry
-{
+sub format_tree_entry {
     my ($self, $t, $basedir) = @_;
     $t->{mode} = mode_str($t->{mode});
     $t->{size} = $t->{size} if exists $t->{size};
 }
 
-sub parse_ls_tree_line
-{
+sub parse_ls_tree_line {
     my ($self, $line, $basedir) = @_;
     my %res;
 
@@ -713,8 +698,7 @@ sub parse_ls_tree_line
     );
 }
 
-sub git_get_hash_by_path
-{
+sub git_get_hash_by_path {
     my $self = shift;
     my $base = shift;
     my $path = shift || return undef;
@@ -739,8 +723,7 @@ sub git_get_hash_by_path
     return $3;
 }
 
-sub tree
-{
+sub tree {
     my ($self, $hash_base, $file, $enc) = @_;
     my $hash = defined $file ? $self->git_get_hash_by_path($hash_base, $file, 'tree') : $hash_base;
 
@@ -784,10 +767,9 @@ sub tree
     };
 }
 
-sub blob
-{
+sub blob {
     my ($self, $hash_base, $file, $enc) = @_;
-    die "No file name defined" if !defined $file;
+    die 'No file name defined' if !defined $file;
     die 'No encoding defined' if !defined $enc;
 
     my $hash = $self->git_get_hash_by_path($hash_base, $file, 'blob');
@@ -829,10 +811,9 @@ sub blob
     return $result;
 }
 
-sub raw
-{
+sub raw {
     my ($self, $hash_base, $file) = @_;
-    die "No file name defined" if !defined $file;
+    die 'No file name defined' if !defined $file;
 
     my $hash = $self->git_get_hash_by_path($hash_base, $file, 'blob');
 
@@ -848,55 +829,48 @@ sub raw
     };
 }
 
-sub new
-{
+sub new {
     my ($class, %opts) = @_;
     $opts{dir} //= '';
     $opts{git_dir} //= "$opts{dir}.git";
     return bless \%opts => $class;
 }
 
-sub set_repo
-{
+sub set_repo {
     my ($self, $dir) = @_;
     $self->{dir} = $dir;
     $self->{git_dir} = "$dir.git";
     return $self;
 }
 
-sub exec_or_die
-{
+sub exec_or_die {
     # Apache subprocces, capture both stdout and stderr.
     my @r = `$_[0] 2>&1`;
     die join "\n", $_[0], @r, "Error $?" if $?;
     @r;
 }
 
-sub git
-{
+sub git {
     my ($self, $git_tail) = @_;
     my @lines = exec_or_die("git --git-dir=$self->{git_dir} --work-tree=$self->{dir} $git_tail");
     $self->{logger}->note(Encode::decode_utf8(join "\n", @lines)) if exists $self->{logger};
     return @lines;
 }
 
-sub git_handler
-{
+sub git_handler {
     my ($self, $git_tail) = @_;
     open my $fd, '-|', "git --git-dir=$self->{git_dir} --work-tree=$self->{dir} $git_tail" or die("cannot run git command: $!");
     return $fd;
 }
 
-sub find_files
-{
+sub find_files {
     my ($self, $regexp) = @_;
     my @files = $self->git('ls-tree HEAD --name-only');
     chomp $_ foreach @files;
     return grep /$regexp/, @files;
 }
 
-sub log
-{
+sub log {
     my ($self, %opts) = @_;
     my $sha = $opts{sha} // '';
     my $max_count = $opts{max_count} ? "--max-count=$opts{max_count} " : '';
@@ -919,8 +893,7 @@ sub log
     return \@out;
 }
 
-sub archive
-{
+sub archive {
     my ($self, $tree_id) = @_;
     if (!$tree_id) {
         $tree_id = join '', $self->git('log --format=%H -1');
@@ -931,8 +904,7 @@ sub archive
     return ($fname, $tree_id);
 }
 
-sub new_repo
-{
+sub new_repo {
     my ($self, $problem, %opts) = @_;
     mkdir $self->{dir} or die "Unable to create repo dir: $!";
     if (exists $opts{from}) {
@@ -947,42 +919,36 @@ sub new_repo
 
 sub get_dir { $_[0]->{dir} }
 
-sub delete
-{
+sub delete {
     my ($self) = @_;
     rmtree($self->{dir}) or warn q~Git repository doesn't exist~;
 }
 
-sub init
-{
+sub init {
     my ($self, %opts) = @_;
     mkdir $self->{dir} or die "Unable to create repo dir: $!";
     $self->git('init');
     return $self;
 }
 
-sub rm
-{
+sub rm {
     my ($self, @args) = @_;
     $self->git('rm ' . join(' ', @args));
     return $self;
 }
 
-sub add
-{
+sub add {
     my $self = shift;
     $self->git('add -A');
     return $self;
 }
 
-sub replace_file_content
-{
+sub replace_file_content {
     my ($self, $file, $content) = @_;
     CATS::BinaryFile::save(File::Spec->catfile($self->{dir}, $file), $content);
 }
 
-sub move_history
-{
+sub move_history {
     my ($self, %opts) = @_;
     rmtree $self->{dir};
     mkdir $self->{dir};
@@ -991,45 +957,39 @@ sub move_history
     return $self;
 }
 
-sub get_remote_url
-{
+sub get_remote_url {
     my $self = shift;
     my ($remote_url) = eval { $self->git('config remote.origin.url'); } or return undef;
     chomp $remote_url;
     return $remote_url;
 }
 
-sub get_latest_master_sha
-{
+sub get_latest_master_sha {
     my $self = shift;
     my $sha = join '', $self->git('rev-parse master');
     chomp $sha;
     return $sha;
 }
 
-sub is_remote
-{
+sub is_remote {
     my $remote_url = $_[0]->get_remote_url;
     return defined $remote_url && $remote_url ne '';
 }
 
-sub reset
-{
+sub reset {
     my ($self, $arg) = @_;
     $self->git("reset $arg");
     return $self;
 }
 
-sub checkout
-{
+sub checkout {
     my ($self, $what) = @_;
     $what //= '.';
     $self->git("checkout $what");
     return $self;
 }
 
-sub commit
-{
+sub commit {
     my ($self, $problem_author, $message, $is_amend) = @_;
     if (!($self->{author_name} && $self->{author_email})) {
         my ($git_author_name, $git_author_email) = get_git_author_info(parse_author($problem_author));
@@ -1045,15 +1005,13 @@ sub commit
     return $self;
 }
 
-sub clone
-{
+sub clone {
     my ($link, $dir) = @_;
     my @lines = exec_or_die("git clone $link $dir");
     return (CATS::Problem::Repository->new(dir => $dir), @lines);
 }
 
-sub pull
-{
+sub pull {
     my ($self, $remote_url) = @_;
     $self->git("fetch $remote_url");
     $self->git('merge origin/master');
