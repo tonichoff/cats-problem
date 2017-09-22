@@ -2,7 +2,7 @@ package cats;
 
 $anonymous_login = 'anonymous';
 
-@langs = qw(ru en);
+@langs = qw(ru en cn);
 
 # Values problem_sources.stype.
 $generator = 0;
