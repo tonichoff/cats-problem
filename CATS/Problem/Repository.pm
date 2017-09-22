@@ -786,7 +786,7 @@ sub blob {
 
     my $mimetype = blob_mimetype($fd, $file);
     # use 'blob_plain' (aka 'raw') view for files that cannot be displayed
-    if ($mimetype !~ m!^(?:text/|image/(?:gif|png|jpeg)|application/xml$)! && -B $fd) {
+    if ($mimetype !~ m!^(?:text/|image/(?:gif|png|jpeg)$)! && -B $fd) {
         close $fd;
         return $result;
     }
