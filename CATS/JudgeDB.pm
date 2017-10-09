@@ -606,13 +606,21 @@ sub insert_req_details {
     my ($output, $output_size) = map $p{$_}, qw(output output_size);
     delete $p{$_} for qw(output output_size judge_id);
 
-    $dbh->do(
-        sprintf(q~
-            INSERT INTO req_details (%s) VALUES (%s)~,
-            join(', ', keys %p), join(', ', ('?') x keys %p)
-        ),
-        undef, values %p
-    );
+    eval {
+        $dbh->do(
+            sprintf(q~
+                INSERT INTO req_details (%s) VALUES (%s)~,
+                join(', ', keys %p), join(', ', ('?') x keys %p)
+            ),
+            undef, values %p
+        );
+    };
+    if (my $err = $@) {
+        # Maybe retry from judge after crash.
+        $err =~ /UNIQUE.*REQ_DETAILS/ or die $err;
+        warn 'Duplicate req_details';
+        return 1;
+    }
 
     $dbh->do(q~
         INSERT INTO solution_output (req_id, test_rank, output, output_size, create_time)
