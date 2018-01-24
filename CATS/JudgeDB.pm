@@ -7,6 +7,13 @@ use CATS::Constants;
 use CATS::DB;
 use CATS::DevEnv;
 
+sub catch_deadlock_error {
+    my $err = $@ // '';
+    $err =~ /concurrent transaction number is (\d+)/m or die $err;
+    warn "select_request: deadlock with transaction: $1";
+    undef;
+}
+
 sub get_judge_id {
     my ($sid) = @_;
     $dbh->selectrow_array(q~
@@ -579,11 +586,9 @@ sub select_request {
         }
         1;
     } and return $req_tree->{$sel_req->{id}};
-    my $err = $@ // '';
-    $err =~ /concurrent transaction number is (\d+)/m or die $err;
+
     # Another judge has probably acquired this problem concurrently.
-    warn "select_request: deadlock with transaction: $1";
-    undef;
+    return catch_deadlock_error();
 }
 
 sub delete_req_details {
@@ -634,23 +639,33 @@ sub insert_req_details {
 sub save_input_test_data {
     my ($problem_id, $test_rank, $input, $input_size) = @_;
 
-    $dbh->do(q~
+    eval {
+        $dbh->do(q~
         UPDATE tests SET in_file = ?, in_file_size = ?
             WHERE problem_id = ? AND rank = ? AND in_file IS NULL~, undef,
         $input, $input_size, $problem_id, $test_rank);
 
-    $dbh->commit;
+        $dbh->commit;
+        1;
+    } and return;
+
+    return catch_deadlock_error();
 }
 
 sub save_answer_test_data {
     my ($problem_id, $test_rank, $answer, $answer_size) = @_;
 
-    $dbh->do(q~
+    eval {
+        $dbh->do(q~
         UPDATE tests SET out_file = ?, out_file_size = ?
             WHERE problem_id = ? AND rank = ? AND out_file IS NULL~, undef,
         $answer, $answer_size, $problem_id, $test_rank);
 
-    $dbh->commit;
+        $dbh->commit;
+        1;
+    } and return;
+
+    return catch_deadlock_error();
 }
 
 1;
