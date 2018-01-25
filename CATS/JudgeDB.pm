@@ -7,13 +7,6 @@ use CATS::Constants;
 use CATS::DB;
 use CATS::DevEnv;
 
-sub catch_deadlock_error {
-    my $err = $@ // '';
-    $err =~ /concurrent transaction number is (\d+)/m or die $err;
-    warn "select_request: deadlock with transaction: $1";
-    undef;
-}
-
 sub get_judge_id {
     my ($sid) = @_;
     $dbh->selectrow_array(q~
@@ -586,9 +579,8 @@ sub select_request {
         }
         1;
     } and return $req_tree->{$sel_req->{id}};
-
     # Another judge has probably acquired this problem concurrently.
-    return catch_deadlock_error();
+    CATS::DB::catch_deadlock_error('select_request');
 }
 
 sub delete_req_details {
@@ -647,9 +639,7 @@ sub save_input_test_data {
 
         $dbh->commit;
         1;
-    } and return;
-
-    return catch_deadlock_error();
+    } or CATS::DB::catch_deadlock_error('save_input_test_data');
 }
 
 sub save_answer_test_data {
@@ -663,9 +653,7 @@ sub save_answer_test_data {
 
         $dbh->commit;
         1;
-    } and return;
-
-    return catch_deadlock_error();
+    } or CATS::DB::catch_deadlock_error('save_answer_test_data');
 }
 
 1;

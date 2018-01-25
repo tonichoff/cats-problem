@@ -90,5 +90,13 @@ sub sql_disconnect
     undef $dbh;
 }
 
+sub catch_deadlock_error {
+    my ($warn_prefix) = @_;
+    my $err = $@ // '';
+    # Firebird-specific message.
+    $err =~ /concurrent transaction number is (\d+)/m or die $err;
+    warn "$warn_prefix: deadlock with transaction: $1" if $warn_prefix;
+    undef;
+}
 
 1;
