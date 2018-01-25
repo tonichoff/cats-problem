@@ -5,8 +5,7 @@ use warnings;
 
 use Carp;
 
-sub load
-{
+sub load {
     my ($fname, $result, %p) = @_;
     ref $result eq 'SCALAR' or die;
 
@@ -14,17 +13,14 @@ sub load
     binmode($fh, ':raw');
 
     $$result = '';
-    while (sysread($fh, my $buffer, 8192))
-    {
+    while (sysread($fh, my $buffer, 8192)) {
         $$result .= $buffer;
     }
     close $fh;
     1;
 }
 
-
-sub save
-{
+sub save {
     my ($fname, $data) = @_;
     $data or croak 'No data';
     open my $fh, '>', $fname or die "Can not write to $fname";
@@ -32,6 +28,5 @@ sub save
     syswrite($fh, $data, length($data));
     close $fh;
 }
-
 
 1;

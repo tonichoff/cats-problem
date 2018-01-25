@@ -11,8 +11,7 @@ use CATS::BinaryFile;
 use CATS::Constants;
 use CATS::Utils qw(escape_xml);
 
-sub get_tags()
-{{
+sub get_tags() {{
     'id' => undef,
     'stype' => undef,
     'guid' => undef,
@@ -24,8 +23,7 @@ sub get_tags()
     'fname' => undef,
 }}
 
-sub on_end_tag
-{
+sub on_end_tag {
     my ($source, $text, $p, $el, %atts) = @_;
 
     my $content = $$text;
@@ -45,8 +43,7 @@ sub on_end_tag
     $source->{$el} = $content;
 }
 
-sub save
-{
+sub save {
     my ($source, $dir, $path) = @_;
     -d $dir or mkdir $dir or die "Unable to create $dir";
     $source->{guid} && $source->{guid} ne '' or return;

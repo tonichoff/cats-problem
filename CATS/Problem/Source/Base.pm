@@ -3,8 +3,7 @@ package CATS::Problem::Source::Base;
 use strict;
 use warnings;
 
-sub new
-{
+sub new {
     my ($class) = shift;
     my $self = { @_ };
     bless $self, $class;
@@ -23,20 +22,17 @@ sub finalize { 0 }
 
 sub last_modified { 0 }
 
-sub error
-{
+sub error {
     my ($self, $msg) = @_;
     $self->{logger}->error($msg) if exists $self->{logger} && defined $self->{logger};
 }
 
-sub note
-{
+sub note {
     my ($self, $msg) = @_;
     $self->{logger}->note($msg) if exists $self->{logger} && defined $self->{logger};
 }
 
-sub warning
-{
+sub warning {
     my ($self, $msg) = @_;
     $self->{logger}->warning($msg) if exists $self->{logger} && defined $self->{logger};
 }
@@ -49,14 +45,12 @@ use base qw(CATS::Problem::Source::Base);
 
 sub get_zip { die 'Mockup'; }
 
-sub find_members
-{
+sub find_members {
     my ($self, $regexp) = @_;
     grep /$regexp/, keys %{$self->{data}};
 }
 
-sub read_member
-{
+sub read_member {
     my ($self, $name, $msg) = @_;
     $self->{data}->{$name} or return $msg && $self->error($msg);
 }

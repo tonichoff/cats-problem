@@ -14,8 +14,7 @@ use base qw(CATS::Problem::Source::Base);
 
 my $tmp_repo_template = 'repoXXXXXX';
 
-sub new
-{
+sub new {
     my ($class, $link, $logger) = @_;
     defined $link or die('No remote url specified!');
     my %opts = (
@@ -27,8 +26,7 @@ sub new
     return bless \%opts => $class;
 }
 
-sub get_zip
-{
+sub get_zip {
     my $self = shift;
     my ($fname, $tree_id) = $self->{repo}->archive;
     my $zip;
@@ -36,8 +34,7 @@ sub get_zip
     return $zip;
 }
 
-sub init
-{
+sub init {
     my $self = shift;
     my $tmpdir = tempdir($tmp_repo_template, TMPDIR => 1, CLEANUP => 1);
     $self->{dir} = $tmpdir;
@@ -45,14 +42,12 @@ sub init
     $self->note(join "\n", @log);
 }
 
-sub find_members
-{
+sub find_members {
     my ($self, $regexp) = @_;
     return $self->{repo}->find_files($regexp);
 }
 
-sub read_member
-{
+sub read_member {
     my ($self, $name, $msg) = @_;
     my $fname = File::Spec->catfile($self->{repo}->get_dir, $name);
     -f $fname or return $msg && $self->error($msg);
@@ -60,12 +55,10 @@ sub read_member
     return $content;
 }
 
-sub finalize
-{
+sub finalize {
     my ($self, $dbh, $repo, $problem, $message, $is_amend, $repo_id, $sha) = @_;
 
     dircopy($self->{dir}, $repo->get_dir);
 }
-
 
 1;

@@ -13,22 +13,19 @@ use CATS::BinaryFile;
 
 use base qw(CATS::Problem::Source::Base);
 
-sub new
-{
+sub new {
     my ($class, %opts) = @_;
     $opts{dir} or die('The directory is not specified');
     bless \%opts => $class;
 }
 
-sub open_directory
-{
+sub open_directory {
     my $self = shift;
     opendir(my $dh, $self->{dir}) or $self->error("Cannot open dir: $!");
     return $dh;
 }
 
-sub get_zip
-{
+sub get_zip {
     my $self = shift;
     my $zip = Archive::Zip->new;
     $zip->addTree($self->{dir}, '', sub { $_ !~ m[/(.git/|.git$)]; });
@@ -40,8 +37,7 @@ sub get_zip
 
 sub init { }
 
-sub find_members
-{
+sub find_members {
     my ($self, $regexp) = @_;
     {
         my $dh = $self->open_directory;
@@ -49,8 +45,7 @@ sub find_members
     }
 }
 
-sub read_member
-{
+sub read_member {
     my ($self, $name, $msg) = @_;
     my $fname = File::Spec->catfile($self->{dir}, $name);
     -f $fname or return $msg && $self->error($msg);
@@ -58,8 +53,7 @@ sub read_member
     return $content;
 }
 
-sub finalize
-{
+sub finalize {
     # TODO: needed some changes in architecture
     my ($self, $dbh, $repo, $problem, $message, $is_amend, $repo_id, $sha) = @_;
     $repo->add()->commit($self->{problem}{author}, $message, $is_amend);

@@ -3,8 +3,7 @@ package CATS::Problem::ImportSource::Base;
 use strict;
 use warnings;
 
-sub new
-{
+sub new {
     my ($class) = shift;
     my $self = { @_ };
     bless $self, $class;

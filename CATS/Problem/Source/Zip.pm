@@ -14,8 +14,7 @@ use base qw(CATS::Problem::Source::Base);
 
 my $tmp_template = 'zipXXXXXX';
 
-sub new
-{
+sub new {
     my ($class, $fname, $logger) = @_;
     $fname or die('No filename!');
     my %opts = (
@@ -26,16 +25,14 @@ sub new
     bless \%opts => $class;
 }
 
-sub get_zip
-{
+sub get_zip {
     my $self = shift;
     my $zip;
     CATS::BinaryFile::load($self->{fname}, \$zip) or $self->error("open '$self->{fname}' failed: $!");
     return $zip;
 }
 
-sub init
-{
+sub init {
     my $self = shift;
     $self->{zip} = Archive::Zip->new();
     $self->{zip}->read($self->{fname}) == AZ_OK
@@ -43,14 +40,12 @@ sub init
     $self->{last_modified} = stat($self->{fname})->mtime;
 }
 
-sub find_members
-{
+sub find_members {
     my ($self, $regexp) = @_;
     return map { $_->fileName() } $self->{zip}->membersMatching($regexp);
 }
 
-sub read_member
-{
+sub read_member {
     my ($self, $name, $msg) = @_;
     my $member = $self->{zip}->memberNamed($name) or return $msg && $self->error($msg);
 
@@ -69,8 +64,7 @@ sub read_member
     return $data;
 }
 
-sub extract
-{
+sub extract {
     my ($self, $repo) = @_;
     my $tmpdir = tempdir($tmp_template, TMPDIR => 1, CLEANUP => 1);
     $self->{zip}->extractTree('', "$tmpdir/") == AZ_OK or die "can't extract '$self->{zip}' to $tmpdir\n";
@@ -79,8 +73,7 @@ sub extract
     return $self;
 }
 
-sub finalize
-{
+sub finalize {
     my ($self, $dbh, $repo, $problem, $message, $is_amend, $repo_id, $sha) = @_;
 
     if ($problem->{replace}) {

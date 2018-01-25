@@ -13,8 +13,7 @@ use constant {
     EXTERNAL_AUTHOR => 'external'
 };
 
-sub make_author_info
-{
+sub make_author_info {
     my ($h) = @_;
     my $res = {email => (defined $h->{email} ? $h->{email} : DEFAULT_EMAIL)};
     $res->{git_author} = $h->{git_author} if defined $h->{git_author};
@@ -78,8 +77,7 @@ my %authors_map = (
 
 $_ = make_author_info($_) for values %authors_map;
 
-sub get_git_author_info
-{
+sub get_git_author_info {
     my ($author) = @_;
     my $a = $authors_map{$author} // {git_author => EXTERNAL_AUTHOR, email => DEFAULT_EMAIL};
     return ($a->{git_author} // $author, $a->{email});

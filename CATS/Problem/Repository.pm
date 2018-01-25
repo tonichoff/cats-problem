@@ -9,8 +9,7 @@ use overload
     '""' => sub { strftime('%d.%m.%Y %H:%M', gmtime($_[0]->{seconds})) },
 ;
 
-sub new
-{
+sub new {
     my ($class, $seconds) = @_;
     bless { seconds => $seconds }, $class;
 }
@@ -446,8 +445,7 @@ sub parse_difftree_raw_line {
 }
 
 # generates _two_ hashes, references to which are passed as 2 and 3 argument
-sub parse_from_to_diffinfo
-{
+sub parse_from_to_diffinfo {
     my ($self, $diffinfo, $from, $to) = @_;
 
     # ordinary (not combined) diff
@@ -459,8 +457,7 @@ sub parse_from_to_diffinfo
 }
 
 # parse from-file/to-file diff header
-sub parse_diff_from_to_header
-{
+sub parse_diff_from_to_header {
     my ($self, $from_line, $to_line, $diffinfo, $from, $to) = @_;
     my $line;
     my $result = '';

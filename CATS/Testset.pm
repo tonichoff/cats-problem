@@ -5,8 +5,7 @@ use warnings;
 
 sub is_scoring_group { defined $_[0]->{points} || $_[0]->{hide_details} || defined $_[0]->{depends_on} }
 
-sub parse_simple_rank
-{
+sub parse_simple_rank {
     my ($rank_spec, $on_error) = @_;
     $on_error //= sub {};
     my %result;
@@ -24,8 +23,7 @@ sub parse_simple_rank
     [ sort keys %result ];
 }
 
-sub parse_test_rank
-{
+sub parse_test_rank {
     my ($all_testsets, $rank_spec, $on_error, %p) = @_;
     my (%result, %used, $rec);
     $rec = sub {
@@ -68,8 +66,7 @@ sub parse_test_rank
     \%result;
 }
 
-sub validate_testset
-{
+sub validate_testset {
     my ($all_testsets, $all_tests, $testset_name, $on_error) = @_;
     my $testset = $all_testsets->{$testset_name};
     my $tests = parse_test_rank($all_testsets, $testset->{tests}, $on_error);
@@ -87,8 +84,7 @@ sub validate_testset
     1;
 }
 
-sub pack_rank_spec
-{
+sub pack_rank_spec {
     my (@ranks) = sort { $a <=> $b } @_;
     my (@ranges);
     my $range = [0, -1];
@@ -103,9 +99,7 @@ sub pack_rank_spec
     join ',', @ranges;
 }
 
-
-sub get_all_testsets
-{
+sub get_all_testsets {
     my ($dbh, $pid) = @_;
     $dbh->selectall_hashref(qq~
         SELECT id, name, tests, points, comment, hide_details, depends_on
@@ -114,9 +108,7 @@ sub get_all_testsets
         $pid) || {};
 }
 
-
-sub get_testset
-{
+sub get_testset {
     my ($dbh, $rid, $update) = @_;
     my ($pid, $orig_testsets, $testsets) = $dbh->selectrow_array(q~
         SELECT R.problem_id, R.testsets, COALESCE(R.testsets, CP.testsets)
@@ -141,6 +133,5 @@ sub get_testset
     my %tests = %{parse_test_rank(get_all_testsets($dbh, $pid), $testsets, sub { warn @_ })};
     map { exists $tests{$_} ? ($_ => $tests{$_}) : () } @all_tests;
 }
-
 
 1;

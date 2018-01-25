@@ -5,22 +5,19 @@ use warnings;
 use CATS::DB;
 use base qw(CATS::Problem::ImportSource::Base);
 
-sub get_source
-{
+sub get_source {
     my ($self, $guid) = @_;
     $dbh->selectrow_array(qq~SELECT id, stype FROM problem_sources WHERE guid = ?~, undef, $guid);
 }
 
-sub get_guids
-{
+sub get_guids {
     my ($self, $guid) = @_;
     $guid =~ s/%/\\%/g;
     $guid =~ s/\*/%/g;
     @{$dbh->selectcol_arrayref(qq~SELECT guid FROM problem_sources WHERE guid LIKE ? ESCAPE '\\'~, undef, $guid)};
 }
 
-sub get_sources_info
-{
+sub get_sources_info {
     my ($self, $sources) = @_;
     $sources and @$sources or return ();
 

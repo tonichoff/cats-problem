@@ -17,8 +17,7 @@ BEGIN { $has_formal_input = eval { require FormalInput; 1; } }
 
 use CATS::Problem::TestsParser;
 
-sub new
-{
+sub new {
     my ($class, %opts) = @_;
     $opts{source} or die "Unknown source for parser";
     $opts{problem} = CATS::Problem->new(%{$opts{problem_desc}});
@@ -30,37 +29,31 @@ sub new
 
 sub logger { $_[0]->{source}->{logger} }
 
-sub error
-{
+sub error {
     my CATS::Problem::Parser $self = shift;
     $self->{source}->error(@_);
 }
 
-sub error_stack
-{
+sub error_stack {
     (my CATS::Problem::Parser $self, my $msg) = @_;
     $self->error("$msg in " . join '/', @{$self->{tag_stack}});
 }
 
-sub note
-{
+sub note {
     my CATS::Problem::Parser $self = shift;
     $self->{source}->note(@_);
 }
 
-sub warning
-{
+sub warning {
     my CATS::Problem::Parser $self = shift;
     $self->{source}->warning(@_);
 }
 
-sub get_zip
-{
+sub get_zip {
     $_[0]->{source}->get_zip;
 }
 
-sub tag_handlers()
-{{
+sub tag_handlers() {{
     CATS => { s => sub {}, r => ['version'], in => [] },
     ProblemStatement => { stml_src_handlers('statement') },
     ProblemConstraints => { stml_handlers('constraints') },
@@ -99,8 +92,7 @@ sub tag_handlers()
 
 sub current_tag { $_[0]->{tag_stack}->[-1] }
 
-sub required_attributes
-{
+sub required_attributes {
     my CATS::Problem::Parser $self = shift;
     my ($el, $attrs, $names) = @_;
     for (@$names) {
@@ -109,8 +101,7 @@ sub required_attributes
     }
 }
 
-sub set_named_object
-{
+sub set_named_object {
     my CATS::Problem::Parser $self = shift;
     my ($name, $object) = @_;
     $name or return;
@@ -119,8 +110,7 @@ sub set_named_object
     $self->{objects}->{$name} = $object;
 }
 
-sub get_named_object
-{
+sub get_named_object {
     (my CATS::Problem::Parser $self, my $name, my $kind) = @_;
 
     defined $name or return undef;
@@ -131,8 +121,7 @@ sub get_named_object
     $result;
 }
 
-sub get_imported_id
-{
+sub get_imported_id {
     (my CATS::Problem::Parser $self, my $name) = @_;
 
     for (@{$self->{problem}{imports}}) {
@@ -141,8 +130,7 @@ sub get_imported_id
     undef;
 }
 
-sub read_member_named
-{
+sub read_member_named {
     (my CATS::Problem::Parser $self, my %p) = @_;
 
     return (
@@ -152,23 +140,20 @@ sub read_member_named
     );
 }
 
-sub check_top_tag
-{
+sub check_top_tag {
     (my CATS::Problem::Parser $self, my $allowed_tags) = @_;
     my $top_tag;
     $top_tag = @$_ ? $_->[$#$_] : '' for $self->{tag_stack};
     return grep $top_tag eq $_, @$allowed_tags;
 }
 
-sub checker_added
-{
+sub checker_added {
     my CATS::Problem::Parser $self = shift;
     $self->{problem}{has_checker} and $self->error('Found several checkers');
     $self->{problem}{has_checker} = 1;
 }
 
-sub create_generator
-{
+sub create_generator {
     (my CATS::Problem::Parser $self, my $p) = @_;
 
     return $self->set_named_object($p->{name}, {
@@ -177,8 +162,7 @@ sub create_generator
     });
 }
 
-sub create_validator
-{
+sub create_validator {
     (my CATS::Problem::Parser $self, my $p) = @_;
 
     return $self->set_named_object($p->{name}, {
@@ -187,8 +171,7 @@ sub create_validator
     });
 }
 
-sub create_visualizer
-{
+sub create_visualizer {
     (my CATS::Problem::Parser $self, my $p) = @_;
 
     return $self->set_named_object($p->{name}, {
@@ -196,8 +179,7 @@ sub create_visualizer
     });
 }
 
-sub validate
-{
+sub validate {
     my CATS::Problem::Parser $self = shift;
 
     my $check_order = sub {
@@ -244,14 +226,12 @@ sub validate
         and $self->warning("Interactor is not defined when run method is interactive or competitive (maybe used legacy interactor definition)");
 }
 
-sub inc_object_ref_count
-{
+sub inc_object_ref_count {
     (my CATS::Problem::Parser $self, my $name, my $kind) = @_;
     defined $name and $self->get_named_object($name, $kind)->{refcount}++;
 }
 
-sub on_start_tag
-{
+sub on_start_tag {
     my CATS::Problem::Parser $self = shift;
     my ($p, $el, %atts) = @_;
 
@@ -285,8 +265,7 @@ sub on_start_tag
     $h->{s}->($self, \%atts, $el);
 }
 
-sub on_end_tag
-{
+sub on_end_tag {
     my CATS::Problem::Parser $self = shift;
     my ($p, $el, %atts) = @_;
 
@@ -309,8 +288,7 @@ sub end_stml { undef $_[0]->{stml} }
 
 sub stml_handlers { return (s => start_stml(@_), e => \&end_stml); }
 
-sub stml_src_handlers
-{
+sub stml_src_handlers {
     my $start = start_stml(@_);
     my ($field) = @_;
     (
@@ -334,8 +312,7 @@ sub stml_src_handlers
     );
 }
 
-sub end_tag_FormalInput
-{
+sub end_tag_FormalInput {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     $has_formal_input or return $self->warning('Parsing FormalInput tag requires FormalInput module');
     my $parser_err = FormalInput::parserValidate(${$self->{stml}});
@@ -350,8 +327,7 @@ sub end_tag_FormalInput
     $self->end_stml;
 }
 
-sub end_tag_JsonData
-{
+sub end_tag_JsonData {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     ${$self->{stml}} = Encode::encode_utf8(${$self->{stml}});
     eval { decode_json(${$self->{stml}}) };
@@ -380,8 +356,7 @@ sub parse_memory_unit {
     $bytes % $m{$convert_to} ? $on_error->("Value of '$attrib_name' must be in whole ${convert_to}bytes") : $bytes / $m{$convert_to};
 };
 
-sub start_tag_Problem
-{
+sub start_tag_Problem {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my $problem = $self->{problem};
@@ -419,13 +394,11 @@ sub start_tag_Problem
     ) if $ot && $problem->{description}{title} ne $ot;
 }
 
-sub end_tag_Problem
-{
+sub end_tag_Problem {
     $_[0]->validate;
 }
 
-sub start_tag_Attachment
-{
+sub start_tag_Attachment {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     push @{$self->{problem}{attachments}},
@@ -436,8 +409,7 @@ sub start_tag_Attachment
         });
 }
 
-sub start_tag_Picture
-{
+sub start_tag_Picture {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     $atts->{src} =~ /\.([^\.]+)$/ and my $ext = $1
@@ -451,8 +423,7 @@ sub start_tag_Picture
         });
 }
 
-sub problem_source_common_params
-{
+sub problem_source_common_params {
     (my CATS::Problem::Parser $self, my $atts, my $kind) = @_;
     return (
         id => $self->{id_gen}->($self, $atts->{src}),
@@ -466,8 +437,7 @@ sub problem_source_common_params
     );
 }
 
-sub start_tag_Solution
-{
+sub start_tag_Solution {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my $sol = $self->set_named_object($atts->{name}, {
@@ -477,8 +447,7 @@ sub start_tag_Solution
     push @{$self->{problem}{solutions}}, $sol;
 }
 
-sub start_tag_Checker
-{
+sub start_tag_Checker {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my $style = $atts->{style} || 'legacy';
@@ -492,8 +461,7 @@ sub start_tag_Checker
     };
 }
 
-sub start_tag_Interactor
-{
+sub start_tag_Interactor {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     $self->error("Found several interactors") if exists $self->{problem}{interactor};
@@ -503,26 +471,22 @@ sub start_tag_Interactor
     };
 }
 
-sub start_tag_Generator
-{
+sub start_tag_Generator {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     push @{$self->{problem}{generators}}, $self->create_generator($atts);
 }
 
-sub start_tag_Validator
-{
+sub start_tag_Validator {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     push @{$self->{problem}{validators}}, $self->create_validator($atts);
 }
 
-sub start_tag_Visualizer
-{
+sub start_tag_Visualizer {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     push @{$self->{problem}{visualizers}}, $self->create_visualizer($atts);
 }
 
-sub start_tag_GeneratorRange
-{
+sub start_tag_GeneratorRange {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     for ($atts->{from} .. $atts->{to}) {
         push @{$self->{problem}{generators}}, $self->create_generator({
@@ -535,8 +499,7 @@ sub start_tag_GeneratorRange
     }
 }
 
-sub start_tag_Module
-{
+sub start_tag_Module {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     exists CATS::Problem::module_types()->{$atts->{type}}
@@ -551,8 +514,7 @@ sub start_tag_Module
     };
 }
 
-sub import_one_source
-{
+sub import_one_source {
     my CATS::Problem::Parser $self = shift;
     my ($guid, $name, $type) = @_;
     push @{$self->{problem}{imports}}, my $import = { guid => $guid, name => $name };
@@ -569,14 +531,14 @@ sub import_one_source
             if defined $cats::source_modules{$stype} && $cats::source_modules{$stype} == $cats::checker_module;
         $import->{src_id} = $src_id;
         $self->note("Imported source from guid='$guid'");
-    } else {
+    }
+    else {
         $self->warning("Import source not found for guid='$guid'");
     }
 
 }
 
-sub start_tag_Import
-{
+sub start_tag_Import {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my ($guid, @nt) = @$atts{qw(guid name type)};
@@ -594,8 +556,7 @@ sub validate_sample {
     undef;
 }
 
-sub start_tag_Sample
-{
+sub start_tag_Sample {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     $self->{current_samples} =
@@ -649,8 +610,7 @@ sub start_end_tag_SampleInOut {
     );
 }
 
-sub start_tag_Keyword
-{
+sub start_tag_Keyword {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my $c = $atts->{code};
@@ -659,8 +619,7 @@ sub start_tag_Keyword
     $self->{problem}{keywords}->{$c} = 1;
 }
 
-sub start_tag_Run
-{
+sub start_tag_Run {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     my $m = $atts->{method};
     $self->error("Duplicate run method '$m'") if defined $self->{problem}{run_method};
@@ -684,8 +643,7 @@ sub start_tag_Run
     $self->note("Run method set to '$m'");
 }
 
-sub parse_xml
-{
+sub parse_xml {
     (my CATS::Problem::Parser $self, my $xml_file) = @_;
     $self->{tag_stack} = [];
 
@@ -699,8 +657,7 @@ sub parse_xml
     $xml_parser->parse($self->{source}->read_member($xml_file));
 }
 
-sub parse
-{
+sub parse {
     my $self = shift;
     $self->{source}->init;
 
@@ -711,6 +668,5 @@ sub parse
     $self->parse_xml($xml_members[0]);
     return $self->{problem};
 }
-
 
 1;

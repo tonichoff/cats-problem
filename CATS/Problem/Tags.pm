@@ -3,8 +3,7 @@ package CATS::Problem::Tags;
 use strict;
 use warnings;
 
-sub parse_tag_condition
-{
+sub parse_tag_condition {
     my ($cond, $on_error) = @_;
     $cond or return {};
     $on_error //= sub { die @_ };
@@ -19,8 +18,7 @@ sub parse_tag_condition
     $result;
 }
 
-sub check_tag_condition
-{
+sub check_tag_condition {
     my ($tags, $cond, $on_error) = @_;
     $on_error //= sub { die @_ };
     ref $tags eq 'HASH' && ref $cond eq 'HASH' or return $on_error->("tags and cond must be hashes");
