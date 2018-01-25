@@ -321,7 +321,8 @@ sub end_tag_FormalInput {
         my $l = FormalInput::getErrLine($parser_err);
         my $p = FormalInput::getErrPos($parser_err);
         $self->error("FormalInput: $s. Line: $l. Pos: $p.");
-    } else {
+    }
+    else {
         $self->note('FormalInput OK.');
     }
     $self->end_stml;
@@ -333,7 +334,8 @@ sub end_tag_JsonData {
     eval { decode_json(${$self->{stml}}) };
     if ($@) {
         $self->error("JsonData: $@");
-    } else {
+    }
+    else {
         $self->note('JsonData OK.');
     }
     $self->end_stml;
@@ -544,7 +546,8 @@ sub start_tag_Import {
     my ($guid, @nt) = @$atts{qw(guid name type)};
     if ($guid =~ /\*/) {
         $self->import_one_source($_, @nt) for $self->{import_source}->get_guids($guid);
-    } else {
+    }
+    else {
         $self->import_one_source($guid, @nt);
     }
 }

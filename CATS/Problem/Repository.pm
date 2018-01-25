@@ -252,7 +252,8 @@ sub format_ctx_rem_add_lines {
             push @new_rem, $line_rem;
             push @new_add, $line_add;
         }
-    } else {
+    }
+    else {
         @new_rem = map { $self->format_diff_line($_, 'rem') } @$rem;
         @new_add = map { $self->format_diff_line($_, 'add') } @$add;
     }
@@ -336,12 +337,14 @@ sub format_extended_diff_header_line {
         my ($from_link, $to_link);
         if ($from->{href}) {
             $from_link = substr($diffinfo->{from_id}, 0, 7);
-        } else {
+        }
+        else {
             $from_link = '0' x 7;
         }
         if ($to->{href}) {
             $to_link = substr($diffinfo->{to_id}, 0, 7);
-        } else {
+        }
+        else {
             $to_link = '0' x 7;
         }
         my ($from_id, $to_id) = ($diffinfo->{from_id}, $diffinfo->{to_id});
@@ -421,7 +424,8 @@ sub parse_difftree_raw_line {
         $res{similarity} = $6;
         if ($res{status} eq 'R' || $res{status} eq 'C') { # renamed or copied
             ($res{from_file}, $res{to_file}) = map { unquote($_) } split("\t", $7);
-        } else {
+        }
+        else {
             $res{from_file} = $res{to_file} = $res{file} = unquote($7);
         }
     }
@@ -499,7 +503,8 @@ sub parse_patches {
             # $1 is from_name, which we do not use
             $to_name = unquote($2);
             $to_name =~ s!^b/!!;
-        } else {
+        }
+        else {
             $to_name = undef;
         }
         $patch_desc->{to_name} = $to_name;
@@ -588,9 +593,11 @@ sub parse_commit_text {
         last if $line eq "\n";
         if ($line =~ m/^tree ([0-9a-fA-F]{40})$/) {
             $co{tree} = $1;
-        } elsif ((!defined $withparents) && ($line =~ m/^parent ([0-9a-fA-F]{40})$/)) {
+        }
+        elsif ((!defined $withparents) && ($line =~ m/^parent ([0-9a-fA-F]{40})$/)) {
             push @parents, $1;
-        } else {
+        }
+        else {
             foreach my $who (qw(author committer)) {
                 if ($line =~ m/^${who} (.*) ([0-9]+) (.*)$/) {
                     $co{"${who}"} = Encode::decode_utf8($1);
@@ -607,7 +614,8 @@ sub parse_commit_text {
                     if ($co{"${who}"} =~ m/^([^<]+) <([^>]*)>/) {
                         $co{"${who}_name"}  = $1;
                         $co{"${who}_email"} = $2;
-                    } else {
+                    }
+                    else {
                         $co{"${who}_name"} = $co{"${who}"};
                     }
                 }
@@ -791,7 +799,8 @@ sub blob {
     if ($mimetype =~ m!^image/!) {
         my @parts = split CATS::Config::cats_dir, $self->{dir} . $file;
         $result->{image} = $parts[1];
-    } else {
+    }
+    else {
         my $nr;
         while (my $line = <$fd>) {
             chomp $line;

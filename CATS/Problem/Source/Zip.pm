@@ -81,7 +81,8 @@ sub finalize {
         $repo->move_history(from => $CATS::Config::repos_dir . "/$repo_id/", sha => $sha) unless $repo_id == $problem->{id};
         $self->extract($repo);
         $message ||= 'Update task';
-    } else {
+    }
+    else {
         $repo->init;
         $self->extract($repo);
         $message ||= 'Initial commit';
@@ -90,9 +91,9 @@ sub finalize {
     $repo->add()->commit($problem->{description}{author}, $message, $is_amend);
 
     if ($problem->{replace} && $repo_id != $problem->{id}) {
-        $dbh->do(qq~
+        $dbh->do(q~
             UPDATE problems SET repo = ?, commit_sha = ? WHERE id = ?~, undef,
-                undef, undef, $problem->{id});
+            undef, undef, $problem->{id});
     }
 }
 

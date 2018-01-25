@@ -162,7 +162,8 @@ sub start_tag_test {
             generator_id => $self->{id_gen}->($self, $generator_id),
             param => $param,
         };
-    } else {
+    }
+    else {
         $self->error('bad tag test');
     }
 }

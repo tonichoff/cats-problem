@@ -84,15 +84,20 @@ sub blob_mimetype {
 
     if (-T $fd) {
         return 'text/plain';
-    } elsif (! $filename) {
+    }
+    elsif (! $filename) {
         return 'application/octet-stream';
-    } elsif ($filename =~ m/\.png$/i) {
+    }
+    elsif ($filename =~ m/\.png$/i) {
         return 'image/png';
-    } elsif ($filename =~ m/\.gif$/i) {
+    }
+    elsif ($filename =~ m/\.gif$/i) {
         return 'image/gif';
-    } elsif ($filename =~ m/\.jpe?g$/i) {
+    }
+    elsif ($filename =~ m/\.jpe?g$/i) {
         return 'image/jpeg';
-    } else {
+    }
+    else {
         return 'application/octet-stream';
     }
 }
@@ -111,10 +116,12 @@ sub mode_str {
         # git cares only about the executable bit
         if ($mode & S_IXUSR) {
             return '-rwxr-xr-x';
-        } else {
+        }
+        else {
             return '-rw-r--r--';
         };
-    } else {
+    }
+    else {
         return '----------';
     }
 }
@@ -124,19 +131,24 @@ sub file_type {
 
     if ($mode !~ m/^[0-7]+$/) {
         return $mode;
-    } else {
+    }
+    else {
         $mode = oct $mode;
     }
 
     if (S_ISGITLINK($mode)) {
         return "submodule";
-    } elsif (S_ISDIR($mode & S_IFMT)) {
+    }
+    elsif (S_ISDIR($mode & S_IFMT)) {
         return "directory";
-    } elsif (S_ISLNK($mode)) {
+    }
+    elsif (S_ISLNK($mode)) {
         return "symlink";
-    } elsif (S_ISREG($mode)) {
+    }
+    elsif (S_ISREG($mode)) {
         return "file";
-    } else {
+    }
+    else {
         return "unknown";
     }
 }
@@ -147,23 +159,29 @@ sub file_type_long {
 
     if ($mode !~ m/^[0-7]+$/) {
         return $mode;
-    } else {
+    }
+    else {
         $mode = oct $mode;
     }
 
     if (S_ISGITLINK($mode)) {
         return "submodule";
-    } elsif (S_ISDIR($mode & S_IFMT)) {
+    }
+    elsif (S_ISDIR($mode & S_IFMT)) {
         return "directory";
-    } elsif (S_ISLNK($mode)) {
+    }
+    elsif (S_ISLNK($mode)) {
         return "symlink";
-    } elsif (S_ISREG($mode)) {
+    }
+    elsif (S_ISREG($mode)) {
         if ($mode & S_IXUSR) {
             return "executable";
-        } else {
+        }
+        else {
             return "file";
         };
-    } else {
+    }
+    else {
         return "unknown";
     }
 }
@@ -267,7 +285,8 @@ sub chop_str {
     if ($where eq 'center') {
         return $str if ($len + 5 >= length($str)); # filler is length 5
         $len = int($len/2);
-    } else {
+    }
+    else {
         return $str if ($len + 4 >= length($str)); # filler is length 4
     }
 
@@ -283,7 +302,8 @@ sub chop_str {
         }
         return "$lead$body";
 
-    } elsif ($where eq 'center') {
+    }
+    elsif ($where eq 'center') {
         $str =~ m/^($endre)(.*)$/;
         my ($left, $str)  = ($1, $2);
         $str =~ m/^(.*?)($begre)$/;
@@ -293,7 +313,8 @@ sub chop_str {
         }
         return "$left$mid$right";
 
-    } else {
+    }
+    else {
         $str =~ m/^($endre)(.*)$/;
         my $body = $1;
         my $tail = $2;

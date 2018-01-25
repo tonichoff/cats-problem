@@ -242,14 +242,16 @@ sub ensure_request_de_bitmap_cache {
                     my @element_bitmap = $collect_needed_update_req_ids->($req_element);
                     $bitmap[$_] |= $element_bitmap[$_] for 0..$cats::de_req_bitfields_count-1;
                 }
-            } else {
+            }
+            else {
                 #warn "ensure_request_de_bitmap_cache. req $req->{id} needs update";
                 @bitmap = $dev_env->bitmap_by_ids($req->{de_id});
             }
             my %de_bitfields_hash = get_de_bitfields_hash(@bitmap);
             $req->{$_} = $de_bitfields_hash{$_} for keys %de_bitfields_hash;
             push @needed_update_reqs, $req;
-        } else {
+        }
+        else {
             #warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
             @bitmap = extract_de_bitmap($req);
         }
@@ -280,7 +282,8 @@ sub ensure_request_de_bitmap_cache {
     if ($dev_env->is_good_version(current_de_version())) {
         $dbh->commit;
         #warn 'ensure_request_de_bitmap_cache. updated reqs: ', join ', ', map $_->{id}, @needed_update_reqs;
-    } else {
+    }
+    else {
         $dbh->rollback;
         warn 'ensure_request_de_bitmap_cache. concurrent de change detected. trying again';
         goto &ensure_request_de_bitmap_cache;
@@ -504,7 +507,8 @@ sub select_request {
             warn "can't check this request";
             return;
         }
-    } else {
+    }
+    else {
         $req_tree = $sel_req->{elements_count} ?
             get_req_tree([ $sel_req->{id} ]) :
             { $sel_req->{id} => $sel_req };
@@ -574,7 +578,8 @@ sub select_request {
         if (!$check_req->($req_tree->{$sel_req->{id}})) {
             $set_state->($cats::st_unhandled_error);
             return;
-        } else {
+        }
+        else {
             $set_state->($cats::st_install_processing);
         }
         1;

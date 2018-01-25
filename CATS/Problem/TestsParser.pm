@@ -62,7 +62,8 @@ sub start_tag_Test {
     if ($atts->{rank} eq '*') { #=~ /^\s*\*\s*$/)
         $self->{current_tests} = [ $self->{test_defaults} ||= {} ];
         $self->set_test_attr($self->{test_defaults}, 'points', $atts->{points});
-    } else {
+    }
+    else {
         $self->{current_tests} = [];
         $self->add_test($atts, $_) for $self->parse_test_rank($atts->{rank});
     }
