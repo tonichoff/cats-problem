@@ -106,12 +106,16 @@ sub do_In_genAll {
     ('gen_group', $gg->{$test->{generator_id}} ||= 1 + keys %$gg);
 }
 
+sub do_In_hash {
+    ('hash', $_[2]);
+}
+
 sub start_tag_In {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my @t = @{$self->{current_tests}};
 
-    for my $attr_name (qw/src param/) {
+    for my $attr_name (qw/src param hash/) {
         defined(my $attr_value = $atts->{$attr_name}) or next;
         my $n = "do_In_$attr_name";
         $self->set_test_attr($_, $self->$n($_, $attr_value)) for @t;

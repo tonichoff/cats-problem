@@ -66,7 +66,7 @@ sub get_problem_tests {
 
     $dbh->selectall_arrayref(q~
         SELECT
-            generator_id, input_validator_id, rank, param, std_solution_id,
+            generator_id, input_validator_id, rank, param, std_solution_id, in_file_hash,
             CASE WHEN in_file_size  IS NULL THEN in_file  ELSE NULL END AS in_file,
             CASE WHEN out_file_size IS NULL THEN out_file ELSE NULL END AS out_file,
             in_file_size,
@@ -634,13 +634,23 @@ sub insert_req_details {
 }
 
 sub save_input_test_data {
-    my ($problem_id, $test_rank, $input, $input_size) = @_;
+    my ($problem_id, $test_rank, $input, $input_size, $hash) = @_;
 
     eval {
-        $dbh->do(q~
-        UPDATE tests SET in_file = ?, in_file_size = ?
-            WHERE problem_id = ? AND rank = ? AND in_file IS NULL~, undef,
-        $input, $input_size, $problem_id, $test_rank);
+        if (defined $input) {
+            $dbh->do(q~
+                UPDATE tests SET in_file = ?, in_file_size = ?
+                WHERE problem_id = ? AND rank = ? AND in_file IS NULL~, undef,
+                $input, $input_size, $problem_id, $test_rank);
+        }
+
+        if (defined $hash) {
+            $dbh->do(q~
+                UPDATE tests SET in_file_hash = ? WHERE problem_id = ? AND rank = ?
+                AND (in_file_hash IS NULL OR in_file_hash = ?) ~, undef,
+                $hash, $problem_id, $test_rank, $hash
+            ) or die "Invalid hash for test $test_rank";
+        }
 
         $dbh->commit;
         1;
@@ -652,9 +662,9 @@ sub save_answer_test_data {
 
     eval {
         $dbh->do(q~
-        UPDATE tests SET out_file = ?, out_file_size = ?
+            UPDATE tests SET out_file = ?, out_file_size = ?
             WHERE problem_id = ? AND rank = ? AND out_file IS NULL~, undef,
-        $answer, $answer_size, $problem_id, $test_rank);
+            $answer, $answer_size, $problem_id, $test_rank);
 
         $dbh->commit;
         1;
