@@ -62,6 +62,14 @@ $st_install_processing = 2;
 $st_testing = 3;
 $st_awaiting_verification = 4;
 
+# Values for jobs.state.
+$job_st_waiting = 0;
+$job_st_in_progress = 1;
+$job_st_finished = 2;
+
+# Values for jobs.type.
+$job_type_submission = 1;
+
 # This value should not actually exist in the database.
 # Values greater than this indicate that judge has finished processing.
 $request_processed = 9;
