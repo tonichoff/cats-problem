@@ -393,6 +393,16 @@ sub set_request_state {
     $dbh->commit;
 }
 
+sub finish_job {
+    my ($job_id) = @_;
+
+    $dbh->do(q~
+        UPDATE jobs SET state = ?, finish_time = CURRENT_TIMESTAMP
+        WHERE id = ?~, undef,
+        $cats::job_st_finished, $job_id);
+    $dbh->commit;
+}
+
 sub update_judge_de_bitmap {
     my ($p, $dev_env) = @_;
     my $jid = { judge_id => $p->{jid} };
@@ -467,10 +477,13 @@ sub select_request {
     # Left joins with contest_problems in case the problem was removed from contest after submission.
     my $sel_req = $dbh->selectrow_hashref(qq~
         SELECT
-            R.id, R.problem_id, R.elements_count,
+            JQ.id as job_id, R.id, R.problem_id, R.elements_count,
+            R.state as req_state,
             RDEBC.version AS request_de_version,
             PDEBC.version AS problem_de_version
-        FROM reqs R
+        FROM jobs_queue JQ
+            INNER JOIN jobs J on J.id = JQ.id
+            INNER JOIN reqs R on J.req_id = R.id
             INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
             LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
             INNER JOIN contests C ON C.id = R.contest_id
@@ -478,11 +491,13 @@ sub select_request {
             LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id
             LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id
         WHERE
-            R.state = $cats::st_not_processed AND
+            J.state = $cats::job_st_waiting AND
             (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1) AND
             $des_condition AND
             ($pin_condition R.judge_id = ?) ROWS 1~, undef,
         @params) or return;
+
+    $sel_req->{req_state} == $cats::st_not_processed or die;
 
     if (!$dev_env->is_good_version($sel_req->{problem_de_version})) {
         # Our cache is behind judge's -- postpone until next API call.
@@ -573,6 +588,16 @@ sub select_request {
             my $c = $dbh->prepare(q~
                 UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
             $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
+
+            $dbh->do(q~
+                UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
+                WHERE id = ?~, undef,
+                $cats::job_st_in_progress, $p->{jid}, $sel_req->{job_id});
+
+            $dbh->do(q~
+                DELETE FROM jobs_queue WHERE id = ?~, undef,
+                $sel_req->{job_id});
+
             $dbh->commit;
         };
         if (!$check_req->($req_tree->{$sel_req->{id}})) {
@@ -582,7 +607,9 @@ sub select_request {
         else {
             $set_state->($cats::st_install_processing);
         }
+        $req_tree->{$sel_req->{id}}->{job_id} = $sel_req->{job_id};
         1;
+
     } and return $req_tree->{$sel_req->{id}};
     # Another judge has probably acquired this problem concurrently.
     CATS::DB::catch_deadlock_error('select_request');
