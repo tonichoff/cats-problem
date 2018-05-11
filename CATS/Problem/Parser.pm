@@ -518,12 +518,13 @@ sub start_tag_Module {
 
 sub import_one_source {
     my CATS::Problem::Parser $self = shift;
-    my ($guid, $name, $type) = @_;
+    my ($guid, $name, $type_name) = @_;
     push @{$self->{problem}{imports}}, my $import = { guid => $guid, name => $name };
     my ($src_id, $stype) = $self->{import_source}->get_source($guid);
 
-    !$type || ($type = $import->{type} = CATS::Problem::module_types()->{$type})
-        or $self->error("Unknown import source type: $type");
+    my $type;
+    !$type_name || ($type = $import->{type} = CATS::Problem::module_types()->{$type_name})
+        or $self->error("Unknown import source type: '$type_name'");
 
     if ($src_id) {
         !$type || $stype == $type || $cats::source_modules{$stype} == $type
