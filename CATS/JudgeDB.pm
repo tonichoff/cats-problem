@@ -497,8 +497,6 @@ sub select_request {
             ($pin_condition R.judge_id = ?) ROWS 1~, undef,
         @params) or return;
 
-    $sel_req->{req_state} == $cats::st_not_processed or die;
-
     if (!$dev_env->is_good_version($sel_req->{problem_de_version})) {
         # Our cache is behind judge's -- postpone until next API call.
         return if $sel_req->{problem_de_version} && $sel_req->{problem_de_version} > $dev_env->version;
