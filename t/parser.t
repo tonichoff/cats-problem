@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 17;
+use Test::More tests => 18;
 use Test::Exception;
 
 use lib '..';
@@ -158,6 +158,19 @@ subtest 'sources', sub {
         'chk.pp' => 'checker1',
     })->{solutions};
     is_deeply [ map $_->{path}, @$sols ], [ 'chk.pp', 'chk.pp' ], 'two solutions';
+};
+
+subtest 'import', sub {
+    plan tests => 3;
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Import/>~),
+    }) } qr/Import.guid/, 'Import without guid';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Import guid="nonexisting"/>~),
+    }) } qr/nonexisting/, 'non-existing guid';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Import guid="empty" type="yyy"/>~),
+    }) } qr/type.*'yyy'/, 'incorrect type';
 };
 
 subtest 'text', sub {
