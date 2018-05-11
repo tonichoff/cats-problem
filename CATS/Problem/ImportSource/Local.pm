@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use base qw(CATS::Problem::ImportSource::Base);
 
+use CATS::SourceManager;
+
 sub new {
     my ($class, %opts) = @_;
     $opts{modulesdir} or die 'You must specify modules folder';
