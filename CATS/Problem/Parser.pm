@@ -67,6 +67,7 @@ sub tag_handlers() {{
         r => ['title', 'lang', 'tlimit', 'inputFile', 'outputFile'], in => ['CATS']},
     Attachment => { s => \&start_tag_Attachment, r => ['src', 'name'] },
     Picture => { s => \&start_tag_Picture, r => ['src', 'name'] },
+    Snippet => { s => \&start_tag_Snippet, r => ['name'] },
     Solution => { s => \&start_tag_Solution, r => ['src', 'name'] },
     Checker => { s => \&start_tag_Checker, r => ['src'] },
     Interactor => { s => \&start_tag_Interactor, r => ['src'] },
@@ -423,6 +424,20 @@ sub start_tag_Picture {
             $self->read_member_named(name => $atts->{src}, kind => 'picture'),
             name => $atts->{name}, ext => $ext, refcount => 0
         });
+}
+
+sub start_tag_Snippet {
+    (my CATS::Problem::Parser $self, my $atts) = @_;
+
+    $atts->{name} =~ /^[a-zA-Z][a-zA-Z0-9_]*$/
+        or $self->error("Invalid snippet name '$atts->{name}'");
+
+    my $snippet = { name => $atts->{name} };
+    if (my $gen_id = $atts->{generator}) {
+        $snippet->{generator_id} =
+            $self->get_imported_id($gen_id) || $self->get_named_object($gen_id)->{id};
+    }
+    push @{$self->{problem}{snippets}}, $snippet;
 }
 
 sub problem_source_common_params {

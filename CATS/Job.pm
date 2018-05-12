@@ -7,7 +7,7 @@ use CATS::Constants;
 use CATS::DB;
 
 sub create {
-    my ($req_id, $type, $state, $fields) = @_;
+    my ($type, $fields) = @_;
 
     $fields ||= {};
 
@@ -16,9 +16,8 @@ sub create {
     $dbh->do(_u $sql->insert('jobs', {
         %$fields,
         id => $rid,
-        req_id => $req_id,
         type => $type,
-        state => $state,
+        state => $cats::job_st_waiting,
         create_time => \'CURRENT_TIMESTAMP',
     })) or return;
 
