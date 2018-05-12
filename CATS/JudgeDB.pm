@@ -61,6 +61,15 @@ sub get_problem_sources {
     [ @$problem_sources, @$imported ];
 }
 
+sub get_problem_snippets {
+    my ($pid) = @_;
+
+    $dbh->selectall_arrayref(q~
+        SELECT generator_id, snippet_name AS name
+        FROM problem_snippets WHERE problem_id = ?~, { Slice => {} },
+        $pid);
+}
+
 sub get_problem_tests {
     my ($pid) = @_;
 
@@ -215,7 +224,7 @@ sub ensure_request_de_bitmap_cache {
     my $req_tree = get_req_tree($req_ids, {
         fields => [
             'S.de_id',
-            'RDEBC.version as de_version',
+            'RDEBC.version AS de_version',
             de_bitmap_str('RDEBC'),
         ],
         tables => [
@@ -372,6 +381,7 @@ sub invalidate_de_bitmap_cache {
 sub set_request_state {
     my ($p) = @_;
 
+    $p->{req_id} or return;
     is_req_owned_by($p->{req_id}, $p->{jid}) or return;
     $dbh->do(q~
         UPDATE reqs SET state = ?, failed_test = ?, result_time = CURRENT_TIMESTAMP
@@ -420,7 +430,7 @@ sub update_judge_de_bitmap {
 }
 
 sub dev_envs_condition {
-    my ($p, $de_version) = @_;
+    my ($p, $de_version, $table) = @_;
     # If DE cache is absent or obsolete, select request and try to refresh the cache.
     # Otherwise, select only if the judge supports all DEs indicated by the cached bitmap.
     my $des_cond_fmt = sub {
@@ -435,9 +445,21 @@ sub dev_envs_condition {
             ELSE 1
         END) = 1~;
     };
-    my $des_condition = $des_cond_fmt->('RDEBC') . ' AND ' . $des_cond_fmt->('PDEBC');
+    my $des_condition = $des_cond_fmt->($table);
+    ($des_condition, map $_ // '', ($de_version, extract_de_bitmap($p)));
+}
 
-    ($des_condition, map $_ // '', ($de_version, extract_de_bitmap($p)) x 2);
+sub take_job {
+    my ($judge_id, $job_id) = @_;
+
+    $dbh->do(q~
+        UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
+        WHERE id = ?~, undef,
+        $cats::job_st_in_progress, $judge_id, $job_id);
+
+    $dbh->do(q~
+        DELETE FROM jobs_queue WHERE id = ?~, undef,
+        $job_id);
 }
 
 sub select_request {
@@ -454,7 +476,9 @@ sub select_request {
 
     return { error => $cats::es_old_de_version } if !$dev_env->is_good_version($p->{de_version});
 
-    my ($des_condition, @params) = dev_envs_condition($p, $dev_env->version);
+    my ($req_des_condition, @req_params) = dev_envs_condition($p, $dev_env->version, 'RDEBC');
+    my ($problem_des_condition, @problem_params) = dev_envs_condition($p, $dev_env->version, 'PDEBC');
+    my @params = (@req_params, @problem_params);
 
     my $pin_condition = '';
 
@@ -464,38 +488,78 @@ sub select_request {
                 SELECT 1
                 FROM contest_accounts CA
                 INNER JOIN judges J ON CA.account_id = J.account_id
-                WHERE R.contest_id = CA.contest_id AND J.id = ?
-            ) AND R.judge_id IS NULL OR';
+                WHERE common.contest_id = CA.contest_id AND J.id = ?
+            ) AND common.judge_id IS NULL OR';
         push @params, $p->{jid};
     }
     elsif ($p->{pin_mode} == $cats::judge_pin_any) {
-        $pin_condition = 'R.judge_id IS NULL AND C.pinned_judges_only = 0 OR';
+        $pin_condition = 'common.judge_id IS NULL AND C.pinned_judges_only = 0 OR';
     }
 
     push @params, $p->{jid};
 
     # Left joins with contest_problems in case the problem was removed from contest after submission.
     my $sel_req = $dbh->selectrow_hashref(qq~
-        SELECT
-            JQ.id as job_id, R.id, R.problem_id, R.elements_count,
-            R.state as req_state,
-            RDEBC.version AS request_de_version,
-            PDEBC.version AS problem_de_version
-        FROM jobs_queue JQ
-            INNER JOIN jobs J on J.id = JQ.id
-            INNER JOIN reqs R on J.req_id = R.id
-            INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
-            LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
-            INNER JOIN contests C ON C.id = R.contest_id
-            INNER JOIN problems P ON P.id = R.problem_id
-            LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id
-            LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = P.id
+
+        SELECT common.*, PDEBC.version AS problem_de_version FROM (
+            SELECT
+                JQ.id AS job_id,
+                J.type,
+                J.state AS job_state,
+                R.judge_id,
+                R.id,
+                R.problem_id,
+                R.account_id,
+                R.contest_id,
+                R.elements_count,
+                R.state AS req_state,
+                RDEBC.version AS request_de_version
+            FROM jobs_queue JQ
+                INNER JOIN jobs J on J.id = JQ.id
+                INNER JOIN reqs R on J.req_id = R.id
+                INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id
+                LEFT JOIN contest_problems CP ON CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
+                INNER JOIN problems P ON P.id = R.problem_id
+                LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id
+            WHERE
+                J.type = $cats::job_type_submission AND
+                (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1) AND
+                $req_des_condition
+        UNION
+            SELECT
+                JQ.id AS job_id,
+                J.type,
+                J.state AS job_state,
+                NULL AS id,
+                J.judge_id,
+                J.problem_id,
+                J.account_id,
+                J.contest_id,
+                NULL AS elements_count,
+                NULL AS req_state,
+                NULL AS request_de_version
+            FROM jobs_queue JQ
+                INNER JOIN jobs J on J.id = JQ.id
+            WHERE
+                J.type = $cats::job_type_generate_snippets
+        ) common
+        LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = common.problem_id
+        INNER JOIN contests C ON C.id = common.contest_id
+
         WHERE
-            J.state = $cats::job_st_waiting AND
-            (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1) AND
-            $des_condition AND
-            ($pin_condition R.judge_id = ?) ROWS 1~, undef,
+            common.job_state = $cats::job_st_waiting AND
+            $problem_des_condition AND
+            ($pin_condition common.judge_id = ?)
+        ROWS 1~, undef,
         @params) or return;
+
+    if ($sel_req->{type} eq $cats::job_type_generate_snippets) {
+        eval {
+            take_job($p->{jid}, $sel_req->{job_id});
+            $dbh->commit;
+        } or CATS::DB::catch_deadlock_error('select_request');
+        return $sel_req;
+    }
 
     if (!$dev_env->is_good_version($sel_req->{problem_de_version})) {
         # Our cache is behind judge's -- postpone until next API call.
@@ -530,7 +594,7 @@ sub select_request {
     add_info_to_req_tree({
         fields => [
             qw(R.id R.problem_id R.contest_id R.state CA.is_jury C.run_all_tests
-            CP.status S.fname S.src S.de_id), 'CP.id as cpid',
+            CP.status S.fname S.src S.de_id), 'CP.id AS cpid',
             map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields
         ],
         tables => [
@@ -587,15 +651,7 @@ sub select_request {
                 UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
             $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
 
-            $dbh->do(q~
-                UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
-                WHERE id = ?~, undef,
-                $cats::job_st_in_progress, $p->{jid}, $sel_req->{job_id});
-
-            $dbh->do(q~
-                DELETE FROM jobs_queue WHERE id = ?~, undef,
-                $sel_req->{job_id});
-
+            take_job($p->{jid}, $sel_req->{job_id});
             $dbh->commit;
         };
         if (!$check_req->($req_tree->{$sel_req->{id}})) {
@@ -606,6 +662,7 @@ sub select_request {
             $set_state->($cats::st_install_processing);
         }
         $req_tree->{$sel_req->{id}}->{job_id} = $sel_req->{job_id};
+        $req_tree->{$sel_req->{id}}->{type} = $sel_req->{type};
         1;
 
     } and return $req_tree->{$sel_req->{id}};
@@ -696,4 +753,17 @@ sub save_answer_test_data {
     } or CATS::DB::catch_deadlock_error('save_answer_test_data');
 }
 
+sub save_problem_snippet {
+    my ($problem_id, $contest_id, $account_id, $snippet_name, $text) = @_;
+    eval {
+        $dbh->do(qq~
+            UPDATE snippets SET text = ?
+            WHERE problem_id = ? AND contest_id = ? AND
+                account_id = ? AND name = ? AND text IS NULL~, undef,
+            $text, $problem_id, $contest_id, $account_id, $snippet_name);
+
+        $dbh->commit;
+        1;
+    } or CATS::DB::catch_deadlock_error('save_problem_snippet');
+}
 1;

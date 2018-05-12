@@ -69,6 +69,7 @@ $job_st_finished = 2;
 
 # Values for jobs.type.
 $job_type_submission = 1;
+$job_type_generate_snippets = 2;
 
 # This value should not actually exist in the database.
 # Values greater than this indicate that judge has finished processing.
