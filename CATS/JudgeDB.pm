@@ -70,6 +70,15 @@ sub get_problem_snippets {
         $pid);
 }
 
+sub get_snippet_text {
+    my ($problem_id, $contest_id, $account_id, $name) = @_;
+
+    $dbh->selectrow_array(q~
+        SELECT text
+        FROM snippets WHERE problem_id = ? AND contest_id = ? AND account_id = ? AND name = ?~, undef,
+        $problem_id, $contest_id, $account_id, $name);
+}
+
 sub get_problem_tests {
     my ($pid) = @_;
 
@@ -80,7 +89,8 @@ sub get_problem_tests {
             CASE WHEN out_file_size IS NULL THEN out_file ELSE NULL END AS out_file,
             in_file_size,
             out_file_size,
-            gen_group
+            gen_group,
+            snippet_name
         FROM tests WHERE problem_id = ? ORDER BY rank~, { Slice => {} },
         $pid);
 }

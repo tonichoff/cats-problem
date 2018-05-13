@@ -24,7 +24,7 @@ sub validate_test {
         and return 'Both input file and generator';
     (defined $test->{param} && $test->{param} ne '' || $test->{gen_group}) && !$test->{generator_id}
         and return 'Parameters without generator';
-    defined $test->{out_file} || $test->{std_solution_id}
+    defined $test->{out_file} || $test->{std_solution_id} || $test->{snippet_name}
         or return 'No output source';
     defined $test->{out_file} && $test->{std_solution_id}
         and return 'Both output file and standard solution';
@@ -166,6 +166,11 @@ sub start_tag_Out {
         for (@t) {
             my $use = apply_test_rank($atts->{'use'}, $_->{rank});
             $self->set_test_attr($_, 'std_solution_id', $self->get_named_object($use)->{id});
+        }
+    }
+    if (defined $atts->{'snippet'}) {
+        for (@t) {
+            $self->set_test_attr($_, 'snippet_name', $atts->{'snippet'});
         }
     }
     $self->{stml} = \($self->{current_test_data}->{out_file} = '');
