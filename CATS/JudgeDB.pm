@@ -70,6 +70,15 @@ sub get_problem_snippets {
         $pid);
 }
 
+sub get_problem_tags {
+    my ($pid, $cid) = @_;
+
+    scalar $dbh->selectrow_array(q~
+        SELECT tags
+        FROM contest_problems WHERE problem_id = ? AND contest_id = ?~, undef,
+        $pid, $cid);
+}
+
 sub get_snippet_text {
     my ($problem_id, $contest_id, $account_id, $name) = @_;
 
