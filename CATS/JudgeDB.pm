@@ -603,7 +603,7 @@ sub select_request {
 
     add_info_to_req_tree({
         fields => [
-            qw(R.id R.problem_id R.contest_id R.state CA.is_jury C.run_all_tests
+            qw(R.id R.problem_id R.account_id R.contest_id R.state CA.is_jury C.run_all_tests
             CP.status S.fname S.src S.de_id), 'CP.id AS cpid',
             map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields
         ],
