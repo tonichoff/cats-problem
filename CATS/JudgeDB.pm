@@ -73,9 +73,9 @@ sub get_problem_snippets {
 sub get_snippet_text {
     my ($problem_id, $contest_id, $account_id, $name) = @_;
 
-    $dbh->selectrow_array(q~
-        SELECT text
-        FROM snippets WHERE problem_id = ? AND contest_id = ? AND account_id = ? AND name = ?~, undef,
+    scalar $dbh->selectrow_array(q~
+        SELECT text FROM snippets
+        WHERE problem_id = ? AND contest_id = ? AND account_id = ? AND name = ?~, undef,
         $problem_id, $contest_id, $account_id, $name);
 }
 

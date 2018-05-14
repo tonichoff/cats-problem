@@ -168,9 +168,10 @@ sub start_tag_Out {
             $self->set_test_attr($_, 'std_solution_id', $self->get_named_object($use)->{id});
         }
     }
-    if (defined $atts->{'snippet'}) {
+    if (defined $atts->{snippet}) {
         for (@t) {
-            $self->set_test_attr($_, 'snippet_name', $atts->{'snippet'});
+            my $snippet = apply_test_rank($atts->{snippet}, $_->{rank});
+            $self->set_test_attr($_, 'snippet_name', $snippet);
         }
     }
     $self->{stml} = \($self->{current_test_data}->{out_file} = '');
