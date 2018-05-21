@@ -123,6 +123,16 @@ sub is_req_owned_by {
     $st == $cats::st_install_processing || $st == $cats::st_testing;
 }
 
+sub save_logs {
+    my ($job_id, $dump) = @_;
+
+    $dbh->do(q~
+        INSERT INTO logs (id, dump, job_id) VALUES (?, ?, ?)~, undef,
+        new_id, $dump, $job_id);
+
+    $dbh->commit;
+}
+
 sub save_log_dump {
     my ($req_id, $dump, $judge_id) = @_;
 
