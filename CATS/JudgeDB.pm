@@ -133,34 +133,6 @@ sub save_logs {
     $dbh->commit;
 }
 
-sub save_log_dump {
-    my ($req_id, $dump, $judge_id) = @_;
-
-    my $is_owned = is_req_owned_by($req_id, $judge_id);
-    # If jury just forced the request state, but did not reassign to another judge,
-    # save the log up to this moment.
-    defined $is_owned or return;
-
-    my $id = $dbh->selectrow_array(q~
-        SELECT id FROM log_dumps WHERE req_id = ?~, undef,
-        $req_id);
-    if (defined $id) {
-        my $c = $dbh->prepare(q~UPDATE log_dumps SET dump = ? WHERE id = ?~);
-        $c->bind_param(1, $dump, { ora_type => 113 });
-        $c->bind_param(2, $id);
-        $c->execute;
-    }
-    else {
-        my $c = $dbh->prepare(q~INSERT INTO log_dumps (id, dump, req_id) VALUES (?, ?, ?)~);
-        $c->bind_param(1, new_id);
-        $c->bind_param(2, $dump, { ora_type => 113 });
-        $c->bind_param(3, $req_id);
-        $c->execute;
-    }
-    # Optimize a commit away since save_log_dump is immediately followed by set_request_state.
-    $is_owned or $dbh->commit;
-}
-
 sub copy_req_tree_info {
     my ($req_tree, @reqs) = @_;
     for my $req (@reqs) {
