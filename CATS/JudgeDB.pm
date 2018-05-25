@@ -501,7 +501,6 @@ sub select_request {
 
     # Left joins with contest_problems in case the problem was removed from contest after submission.
     my $sel_req = $dbh->selectrow_hashref(qq~
-
         SELECT common.*, PDEBC.version AS problem_de_version FROM (
             SELECT
                 JQ.id AS job_id,
@@ -558,7 +557,7 @@ sub select_request {
         eval {
             take_job($p->{jid}, $sel_req->{job_id});
             $dbh->commit;
-        } or CATS::DB::catch_deadlock_error('select_request');
+        } or return CATS::DB::catch_deadlock_error('select_request');
         return $sel_req;
     }
 
