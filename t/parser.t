@@ -455,7 +455,7 @@ subtest 'sample', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 57;
+    plan tests => 60;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -516,6 +516,15 @@ subtest 'test', sub {
         't01.in' => 'z',
         't01.out' => 'q',
     }) } qr/Bad points/, 'Bad points';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In hash="zzz">1</In><Out>2</Out></Test>~),
+    }) } qr/Invalid hash.*zzz.*1/, 'Bad hash';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In hash="$yyy$zz">1</In><Out>2</Out></Test>~),
+    }) } qr/Unknown hash algorithm.*yyy.*1/, 'Bad hash algorithm';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~<Test rank="1"><In hash="$sha$zz">1</In><In hash="$sha$qq"/><Out>2</Out></Test>~),
+    }) } qr/Redefined attribute 'hash'/, 'Redefined hash';
 
     {
         my $p = parse({

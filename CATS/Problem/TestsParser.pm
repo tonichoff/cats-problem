@@ -107,7 +107,12 @@ sub do_In_genAll {
 }
 
 sub do_In_hash {
-    ('hash', $_[2]);
+    (my CATS::Problem::Parser $self, my $test, my $attr) = @_;
+    my ($alg) = $attr =~ /^\$(.+)\$(.+)$/
+        or $self->error("Invalid hash format '$attr' for test #$test->{rank}");
+    $alg =~ /^(md5|sha)$/
+        or $self->error("Unknown hash algorithm '$alg' for test #$test->{rank}");
+    ('hash', $attr);
 }
 
 sub start_tag_In {
