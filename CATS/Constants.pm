@@ -63,6 +63,7 @@ $job_st_finished = 2;
 # Values for jobs.type.
 $job_type_submission = 1;
 $job_type_generate_snippets = 2;
+$job_type_initialize_problem = 3;
 
 # Values for reqs.state.
 $st_not_processed = 0;
