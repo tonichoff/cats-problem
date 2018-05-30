@@ -15,13 +15,15 @@ use base qw(CATS::Problem::Source::Base);
 my $tmp_repo_template = 'repoXXXXXX';
 
 sub new {
-    my ($class, $link, $logger) = @_;
+    my ($class, $link, $logger, $repo_path) = @_;
     defined $link or die('No remote url specified!');
+    $repo_path = "$repo_path/" if defined($repo_path) && !($repo_path =~ m/.*?\/$/);
     my %opts = (
         dir => undef,
         repo => undef,
         link => $link,
         logger => $logger,
+        repo_path => $repo_path || '',
     );
     return bless \%opts => $class;
 }
@@ -38,18 +40,18 @@ sub init {
     my $self = shift;
     my $tmpdir = tempdir($tmp_repo_template, TMPDIR => 1, CLEANUP => 1);
     $self->{dir} = $tmpdir;
-    ($self->{repo}, my @log) = CATS::Problem::Repository::clone($self->{link}, "$tmpdir/");
+    ($self->{repo}, my @log) = CATS::Problem::Repository::clone($self->{link}, "$tmpdir/", $self->{repo_path});
     $self->note(join "\n", @log);
 }
 
 sub find_members {
     my ($self, $regexp) = @_;
-    return $self->{repo}->find_files($regexp);
+    return map $_ =~ s/^\Q$self->{source}->{repo_path}//r, $self->{repo}->find_files($regexp);
 }
 
 sub read_member {
     my ($self, $name, $msg) = @_;
-    my $fname = File::Spec->catfile($self->{repo}->get_dir, $name);
+    my $fname = File::Spec->catfile($self->{repo}->get_problem_dir, $name);
     -f $fname or return $msg && $self->error($msg);
     CATS::BinaryFile::load($fname, \my $content);
     return $content;

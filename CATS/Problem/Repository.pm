@@ -839,6 +839,7 @@ sub new {
     my ($class, %opts) = @_;
     $opts{dir} //= '';
     $opts{git_dir} //= "$opts{dir}.git";
+    $opts{repo_path} //= '';
     return bless \%opts => $class;
 }
 
@@ -871,7 +872,7 @@ sub git_handler {
 
 sub find_files {
     my ($self, $regexp) = @_;
-    my @files = $self->git('ls-tree HEAD --name-only');
+    my @files = $self->git("ls-tree HEAD $self->{repo_path} --name-only");
     chomp $_ foreach @files;
     return grep /$regexp/, @files;
 }
@@ -924,6 +925,8 @@ sub new_repo {
 }
 
 sub get_dir { $_[0]->{dir} }
+
+sub get_problem_dir { $_[0]->{dir} . $_[0]->{repo_path} }
 
 sub delete {
     my ($self) = @_;
@@ -1012,9 +1015,9 @@ sub commit {
 }
 
 sub clone {
-    my ($link, $dir) = @_;
+    my ($link, $dir, $repo_path) = @_;
     my @lines = exec_or_die("git clone $link $dir");
-    return (CATS::Problem::Repository->new(dir => $dir), @lines);
+    return (CATS::Problem::Repository->new(repo_path => $repo_path, dir => $dir), @lines);
 }
 
 sub pull {
