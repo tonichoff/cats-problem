@@ -530,8 +530,8 @@ sub select_request {
                 JQ.id AS job_id,
                 J.type,
                 J.state AS job_state,
-                NULL AS id,
                 J.judge_id,
+                NULL AS id,
                 J.problem_id,
                 J.account_id,
                 J.contest_id,
@@ -541,7 +541,8 @@ sub select_request {
             FROM jobs_queue JQ
                 INNER JOIN jobs J on J.id = JQ.id
             WHERE
-                J.type = $cats::job_type_generate_snippets
+                J.type = $cats::job_type_generate_snippets OR
+                J.type = $cats::job_type_initialize_problem
         ) common
         LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = common.problem_id
         INNER JOIN contests C ON C.id = common.contest_id
@@ -553,7 +554,8 @@ sub select_request {
         ROWS 1~, undef,
         @params) or return;
 
-    if ($sel_req->{type} eq $cats::job_type_generate_snippets) {
+    if ($sel_req->{type} == $cats::job_type_generate_snippets ||
+        $sel_req->{type} == $cats::job_type_initialize_problem) {
         eval {
             take_job($p->{jid}, $sel_req->{job_id});
             $dbh->commit;
