@@ -27,7 +27,6 @@ sub create {
             $rid) or return;
     }
 
-    $dbh->commit;
     $rid;
 }
 
