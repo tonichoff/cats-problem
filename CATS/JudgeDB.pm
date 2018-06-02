@@ -437,7 +437,7 @@ sub dev_envs_condition {
     my $des_cond_fmt = sub {
         my ($table) = @_;
         my $cond =
-            join ' AND ', map "BIN_AND($table.de_bits$_, ?) = $table.de_bits$_",
+            join ' AND ', map "BIN_AND($table.de_bits$_, CAST(? AS BIGINT)) = $table.de_bits$_",
                 1..$cats::de_req_bitfields_count;
         qq~
         (CASE
