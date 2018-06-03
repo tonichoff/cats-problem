@@ -59,6 +59,7 @@ $multiple_checker = 15;
 $job_st_waiting = 0;
 $job_st_in_progress = 1;
 $job_st_finished = 2;
+$job_st_failed = 3;
 
 # Values for jobs.type.
 $job_type_submission = 1;

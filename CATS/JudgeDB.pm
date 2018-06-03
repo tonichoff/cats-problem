@@ -405,12 +405,12 @@ sub set_request_state {
 }
 
 sub finish_job {
-    my ($job_id) = @_;
+    my ($job_id, $job_state) = @_;
 
     $dbh->do(q~
         UPDATE jobs SET state = ?, finish_time = CURRENT_TIMESTAMP
         WHERE id = ?~, undef,
-        $cats::job_st_finished, $job_id);
+        $job_state, $job_id);
     $dbh->commit;
 }
 
