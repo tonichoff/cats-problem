@@ -901,13 +901,14 @@ sub log {
 }
 
 sub archive {
-    my ($self, $tree_id) = @_;
+    my ($self, $tree_id, $use_path) = @_;
     if (!$tree_id) {
         $tree_id = join '', $self->git('log --format=%H -1');
         chomp $tree_id;
     }
     (undef, my $fname) = tempfile(OPEN => 0, DIR => tempdir($tmp_template, TMPDIR => 1, CLEANUP => 1));
-    $self->git("archive --format=zip $tree_id --output=$fname");
+    my $path = $use_path ? '' : $self->{repo_path};
+    $self->git("archive --format=zip $tree_id:$path --output=$fname");
     return ($fname, $tree_id);
 }
 
