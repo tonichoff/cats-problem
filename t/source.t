@@ -3,7 +3,7 @@ use warnings;
 
 use File::Temp;
 use FindBin;
-use Test::More tests => 18;
+use Test::More tests => 23;
 use Test::Exception;
 
 use lib '..';
@@ -60,19 +60,37 @@ sub check {
     check($s, 'Zip');
 }
 
-SKIP: {
-    my $tmpdir = File::Temp->newdir(CLEANUP => 1) or die;
-    `git` or skip 'no git', 6;
-    prepare_dir($tmpdir);
-    my $gitdir = File::Spec->catfile($tmpdir, '.git');
-    my $git = qq~git --git-dir="$gitdir" --work-tree="$tmpdir"~;
+my $has_git = `git`;
+
+sub init_repo {
+    my ($repo_dir) = @_;
+    my $git_dir = File::Spec->catfile($repo_dir, '.git');
+    my $git = qq~git --git-dir="$git_dir" --work-tree="$repo_dir"~;
     `$git init`;
     `$git config user.email "test\@example.com"`;
     `$git config user.name "test"`;
-    `$git add $tmpdir/*`;
+    `$git add $repo_dir`;
     `$git commit -m 'Init'`;
+}
 
+SKIP: {
+    my $tmpdir = File::Temp->newdir(CLEANUP => 1) or die;
+    $has_git or skip 'no git', 6;
+    prepare_dir($tmpdir);
+    init_repo($tmpdir);
     throws_ok { CATS::Problem::Source::Git->new } qr 'No', 'Git without repo';
     my $s = CATS::Problem::Source::Git->new($tmpdir, $logger);
     check($s, 'Git');
+}
+
+SKIP: {
+    my $tmpdir = File::Temp->newdir(CLEANUP => 1) or die;
+    $has_git or skip 'no git', 5;
+    my $subdir = '123';
+    my $fulldir = File::Spec->catfile($tmpdir, $subdir);
+    mkdir $fulldir or die $!;
+    prepare_dir($fulldir);
+    init_repo($tmpdir);
+    my $s = CATS::Problem::Source::Git->new($tmpdir, $logger, $subdir);
+    check($s, 'Git subdir');
 }
