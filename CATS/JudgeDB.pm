@@ -383,11 +383,11 @@ sub set_request_state {
     my ($p) = @_;
 
     $p->{req_id} or return;
-    is_req_owned_by($p->{req_id}, $p->{jid}) or return;
+    # is_req_owned_by($p->{req_id}, $p->{jid}) or return;
     $dbh->do(q~
         UPDATE reqs SET state = ?, failed_test = ?, result_time = CURRENT_TIMESTAMP
-        WHERE id = ? AND judge_id = ?~, undef,
-        $p->{state}, $p->{failed_test}, $p->{req_id}, $p->{jid});
+        WHERE id = ?~, undef,
+        $p->{state}, $p->{failed_test}, $p->{req_id});
 
     # Suspend further problem testing on unhandled error.
     if ($p->{state} == $cats::st_unhandled_error && defined $p->{problem_id} && defined $p->{contest_id}) {
@@ -412,6 +412,38 @@ sub finish_job {
         WHERE id = ?~, undef,
         $job_state, $job_id);
     $dbh->commit;
+}
+
+sub is_set_req_state_allowed {
+    my ($job_id, $force) = @_;
+
+    my $parent_id = $dbh->selectrow_array(qq~
+        SELECT J.parent_id FROM jobs J
+        WHERE J.id = ? AND EXISTS (
+            SELECT 1 FROM jobs J1 WHERE J1.id = J.parent_id
+            AND J1.state = $cats::job_st_in_progress
+        )~, undef,
+        $job_id) or return (undef, undef);
+
+    my $jobs_count = $dbh->selectrow_array(qq~
+        SELECT COUNT(*) FROM jobs
+        WHERE parent_id = $parent_id AND
+            parent_id IS NOT NULL AND
+            (state = $cats::job_st_waiting OR state = $cats::job_st_in_progress)~);
+
+    my $allow_set_req_state = 0;
+    if ($jobs_count == 0 || $force) {
+        eval {
+            $allow_set_req_state = 1;
+            $dbh->do(qq~
+                UPDATE jobs SET state = $cats::job_st_waiting_for_verdict
+                WHERE id = ? AND state = $cats::job_st_in_progress~, undef,
+                $parent_id);
+            $dbh->commit;
+            1;
+        } or return CATS::DB::catch_deadlock_error('is_set_req_state_allowed');
+    }
+    return ($parent_id, $allow_set_req_state);
 }
 
 sub update_judge_de_bitmap {
@@ -506,7 +538,8 @@ sub select_request {
                 JQ.id AS job_id,
                 J.type,
                 J.state AS job_state,
-                R.judge_id,
+                CASE WHEN J.type = $cats::job_type_submission THEN R.judge_id
+                ELSE J.judge_id END AS judge_id,
                 R.id,
                 R.problem_id,
                 R.account_id,
@@ -522,7 +555,8 @@ sub select_request {
                 INNER JOIN problems P ON P.id = R.problem_id
                 LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id
             WHERE
-                J.type = $cats::job_type_submission AND
+                (J.type = $cats::job_type_submission OR
+                J.type = $cats::job_type_submission_part) AND
                 (CP.status <= $cats::problem_st_compile OR CA.is_jury = 1) AND
                 $req_des_condition
         UNION
@@ -649,9 +683,11 @@ sub select_request {
 
     eval {
         my $set_state = sub {
-            my $c = $dbh->prepare(q~
-                UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
-            $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
+            if ($sel_req->{type} == $cats::job_type_submission) {
+                my $c = $dbh->prepare(q~
+                    UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
+                $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
+            }
 
             take_job($p->{jid}, $sel_req->{job_id});
             $dbh->commit;
@@ -684,10 +720,19 @@ sub delete_req_details {
     1;
 }
 
+sub get_tests_req_details {
+    my ($req_id) = @_;
+
+    $dbh->selectall_arrayref(q~
+        SELECT test_rank, result FROM req_details
+        WHERE req_id = ? ORDER BY test_rank~, { Slice => {} },
+        $req_id);
+}
+
 sub insert_req_details {
     my (%p) = @_;
 
-    is_req_owned_by($p{req_id}, $p{judge_id}) or return;
+    # is_req_owned_by($p{req_id}, $p{judge_id}) or return;
 
     my ($output, $output_size) = map $p{$_}, qw(output output_size);
     delete $p{$_} for qw(output output_size judge_id);

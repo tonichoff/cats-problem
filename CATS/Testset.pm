@@ -109,14 +109,16 @@ sub get_all_testsets {
 }
 
 sub get_testset {
-    my ($dbh, $rid, $update) = @_;
-    my ($pid, $orig_testsets, $testsets) = $dbh->selectrow_array(q~
-        SELECT R.problem_id, R.testsets, COALESCE(R.testsets, CP.testsets)
-        FROM reqs R
+    my ($dbh, $table, $id, $update) = @_;
+
+    my ($pid, $orig_testsets, $testsets) = $dbh->selectrow_array(qq~
+        SELECT T.problem_id, T.testsets, COALESCE(T.testsets, CP.testsets)
+        FROM $table T
         INNER JOIN contest_problems CP ON
-            CP.contest_id = R.contest_id AND CP.problem_id = R.problem_id
-        WHERE R.id = ?~, undef,
-        $rid);
+            CP.contest_id = T.contest_id AND CP.problem_id = T.problem_id
+        WHERE T.id = ?~, undef,
+        $id);
+
     my @all_tests = @{$dbh->selectcol_arrayref(qq~
         SELECT rank FROM tests WHERE problem_id = ? ORDER BY rank~, undef,
         $pid
@@ -124,9 +126,9 @@ sub get_testset {
     $testsets or return map { $_ => undef } @all_tests;
 
     if ($update && ($orig_testsets || '') ne $testsets) {
-        $dbh->do(q~
-            UPDATE reqs SET testsets = ? WHERE id = ?~, undef,
-            $testsets, $rid);
+        $dbh->do(qq~
+            UPDATE $table SET testsets = ? WHERE id = ?~, undef,
+            $testsets, $id);
         $dbh->commit;
     }
 
