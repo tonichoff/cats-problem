@@ -30,4 +30,13 @@ sub create {
     $rid;
 }
 
+sub create_splitted_jobs {
+    my ($type, $testsets, $fields) = @_;
+
+    $fields ||= {};
+    $fields->{state} ||= $cats::job_st_waiting;
+
+    create($type, { %$fields, testsets => $_ }) for @$testsets;
+}
+
 1;

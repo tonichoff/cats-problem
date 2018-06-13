@@ -60,11 +60,13 @@ $job_st_waiting = 0;
 $job_st_in_progress = 1;
 $job_st_finished = 2;
 $job_st_failed = 3;
+$job_st_waiting_for_verdict = 4;
 
 # Values for jobs.type.
 $job_type_submission = 1;
 $job_type_generate_snippets = 2;
 $job_type_initialize_problem = 3;
+$job_type_submission_part = 4;
 
 # Values for reqs.state.
 $st_not_processed = 0;
