@@ -61,6 +61,7 @@ $job_st_in_progress = 1;
 $job_st_finished = 2;
 $job_st_failed = 3;
 $job_st_waiting_for_verdict = 4;
+$job_st_canceled = 5;
 
 # Values for jobs.type.
 $job_type_submission = 1;
