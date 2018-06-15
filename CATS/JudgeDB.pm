@@ -6,6 +6,7 @@ use warnings;
 use CATS::Constants;
 use CATS::DB;
 use CATS::DevEnv;
+use CATS::Job;
 
 sub get_judge_id {
     my ($sid) = @_;
@@ -111,16 +112,6 @@ sub is_problem_uptodate {
         SELECT 1 FROM problems
         WHERE id = ? AND upload_date - 1.0000000000 / 24 / 60 / 60 <= ?~, undef,
         $pid, $date);
-}
-
-# Returns undef if the req was assigned to another judge, false if req state is enforced.
-sub is_req_owned_by {
-    my ($req_id, $judge_id) = @_;
-    $judge_id or die;
-    my ($st) = $dbh->selectrow_array(q~
-        SELECT state FROM reqs WHERE id = ? AND judge_id = ?~, undef,
-        $req_id, $judge_id) or return;
-    $st == $cats::st_install_processing || $st == $cats::st_testing;
 }
 
 sub save_logs {
@@ -383,7 +374,8 @@ sub set_request_state {
     my ($p) = @_;
 
     $p->{req_id} or return;
-    # is_req_owned_by($p->{req_id}, $p->{jid}) or return;
+    CATS::Job::is_canceled($p->{job_id}) and return;
+
     $dbh->do(q~
         UPDATE reqs SET state = ?, failed_test = ?, result_time = CURRENT_TIMESTAMP
         WHERE id = ?~, undef,
@@ -401,16 +393,6 @@ sub set_request_state {
     $dbh->do(q~
         DELETE FROM req_de_bitmap_cache WHERE req_id = ?~, undef,
         $p->{req_id});
-    $dbh->commit;
-}
-
-sub finish_job {
-    my ($job_id, $job_state) = @_;
-
-    $dbh->do(q~
-        UPDATE jobs SET state = ?, finish_time = CURRENT_TIMESTAMP
-        WHERE id = ?~, undef,
-        $job_state, $job_id);
     $dbh->commit;
 }
 
@@ -591,7 +573,7 @@ sub select_request {
     if ($sel_req->{type} == $cats::job_type_generate_snippets ||
         $sel_req->{type} == $cats::job_type_initialize_problem) {
         eval {
-            take_job($p->{jid}, $sel_req->{job_id});
+            take_job($p->{jid}, $sel_req->{job_id}) or return;
             $dbh->commit;
         } or return CATS::DB::catch_deadlock_error('select_request');
         return $sel_req;
@@ -689,15 +671,16 @@ sub select_request {
                 $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
             }
 
-            take_job($p->{jid}, $sel_req->{job_id});
+            take_job($p->{jid}, $sel_req->{job_id}) or return;
             $dbh->commit;
+            1;
         };
         if (!$check_req->($req_tree->{$sel_req->{id}})) {
             $set_state->($cats::st_unhandled_error);
             return;
         }
         else {
-            $set_state->($cats::st_install_processing);
+            $set_state->($cats::st_install_processing) or return;
         }
         $req_tree->{$sel_req->{id}}->{job_id} = $sel_req->{job_id};
         $req_tree->{$sel_req->{id}}->{type} = $sel_req->{type};
@@ -709,9 +692,9 @@ sub select_request {
 }
 
 sub delete_req_details {
-    my ($req_id, $judge_id) = @_;
+    my ($req_id, $judge_id, $job_id) = @_;
 
-    is_req_owned_by($req_id, $judge_id) or return;
+    CATS::Job::is_canceled($job_id) and return;
 
     $dbh->do(q~
         DELETE FROM req_details WHERE req_id = ?~, undef,
@@ -730,9 +713,9 @@ sub get_tests_req_details {
 }
 
 sub insert_req_details {
-    my (%p) = @_;
+    my ($job_id, %p) = @_;
 
-    # is_req_owned_by($p{req_id}, $p{judge_id}) or return;
+    CATS::Job::is_canceled($job_id) and return;
 
     my ($output, $output_size) = map $p{$_}, qw(output output_size);
     delete $p{$_} for qw(output output_size judge_id);
