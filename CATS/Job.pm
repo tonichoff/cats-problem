@@ -36,7 +36,7 @@ sub is_canceled {
 }
 
 sub cancel {
-    my $job_id = shift;
+    my ($job_id) = @_;
 
     $dbh->do(q~
         DELETE FROM jobs_queue WHERE id = ?~, undef,
