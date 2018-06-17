@@ -508,7 +508,7 @@ sub select_request {
         push @params, $p->{jid};
     }
     elsif ($p->{pin_mode} == $cats::judge_pin_any) {
-        $pin_condition = 'common.judge_id IS NULL AND C.pinned_judges_only = 0 OR';
+        $pin_condition = 'common.judge_id IS NULL AND COALESCE(C.pinned_judges_only, 0) = 0 OR';
     }
 
     push @params, $p->{jid};
@@ -557,11 +557,13 @@ sub select_request {
             FROM jobs_queue JQ
                 INNER JOIN jobs J on J.id = JQ.id
             WHERE
-                J.type = $cats::job_type_generate_snippets OR
-                J.type = $cats::job_type_initialize_problem
+                J.type IN (
+                    $cats::job_type_generate_snippets,
+                    $cats::job_type_initialize_problem,
+                    $cats::job_type_update_self)
         ) common
         LEFT JOIN problem_de_bitmap_cache PDEBC ON PDEBC.problem_id = common.problem_id
-        INNER JOIN contests C ON C.id = common.contest_id
+        LEFT JOIN contests C ON C.id = common.contest_id
 
         WHERE
             common.job_state = $cats::job_st_waiting AND
@@ -570,8 +572,11 @@ sub select_request {
         ROWS 1~, undef,
         @params) or return;
 
-    if ($sel_req->{type} == $cats::job_type_generate_snippets ||
-        $sel_req->{type} == $cats::job_type_initialize_problem) {
+    if (grep $sel_req->{type} == $_,
+        $cats::job_type_generate_snippets,
+        $cats::job_type_initialize_problem,
+        $cats::job_type_update_self
+    ) {
         eval {
             take_job($p->{jid}, $sel_req->{job_id}) or return;
             $dbh->commit;
