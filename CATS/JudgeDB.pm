@@ -467,14 +467,14 @@ sub dev_envs_condition {
 sub take_job {
     my ($judge_id, $job_id) = @_;
 
-    $dbh->do(q~
-        UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
-        WHERE id = ?~, undef,
-        $cats::job_st_in_progress, $judge_id, $job_id);
-
-    $dbh->do(q~
+    ($dbh->do(q~
         DELETE FROM jobs_queue WHERE id = ?~, undef,
-        $job_id);
+        $job_id) // 0) > 0 or return;
+
+    ($dbh->do(qq~
+        UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
+        WHERE id = ? AND state = $cats::job_st_waiting~, undef,
+        $cats::job_st_in_progress, $judge_id, $job_id) // 0) > 0;
 }
 
 sub select_request {
