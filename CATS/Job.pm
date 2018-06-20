@@ -15,13 +15,7 @@ sub create_or_replace {
             req_id = ?~, undef,
         $fields->{req_id}) and return;
 
-    for (1..4) {
-        my $job_ids = $dbh->selectcol_arrayref(q~
-            SELECT id FROM jobs WHERE finish_time IS NULL AND req_id = ?~, undef,
-            $fields->{req_id});
-        @$job_ids or return create($type, $fields);
-        grep cancel($_), @$job_ids or $dbh->commit;
-    }
+    cancel_all($fields->{req_id}) or return create($type, $fields) for (1..4);
     die;
 }
 
@@ -33,6 +27,17 @@ sub is_canceled {
         $job_id);
 
     $st == $cats::job_st_canceled;
+}
+
+sub cancel_all {
+    my ($req_id) = @_;
+
+    my $job_ids = $dbh->selectcol_arrayref(q~
+        SELECT id FROM jobs WHERE finish_time IS NULL AND req_id = ?~, undef,
+        $req_id);
+
+    grep cancel($_), @$job_ids or $dbh->commit;
+    @$job_ids;
 }
 
 sub cancel {
