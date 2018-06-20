@@ -467,14 +467,22 @@ sub dev_envs_condition {
 sub take_job {
     my ($judge_id, $job_id) = @_;
 
-    ($dbh->do(q~
-        DELETE FROM jobs_queue WHERE id = ?~, undef,
-        $job_id) // 0) > 0 or return;
+    my $result;
+    eval {
+        $result = ($dbh->do(q~
+            DELETE FROM jobs_queue WHERE id = ?~, undef,
+            $job_id) // 0) > 0 or return 1;
 
-    ($dbh->do(qq~
-        UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
-        WHERE id = ? AND state = $cats::job_st_waiting~, undef,
-        $cats::job_st_in_progress, $judge_id, $job_id) // 0) > 0;
+        $result &&= ($dbh->do(qq~
+            UPDATE jobs SET state = ?, judge_id = ?, start_time = CURRENT_TIMESTAMP
+            WHERE id = ? AND state = $cats::job_st_waiting~, undef,
+            $cats::job_st_in_progress, $judge_id, $job_id) // 0) > 0;
+
+        $dbh->commit;
+        1;
+    # Another judge has probably acquired this problem concurrently.
+    } or return CATS::DB::catch_deadlock_error('select_request');
+    $result;
 }
 
 sub select_request {
@@ -577,10 +585,7 @@ sub select_request {
         $cats::job_type_initialize_problem,
         $cats::job_type_update_self
     ) {
-        eval {
-            take_job($p->{jid}, $sel_req->{job_id}) or return;
-            $dbh->commit;
-        } or return CATS::DB::catch_deadlock_error('select_request');
+        take_job($p->{jid}, $sel_req->{job_id}) or return;
         return $sel_req;
     }
 
@@ -668,32 +673,30 @@ sub select_request {
         return 1;
     };
 
-    eval {
-        my $set_state = sub {
-            if ($sel_req->{type} == $cats::job_type_submission) {
+
+
+    my $set_state = sub {
+        if ($sel_req->{type} == $cats::job_type_submission) {
+            eval {
                 my $c = $dbh->prepare(q~
                     UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
                 $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
-            }
-
-            take_job($p->{jid}, $sel_req->{job_id}) or return;
-            $dbh->commit;
-            1;
-        };
-        if (!$check_req->($req_tree->{$sel_req->{id}})) {
-            $set_state->($cats::st_unhandled_error);
-            return;
+                1;
+            } or return CATS::DB::catch_deadlock_error('select_request');
         }
-        else {
-            $set_state->($cats::st_install_processing) or return;
-        }
-        $req_tree->{$sel_req->{id}}->{job_id} = $sel_req->{job_id};
-        $req_tree->{$sel_req->{id}}->{type} = $sel_req->{type};
-        1;
+        take_job($p->{jid}, $sel_req->{job_id});
+    };
+    if (!$check_req->($req_tree->{$sel_req->{id}})) {
+        $set_state->($cats::st_unhandled_error);
+        return;
+    }
+    else {
+        $set_state->($cats::st_install_processing) or return;
+    }
 
-    } and return $req_tree->{$sel_req->{id}};
-    # Another judge has probably acquired this problem concurrently.
-    CATS::DB::catch_deadlock_error('select_request');
+    $req_tree->{$sel_req->{id}}->{job_id} = $sel_req->{job_id};
+    $req_tree->{$sel_req->{id}}->{type} = $sel_req->{type};
+    $req_tree->{$sel_req->{id}};
 }
 
 sub delete_req_details {

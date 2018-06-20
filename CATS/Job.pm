@@ -48,14 +48,16 @@ sub cancel {
 sub finish {
     my ($job_id, $job_state) = @_;
 
+    my $finished;
     eval {
-        ($dbh->do(q~
+        $finished = ($dbh->do(q~
             UPDATE jobs SET state = ?, finish_time = CURRENT_TIMESTAMP
             WHERE id = ? AND finish_time IS NULL~, undef,
-            $job_state, $job_id) // 0) > 0 or return;
-        $dbh->commit;
+            $job_state, $job_id) // 0) > 0;
+        $dbh->commit if $finished;
         1;
-    } or CATS::DB::catch_deadlock_error('finish_job');
+    } or return CATS::DB::catch_deadlock_error('finish_job');
+    $finished;
 }
 
 sub create {
