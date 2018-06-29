@@ -86,18 +86,35 @@ sub validate_testset {
 }
 
 sub pack_rank_spec {
-    my (@ranks) = sort { $a <=> $b } @_;
-    my (@ranges);
-    my $range = [0, -1];
+    my ($prev, @ranks) = sort { $a <=> $b } @_ or return '';
+    my @ranges;
+    my ($state, $from, $to, $step) = (2);
     for (@ranks, 0) {
-        if ($range->[1] + 1 != $_) {
-            push @ranges, "$range->[0]" . ($range->[0] == $range->[1] ? '' : "-$range->[1]")
-                if $range->[0];
-            $range->[0] = $_;
+        if ($state == 2) {
+            $step = $_ - $prev;
+            $state = 3;
         }
-        $range->[1] = $_;
+        elsif ($state == 3) {
+            if ($prev + $step == $_) {
+                ($state, $from, $to) = (4, $prev - $step, $_);
+            }
+            else {
+                push @ranges, $prev - $step;
+                $step = $_ - $prev;
+            }
+        }
+        elsif ($state == 4) {
+            if ($prev + $step == $_) {
+                $to = $_;
+            }
+            else {
+                push @ranges, "$from-$to" . ($step > 1 ? "-$step" : '');
+                $state = 2;
+            }
+        }
+        $prev = $_;
     }
-    join ',', @ranges;
+    join ',', @ranges, ($prev || ());
 }
 
 sub get_all_testsets {

@@ -113,9 +113,11 @@ subtest 'dependencies', sub {
 sub pck { goto \&CATS::Testset::pack_rank_spec }
 
 subtest 'pack', sub {
-    plan tests => 4;
+    plan tests => 6;
     is pck(), '', 'pack empty';
     is pck(1, 2, 3), '1-3', 'pack 1,2,3';
-    is pck(4, 6, 8), '4,6,8', 'pack 4,6,8';
-    is pck(5, 7, 4, 15..20), '4-5,7,15-20', 'pack 4-5,7,15-20';
+    is pck(4, 6, 8), '4-8-2', 'pack 4,6,8';
+    is pck(5, 7, 4, 15..20), '4,5,7,15-20', 'pack 4-5,7,15-20';
+    is pck(3, map $_ * 20, 1..10), '3,20-200-20', 'pack * 20';
+    is pck(1, 2, 3, 7, 8, 9, 11, 15, 20, 25), '1-3,7-9,11,15-25-5', 'pack 3 ranges';
 };
