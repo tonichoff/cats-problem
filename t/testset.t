@@ -41,17 +41,21 @@ sub h1 { my %h; $h{$_} = 1 for @_; \%h; }
 plan tests => 6;
 
 subtest 'simple', sub {
-    plan tests => 8;
+    plan tests => 12;
 
     is_deeply psr('1'), [ 1 ];
     is_deeply psr('1,3'), [ 1, 3 ];
     is_deeply psr('2-4'), [ 2 .. 4 ];
     is_deeply psr(' 1, 7 - 8, 3- 6,9 '), [ 1, 3 .. 9 ];
+    is_deeply psr('1-10-2'), [ 1, 3, 5, 7, 9 ], 'step';
 
     throws_ok { psr('') } qr/empty/i;
     throws_ok { psr(',') } qr/empty/i;
     throws_ok { psr('?') } qr/bad/i;
     throws_ok { psr('2,1-3') } qr/duplicate.*2/i;
+    throws_ok { psr('55-') } qr/bad/i;
+    throws_ok { psr('1-2--3') } qr/bad/i;
+    throws_ok { psr('1-2-0') } qr/step/i;
 };
 
 subtest 'basic', sub {

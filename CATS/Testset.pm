@@ -11,10 +11,11 @@ sub parse_simple_rank {
     my %result;
     $rank_spec =~ s/\s+//g;
     for (split ',', $rank_spec) {
-        /^(\d+)(?:-(\d+))?$/ or return $on_error->("Bad element '$_'");
-        my ($from, $to) = ($1, $2 || $1);
+        /^(\d+)(?:-(\d+))?(?:-(\d+))?$/ or return $on_error->("Bad element '$_'");
+        my ($from, $to, $step) = ($1, $2 || $1, $3 // 1);
         $from <= $to or return $on_error->("from > to");
-        for my $t ($from .. $to) {
+        $step or return $on_error->("zero step");
+        for (my $t = $from; $t <= $to; $t += $step) {
             $result{$t} and return $on_error->("Duplicate item $t");
             $result{$t} = 1;
         }
