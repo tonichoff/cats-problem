@@ -5,13 +5,15 @@ use warnings;
 
 sub is_scoring_group { defined $_[0]->{points} || $_[0]->{hide_details} || defined $_[0]->{depends_on} }
 
+my $range_re = qr/^(\d+)(?:-(\d+))?(?:-(\d+))?$/;
+
 sub parse_simple_rank {
     my ($rank_spec, $on_error) = @_;
     $on_error //= sub {};
     my %result;
     $rank_spec =~ s/\s+//g;
     for (split ',', $rank_spec) {
-        /^(\d+)(?:-(\d+))?(?:-(\d+))?$/ or return $on_error->("Bad element '$_'");
+        /$range_re/ or return $on_error->("Bad element '$_'");
         my ($from, $to, $step) = ($1, $2 || $1, $3 // 1);
         $from <= $to or return $on_error->("from > to");
         $step or return $on_error->("zero step");
@@ -47,10 +49,11 @@ sub parse_test_rank {
                 $rec->($testset->{tests}, $sg);
                 $rec->($testset->{depends_on}) if $p{include_deps} && $testset->{depends_on};
             }
-            elsif (/^(\d+)(?:-(\d+))?$/) {
-                my ($from, $to) = ($1, $2 || $1);
+            elsif (/$range_re/) {
+                my ($from, $to, $step) = ($1, $2 || $1, $3 // 1);
                 $from <= $to or die \"from > to";
-                for my $t ($from .. $to) {
+                $step or die \"zero step";
+                for (my $t = $from; $t <= $to; $t += $step) {
                     die \"Ambiguous scoring group for test $t"
                         if $scoring_group && $result{$t} && $result{$t} ne $scoring_group;
                     $result{$t} = $scoring_group;
@@ -87,6 +90,7 @@ sub validate_testset {
 
 sub pack_rank_spec {
     my ($prev, @ranks) = sort { $a <=> $b } @_ or return '';
+    @ranks or return "$prev";
     my @ranges;
     my ($state, $from, $to, $step) = (2);
     for (@ranks, 0) {
@@ -114,7 +118,7 @@ sub pack_rank_spec {
         }
         $prev = $_;
     }
-    join ',', @ranges, ($prev || ());
+    join ',', @ranges;
 }
 
 sub get_all_testsets {

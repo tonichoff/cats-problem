@@ -59,16 +59,19 @@ subtest 'simple', sub {
 };
 
 subtest 'basic', sub {
-    plan tests => 7;
+    plan tests => 10;
 
     is_deeply(ptr('1'), hu(1));
     is_deeply(ptr('1,3'), hu(1, 3));
     is_deeply(ptr('2-4'), hu(2 .. 4));
     is_deeply(ptr(' 1, 7 - 8, 3 - 9 '), hu(1, 3 .. 9));
+    is_deeply ptr('1-10-2'), hu(1, 3, 5, 7, 9), 'step';
 
     throws_ok { ptr('') } qr/empty/i;
     throws_ok { ptr(',') } qr/empty/i;
     throws_ok { ptr('?') } qr/bad/i;
+    throws_ok { ptr('1-2--3') } qr/bad/i;
+    throws_ok { ptr('1-2-0') } qr/step/i;
 };
 
 subtest 'testsets', sub {
@@ -113,8 +116,9 @@ subtest 'dependencies', sub {
 sub pck { goto \&CATS::Testset::pack_rank_spec }
 
 subtest 'pack', sub {
-    plan tests => 6;
+    plan tests => 7;
     is pck(), '', 'pack empty';
+    is pck(33), '33', 'pack 33';
     is pck(1, 2, 3), '1-3', 'pack 1,2,3';
     is pck(4, 6, 8), '4-8-2', 'pack 4,6,8';
     is pck(5, 7, 4, 15..20), '4,5,7,15-20', 'pack 4-5,7,15-20';
