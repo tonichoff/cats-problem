@@ -623,7 +623,7 @@ sub select_request {
         fields => [
             qw(R.id R.problem_id R.account_id R.contest_id R.state CA.is_jury C.run_all_tests
             CP.status S.fname S.src S.de_id), 'CP.id AS cpid',
-            map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields
+            map "CPL.$_ AS cp_$_, RL.$_ AS req_$_", @cats::limits_fields, 'job_split_strategy'
         ],
         tables => [
             'INNER JOIN contest_accounts CA ON CA.account_id = R.account_id AND CA.contest_id = R.contest_id',
