@@ -41,13 +41,15 @@ sub h1 { my %h; $h{$_} = 1 for @_; \%h; }
 plan tests => 6;
 
 subtest 'simple', sub {
-    plan tests => 12;
+    plan tests => 15;
 
     is_deeply psr('1'), [ 1 ];
     is_deeply psr('1,3'), [ 1, 3 ];
     is_deeply psr('2-4'), [ 2 .. 4 ];
+    is_deeply psr('05,003'), [ 3, 5 ], 'leading zero';
     is_deeply psr(' 1, 7 - 8, 3- 6,9 '), [ 1, 3 .. 9 ];
-    is_deeply psr('1-10-2'), [ 1, 3, 5, 7, 9 ], 'step';
+    is_deeply psr('1-10-2'), [ 1, 3, 5, 7, 9 ], 'step 2';
+    is_deeply psr('1-13-3'), [ 1, 4, 7, 10, 13 ], 'step 3';
 
     throws_ok { psr('') } qr/empty/i;
     throws_ok { psr(',') } qr/empty/i;
@@ -56,16 +58,18 @@ subtest 'simple', sub {
     throws_ok { psr('55-') } qr/bad/i;
     throws_ok { psr('1-2--3') } qr/bad/i;
     throws_ok { psr('1-2-0') } qr/step/i;
+    throws_ok { psr('1-10000') } qr/many/i;
 };
 
 subtest 'basic', sub {
-    plan tests => 10;
+    plan tests => 11;
 
-    is_deeply(ptr('1'), hu(1));
-    is_deeply(ptr('1,3'), hu(1, 3));
-    is_deeply(ptr('2-4'), hu(2 .. 4));
-    is_deeply(ptr(' 1, 7 - 8, 3 - 9 '), hu(1, 3 .. 9));
-    is_deeply ptr('1-10-2'), hu(1, 3, 5, 7, 9), 'step';
+    is_deeply ptr('1'), hu(1);
+    is_deeply ptr('1,3'), hu(1, 3);
+    is_deeply ptr('2-4'), hu(2 .. 4);
+    is_deeply ptr('05,003'), hu(3, 5), 'leading zero';
+    is_deeply ptr(' 1, 7 - 8, 3 - 9 '), hu(1, 3 .. 9);
+    is_deeply ptr('1-10-2'), hu(1, 3, 5, 7, 9), 'step 2';
 
     throws_ok { ptr('') } qr/empty/i;
     throws_ok { ptr(',') } qr/empty/i;

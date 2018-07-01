@@ -7,24 +7,34 @@ sub is_scoring_group { defined $_[0]->{points} || $_[0]->{hide_details} || defin
 
 my $range_re = qr/^(\d+)(?:-(\d+))?(?:-(\d+))?$/;
 
+sub parse_range {
+    my ($range_spec, $on_error) = @_;
+    $range_spec =~ /$range_re/ or return $on_error->("Bad element '$_'");
+    my ($from, $to, $step) = ($1, $2 || $1, $3 // 1);
+    $from <= $to or return $on_error->('from > to');
+    $step or return $on_error->('Zero step');
+    my $count = int(($to - $from) / $step) + 1;
+    $count < 10000 or return $on_error->('Too many tests');
+    [ map $from + $_ * $step, 0 .. $count - 1 ];
+}
+
 sub parse_simple_rank {
     my ($rank_spec, $on_error) = @_;
     $on_error //= sub {};
     my %result;
     $rank_spec =~ s/\s+//g;
     for (split ',', $rank_spec) {
-        /$range_re/ or return $on_error->("Bad element '$_'");
-        my ($from, $to, $step) = ($1, $2 || $1, $3 // 1);
-        $from <= $to or return $on_error->("from > to");
-        $step or return $on_error->("zero step");
-        for (my $t = $from; $t <= $to; $t += $step) {
+        my $range = parse_range($_, $on_error) or return;
+        for my $t (@$range) {
             $result{$t} and return $on_error->("Duplicate item $t");
             $result{$t} = 1;
         }
     }
     %result or return $on_error->('Empty rank specifier');
-    [ sort keys %result ];
+    [ sort { $a <=> $b } keys %result ];
 }
+
+sub die_ref { die \$_[0] }
 
 sub parse_test_rank {
     my ($all_testsets, $rank_spec, $on_error, %p) = @_;
@@ -34,7 +44,7 @@ sub parse_test_rank {
         $r =~ s/\s+//g;
         # Rank specifier is a comma-separated list, each element being one of:
         # * test number,
-        # * range of test numbers,
+        # * range of test numbers with optional step,
         # * testset name.
         for (split ',', $r) {
             if (/^[a-zA-Z][a-zA-Z0-9_]*$/) {
@@ -49,19 +59,14 @@ sub parse_test_rank {
                 $rec->($testset->{tests}, $sg);
                 $rec->($testset->{depends_on}) if $p{include_deps} && $testset->{depends_on};
             }
-            elsif (/$range_re/) {
-                my ($from, $to, $step) = ($1, $2 || $1, $3 // 1);
-                $from <= $to or die \"from > to";
-                $step or die \"zero step";
-                for (my $t = $from; $t <= $to; $t += $step) {
+            else {
+                my $range = parse_range($_, \&die_ref) or return;
+                for my $t (@$range) {
                     die \"Ambiguous scoring group for test $t"
                         if $scoring_group && $result{$t} && $result{$t} ne $scoring_group;
                     $result{$t} = $scoring_group;
                     ++$scoring_group->{test_count} if $scoring_group;
                 }
-            }
-            else {
-                die \"Bad element '$_'";
             }
         }
     };
