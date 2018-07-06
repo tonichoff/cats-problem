@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use Test::More tests => 18;
+use Test::More tests => 19;
 use Test::Exception;
 
 use lib '..';
@@ -936,4 +936,24 @@ subtest 'sources limit params', sub {
     $test->('Visualizer', sub { $_[0]->{visualizers}[0] });
     $test->('Checker', sub { $_[0]->{checker} });
     $test->('Interactor', sub { $_[0]->{interactor} });
+};
+
+subtest 'linter', sub {
+    plan tests => 3;
+
+    my $parse = sub {
+        my ($stage) = @_;
+        parse({
+        'test.xml' => wrap_xml(qq~
+<Problem title="asd" lang="en" tlimit="5" inputFile="asd" outputFile="asd" $_[0]>
+<Checker src="checker.pp"/>
+<Linter name="lint" src="checker.pp" $stage/>
+</Problem>~),
+        'checker.pp' => 'begin end.',
+        });
+    };
+
+    throws_ok { $parse->('') } qr/Linter\.stage/, 'no stage';
+    throws_ok { $parse->('stage="qqq"') } qr/'qqq'/, 'bad stage';
+    is $parse->(q/stage="before"/)->{linters}->[0]->{stage}, 'before', 'before';
 };

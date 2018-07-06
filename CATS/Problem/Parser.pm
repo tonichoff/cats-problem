@@ -74,6 +74,7 @@ sub tag_handlers() {{
     Generator => { s => \&start_tag_Generator, r => ['src', 'name'] },
     Validator => { s => \&start_tag_Validator, r => ['src', 'name'] },
     Visualizer => { s => \&start_tag_Visualizer, r => ['src', 'name'] },
+    Linter => { s => \&start_tag_Linter, r => ['src', 'name', 'stage'] },
     GeneratorRange => {
         s => \&start_tag_GeneratorRange, r => ['src', 'name', 'from', 'to'] },
     Module => { s => \&start_tag_Module, r => ['src', 'de_code', 'type'] },
@@ -219,12 +220,15 @@ sub validate {
         and $self->warning("Both stml and url for $_") for qw(statement explanation);
     $problem->{has_checker} or $self->error('No checker specified');
 
-    my $need_interactor = $problem->{run_method} == $cats::rm_interactive || $problem->{run_method} == $cats::rm_competitive;
+    my $need_interactor =
+        $problem->{run_method} == $cats::rm_interactive || $problem->{run_method} == $cats::rm_competitive;
     $problem->{interactor} && !$need_interactor
-        and $self->warning("Interactor defined when run method is not interactive or competitive");
+        and $self->warning('Interactor defined when run method is not interactive or competitive');
 
     !$problem->{interactor} && $need_interactor
-        and $self->warning("Interactor is not defined when run method is interactive or competitive (maybe used legacy interactor definition)");
+        and $self->warning(
+            'Interactor is not defined when run method is interactive or competitive ' .
+            '(maybe used legacy interactor definition)');
 }
 
 sub inc_object_ref_count {
@@ -501,6 +505,16 @@ sub start_tag_Validator {
 sub start_tag_Visualizer {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     push @{$self->{problem}{visualizers}}, $self->create_visualizer($atts);
+}
+
+sub start_tag_Linter {
+    (my CATS::Problem::Parser $self, my $atts) = @_;
+    my $stage = $atts->{stage};
+    $stage =~ /^before|after$/ or $self->error("Bad stage '$stage': must be 'before' or 'after'");
+    push @{$self->{problem}{linters}}, $self->set_named_object($atts->{name}, {
+        $self->problem_source_common_params($atts, 'linter'), stage => $stage,
+    });
+;
 }
 
 sub start_tag_GeneratorRange {

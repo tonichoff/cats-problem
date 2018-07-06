@@ -21,6 +21,9 @@ $visualizer_module = 12;
 $interactor = 13;
 $interactor_module = 14;
 $multiple_checker = 15;
+$linter_module = 16;
+$linter_before = 17;
+$linter_after = 18;
 
 %source_module_names = (
     $generator => 'generator',
@@ -39,6 +42,8 @@ $multiple_checker = 15;
     $interactor => 'interactor',
     $interactor_module => 'interactor module',
     $multiple_checker => 'multiple checker',
+    $linter_before => 'linter before compilation',
+    $linter_after => 'linter after compilation',
 );
 
 # Map source types to module types.
@@ -53,6 +58,8 @@ $multiple_checker = 15;
     $visualizer => $visualizer_module,
     $interactor => $interactor_module,
     $multiple_checker => $checker_module,
+    $linter_before => $linter_module,
+    $linter_after => $linter_module,
 );
 
 # Values for jobs.state.
@@ -93,6 +100,7 @@ $st_ignore_submit = 18;
 $st_idleness_limit_exceeded = 19;
 $st_manually_rejected = 20;
 $st_write_limit_exceeded = 21;
+$st_lint_error = 22;
 
 # Values for contest_problems.status. Order is important:
 $problem_st_manual    = 0; # Requre manual verification after judge acceptance.
