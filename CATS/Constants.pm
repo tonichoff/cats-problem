@@ -123,6 +123,7 @@ $test_file_cut = 30;
 $log_section_start_prefix = '>====== ';
 $log_section_end_prefix = '<====== ';
 $log_section_compile = 'compile';
+$log_section_lint = 'lint';
 
 @limits_fields = qw(time_limit memory_limit write_limit save_output_prefix);
 
