@@ -16,13 +16,15 @@ sub get_judge_id {
         $sid // '');
 }
 
+# { id, active_only, fields }
 sub get_DEs {
     my ($p) = @_;
     my $condition = join ' AND ', ($p->{active_only} ? ('in_contests = 1') : ()), ($p->{id} ? ('id = ?') : ());
+    my $extra_fields = !$p->{fields} ? '' : join '', map ", $_", ref $p->{fields} ? @{$p->{fields}} : $p->{fields};
     $condition = 'WHERE ' . $condition if $condition;
     {
         des => $dbh->selectall_arrayref(qq~
-            SELECT id, code, description, file_ext, default_file_ext, memory_handicap
+            SELECT id, code, description, file_ext, default_file_ext, memory_handicap$extra_fields
             FROM default_de
             $condition ORDER BY code~, { Slice => {} },
             $p->{id} ? ($p->{id}) : ()),
