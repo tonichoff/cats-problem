@@ -34,6 +34,9 @@ our %ip_aliases = (
     localhost => qr/^127\.0\.0\.1$/,
 );
 
+our $timeanddate_url = 'https://www.timeanddate.com/worldclock/fixedtime.html';
+our %timeanddate_tz = (p1 => 261);
+
 # In hours.
 our $judge_alive_interval = 1.0;
 
