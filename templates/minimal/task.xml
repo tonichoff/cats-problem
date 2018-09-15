@@ -1,0 +1,39 @@
+[%- capt = {}; TRY; PROCESS "${template.name}.$lang"; CATCH; ''; END -%]
+<?xml version="1.0" encoding="UTF-8"?>
+<CATS version="1.11">
+<Problem title="[% title %]" lang="[% lang %]" tlimit="1" mlimit="512M"
+  author="[% author %]" inputFile="input.txt" outputFile="output,txt"
+  saveInputPrefix="50B" saveOutputPrefix="50B" saveAnswerPrefix="50B">
+
+<Keyword code="cmp.trivial"/>
+
+<ProblemStatement>
+  <p>
+  </p>
+  <p>[% capt.write_program %]
+  </p>
+</ProblemStatement>
+
+<InputFormat>
+  <p>[% capt.input_format %]
+  </p>
+</InputFormat>
+
+<OutputFormat>
+  <p>[% capt.output_format %]
+  </p>
+</OutputFormat>
+
+<ProblemConstraints>
+  <p>$1 \lt N \lt 100$
+  </p>
+</ProblemConstraints>
+
+<Sample rank="1"><SampleIn>0</SampleIn><SampleOut>1</SampleOut></Sample>
+
+<Import type="checker" guid="std.strs"/>
+
+<Test rank="1"><In>0</In><Out>1</Out></Test>
+
+</Problem>
+</CATS>
