@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
+use File::Copy::Recursive qw(dircopy);
 use File::Glob 'bsd_glob';
 use File::Spec;
 use File::stat;
@@ -56,6 +57,13 @@ sub read_member {
 sub finalize {
     # TODO: needed some changes in architecture
     my ($self, $dbh, $repo, $problem, $message, $is_amend, $repo_id, $sha) = @_;
+
+    if (!$problem->{replace}) {
+        $repo->init;
+        dircopy($self->{dir}, $repo->get_dir);
+        $message ||= 'Initial commit';
+    }
+
     $repo->add()->commit($self->{problem}{author}, $message, $is_amend);
 }
 
