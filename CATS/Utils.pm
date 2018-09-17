@@ -9,6 +9,7 @@ our @EXPORT = qw(
     blob_mimetype
     chop_str
     date_to_iso
+    date_to_rfc822
     encodings
     escape_xml
     file_type
@@ -388,6 +389,12 @@ sub source_hash {
 sub date_to_iso {
     $_[0] =~ /^\s*(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)\s*$/;
     "$3$2$1T$4${5}00";
+}
+
+my @month_names = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+sub date_to_rfc822 {
+    $_[0] =~ /^\s*(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)\s*$/;
+    "$1 $month_names[$2 - 1] $3 $4:$5 +1000";
 }
 
 sub encodings { {'UTF-8' => 1, 'WINDOWS-1251' => 1, 'KOI8-R' => 1, 'CP866' => 1, 'UCS-2LE' => 1} }
