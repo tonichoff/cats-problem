@@ -2,7 +2,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CATS version="1.11">
 <Problem title="[% title %]" lang="[% lang %]" tlimit="1" mlimit="512M"
-  author="[% author %]" inputFile="input.txt" outputFile="output,txt"
+  author="[% author %]" inputFile="*STDIN" outputFile="*STDOUT"
   saveInputPrefix="50B" saveOutputPrefix="50B" saveAnswerPrefix="50B">
 
 <Keyword code="cmp.trivial"/>
