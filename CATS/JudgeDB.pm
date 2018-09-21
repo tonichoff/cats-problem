@@ -722,23 +722,19 @@ sub get_tests_req_details {
         $req_id);
 }
 
+# output output_size judge_id
+# req_id test_rank result time_used memory_used disk_used checker_comment points
 sub insert_req_details {
     my ($job_id, %p) = @_;
 
     CATS::Job::is_canceled($job_id) and return;
 
     my ($output, $output_size) = map $p{$_}, qw(output output_size);
-    delete $p{$_} for qw(output output_size judge_id);
 
-    eval {
-        $dbh->do(
-            sprintf(q~
-                INSERT INTO req_details (%s) VALUES (%s)~,
-                join(', ', keys %p), join(', ', ('?') x keys %p)
-            ),
-            undef, values %p
-        );
-    };
+    my $rd = { map { $_ => $p{$_} } qw(
+        req_id test_rank result time_used memory_used disk_used checker_comment points) };
+
+    eval { $dbh->do(_u $sql->insert(req_details => $rd)); };
     if (my $err = $@) {
         # Maybe retry from judge after crash.
         $err =~ /UNIQUE.*REQ_DETAILS/ or die $err;
