@@ -650,7 +650,7 @@ sub select_request {
             return 0;
         }
 
-        if($req->{elements_count} == 1) {
+        if ($req->{elements_count} == 1) {
             my $element_req = $req->{elements}->[0];
             $check_req->($element_req, $level + 1) or return 0;
             $req->{$_} = $element_req->{$_} for qw(problem_id fname src de_id);
@@ -675,9 +675,8 @@ sub select_request {
         return 1;
     };
 
-
-
     my $set_state = sub {
+        take_job($p->{jid}, $sel_req->{job_id}) or return;
         if ($sel_req->{type} == $cats::job_type_submission) {
             eval {
                 my $c = $dbh->prepare(q~
@@ -686,8 +685,9 @@ sub select_request {
                 1;
             } or return CATS::DB::catch_deadlock_error('select_request');
         }
-        take_job($p->{jid}, $sel_req->{job_id});
+        1;
     };
+
     if (!$check_req->($req_tree->{$sel_req->{id}})) {
         $set_state->($cats::st_unhandled_error);
         return;
