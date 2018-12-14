@@ -36,6 +36,7 @@ our %ip_aliases = (
 
 our $timeanddate_url = 'https://www.timeanddate.com/worldclock/fixedtime.html';
 our %timeanddate_tz = (p1 => 261);
+our $timezone_offset = 10.0;
 
 # In hours.
 our $judge_alive_interval = 1.0;
