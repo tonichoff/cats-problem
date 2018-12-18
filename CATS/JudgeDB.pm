@@ -579,6 +579,14 @@ sub select_request {
             common.job_state = $cats::job_st_waiting AND
             $problem_des_condition AND
             ($pin_condition common.judge_id = ?)
+        ORDER BY CASE common.type
+            WHEN $cats::job_type_update_self THEN 1
+            WHEN $cats::job_type_generate_snippets THEN 2
+            WHEN $cats::job_type_initialize_problem THEN 3
+            WHEN $cats::job_type_submission_part THEN 4
+            WHEN $cats::job_type_submission THEN 5
+            ELSE 6
+        END
         ROWS 1~, undef,
         @params) or return;
 
