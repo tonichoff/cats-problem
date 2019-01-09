@@ -412,8 +412,8 @@ sub group_digits {
 }
 
 sub sanitize_file_name {
-    $_[0] && $_[0] =~ /[^_a-zA-Z0-9\.\\\:\$]/ or return;
-    $_[0] =~ tr/_a-zA-Z0-9\.\\:$/x/c;
+    $_[0] && $_[0] =~ /[^_a-zA-Z0-9\.\-\$]/ or return;
+    $_[0] =~ tr/_a-zA-Z0-9\.\-\$/x/c;
     1;
 }
 
