@@ -120,10 +120,12 @@ subtest 'dependencies', sub {
 sub pck { goto \&CATS::Testset::pack_rank_spec }
 
 subtest 'pack', sub {
-    plan tests => 7;
+    plan tests => 9;
     is pck(), '', 'pack empty';
     is pck(33), '33', 'pack 33';
+    is pck(1, 2), '1,2', 'pack 1,2';
     is pck(1, 2, 3), '1-3', 'pack 1,2,3';
+    is pck(1, 2, 3, 5, 7), '1-3,5,7', 'pack 1,2,3,5,7';
     is pck(4, 6, 8), '4-8-2', 'pack 4,6,8';
     is pck(5, 7, 4, 15..20), '4,5,7,15-20', 'pack 4-5,7,15-20';
     is pck(3, map $_ * 20, 1..10), '3,20-200-20', 'pack * 20';
