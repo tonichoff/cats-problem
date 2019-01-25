@@ -98,7 +98,7 @@ sub pack_rank_spec {
     @ranks or return "$prev";
     my @ranges;
     my ($state, $from, $to, $step) = (2);
-    for (@ranks, 0) {
+    for (@ranks, 0, -1) {
         if ($state == 2) {
             $step = $_ - $prev;
             $state = 3;
