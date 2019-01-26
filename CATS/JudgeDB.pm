@@ -688,7 +688,7 @@ sub select_request {
         if ($sel_req->{type} == $cats::job_type_submission) {
             eval {
                 my $c = $dbh->prepare(q~
-                    UPDATE reqs SET state = ?, judge_id = ? WHERE id = ?~);
+                    UPDATE reqs SET state = ?, judge_id = ?, test_time = CURRENT_TIMESTAMP WHERE id = ?~);
                 $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
                 1;
             } or return CATS::DB::catch_deadlock_error('select_request');
