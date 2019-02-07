@@ -79,4 +79,9 @@ sub catch_deadlock_error {
     undef;
 }
 
+sub foreign_key_violation {
+    # Firebird-specific message.
+    $_[0] =~ /violation of FOREIGN KEY constraint "\w+" on table "(\w+)"/ && $1;
+}
+
 1;
