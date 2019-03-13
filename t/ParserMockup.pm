@@ -14,7 +14,7 @@ use warnings;
 use File::Spec;
 use FindBin;
 
-use lib '..';
+use lib File::Spec->catdir($FindBin::Bin, '..');
 
 use CATS::Problem::ImportSource::Local;
 use CATS::Problem::Source::Base;

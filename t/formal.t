@@ -1,10 +1,14 @@
 use strict;
 use warnings;
+
 use File::Basename;
 use File::Compare;
 use File::Spec;
 use File::Slurp;
+use FindBin;
 use Cwd qw(abs_path getcwd chdir);
+
+use lib File::Spec->catdir($FindBin::Bin, '..');
 
 use CATS::Formal::Generators::XML;
 use CATS::Formal::Generators::TestlibValidator;

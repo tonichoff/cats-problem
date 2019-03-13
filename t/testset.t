@@ -1,10 +1,12 @@
 use strict;
 use warnings;
 
-use lib '..';
-
+use File::Spec;
+use FindBin;
 use Test::More;
 use Test::Exception;
+
+use lib File::Spec->catdir($FindBin::Bin, '..');
 
 use CATS::Testset;
 
