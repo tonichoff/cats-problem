@@ -455,7 +455,7 @@ subtest 'sample', sub {
 };
 
 subtest 'test', sub {
-    plan tests => 60;
+    plan tests => 62;
 
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test/>~),
@@ -508,6 +508,16 @@ subtest 'test', sub {
         'test.xml' => wrap_problem(q~<Test rank="1"><In>zz</In><Out src="t01.out"/><Out>out</Out></Test>~),
         't01.out' => 'q',
     }) } qr/Redefined attribute 'out_file'/, 'Test with duplicate Out text';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(
+            q~<Generator name="g" src="g.pp"/><Test rank="1"><In use="g">z</In><Out>out</Out></Test>~),
+        'g.pp' => 'q',
+    }) } qr/Both input file and generator/, 'Test with input file and generator';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(
+            q~<Solution name="s" src="s.pp"/><Test rank="1"><In>z</In><Out use="s">out</Out></Test>~),
+        's.pp' => 'q',
+    }) } qr/Both output file and standard solution/, 'Test with output file and solution';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Test rank="2"></Test><Test rank="1"></Test>~),
     }) } qr/No input source for test 1/, 'Test errors in rank order';
