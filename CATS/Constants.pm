@@ -101,6 +101,7 @@ $st_idleness_limit_exceeded = 19;
 $st_manually_rejected = 20;
 $st_write_limit_exceeded = 21;
 $st_lint_error = 22;
+$st_banned = 23;
 
 # Values for contest_problems.status. Order is important:
 $problem_st_manual    = 0; # Requre manual verification after judge acceptance.
