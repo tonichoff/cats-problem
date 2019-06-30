@@ -7,14 +7,18 @@ use base qw(CATS::Problem::ImportSource::Base);
 
 sub get_source {
     my ($self, $guid) = @_;
-    $dbh->selectrow_array(qq~SELECT id, stype FROM problem_sources WHERE guid = ?~, undef, $guid);
+    $dbh->selectrow_array(q~
+        SELECT psl.id, psl.stype FROM problem_sources_local psl WHERE psl.guid = ?~, undef,
+        $guid);
 }
 
 sub get_guids {
     my ($self, $guid) = @_;
     $guid =~ s/%/\\%/g;
     $guid =~ s/\*/%/g;
-    @{$dbh->selectcol_arrayref(qq~SELECT guid FROM problem_sources WHERE guid LIKE ? ESCAPE '\\'~, undef, $guid)};
+    @{$dbh->selectcol_arrayref(q~
+        SELECT guid FROM problem_sources WHERE guid LIKE ? ESCAPE '\\'~, undef,
+        $guid)};
 }
 
 sub get_sources_info {
@@ -22,10 +26,10 @@ sub get_sources_info {
     $sources and @$sources or return ();
 
     my $param_str = '?' . ', ?' x scalar @$sources - 1;
-    @{$dbh->selectall_arrayref(qq~
-        SELECT DISTINCT ps.*, dd.code FROM problem_sources ps
-            INNER JOIN default_de dd ON dd.id = ps.de_id
-        WHERE ps.guid IN ($param_str) AND ps.id = (SELECT MAX(ps1.id) FROM problem_sources ps1 WHERE ps1.guid = ps.guid)~, { Slice => {} },
+    @{$dbh->selectall_arrayref(q~
+        SELECT DISTINCT psl.*, dd.code FROM problem_sources_local psl
+            INNER JOIN default_de dd ON dd.id = psl.de_id
+        WHERE psl.guid IN ($param_str)~, { Slice => {} },
         map { $_->{guid} } @$sources)};
 }
 

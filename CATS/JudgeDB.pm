@@ -50,17 +50,22 @@ sub get_problem {
 sub get_problem_sources {
     my ($pid) = @_;
     my $problem_sources = $dbh->selectall_arrayref(q~
-        SELECT ps.*, dd.code FROM problem_sources ps
-            INNER JOIN default_de dd ON dd.id = ps.de_id
+        SELECT psl.*, dd.code FROM problem_sources ps
+            INNER JOIN problem_sources_local psl ON psl.id = ps.id
+            INNER JOIN default_de dd ON dd.id = psl.de_id
         WHERE ps.problem_id = ? ORDER BY ps.id~, { Slice => {} },
         $pid);
+
     my $imported = $dbh->selectall_arrayref(q~
-        SELECT ps.*, dd.code FROM problem_sources ps
-            INNER JOIN default_de dd ON dd.id = ps.de_id
-            INNER JOIN problem_sources_import psi ON ps.guid = psi.guid
-        WHERE psi.problem_id = ? ORDER BY ps.id~, { Slice => {} },
+        SELECT psl.*, ps.id, dd.code FROM problem_sources ps
+            INNER JOIN problem_sources_imported psi ON psi.id = ps.id
+            INNER JOIN problem_sources_local psl ON psl.guid = psi.guid
+            INNER JOIN default_de dd ON dd.id = psl.de_id
+        WHERE ps.problem_id = ? ORDER BY ps.id~, { Slice => {} },
         $pid);
+
     $_->{is_imported} = 1 for @$imported;
+
     [ @$problem_sources, @$imported ];
 }
 
@@ -330,8 +335,11 @@ sub ensure_problem_de_bitmap_cache {
     return if $problem_de_version && $dev_env->version == $problem_de_version;
 
     my $de_ids = $dbh->selectcol_arrayref(q~
-        SELECT de_id FROM problem_sources
-        WHERE problem_id = ?~, undef,
+        SELECT COALESCE(psl.de_id, psle.de_id) FROM problem_sources ps
+        LEFT JOIN problem_sources_local psl ON psl.id = ps.id
+        LEFT JOIN problem_sources_imported psi ON psi.id = ps.id
+        LEFT JOIN problem_sources_local psle ON psle.guid = psi.guid
+        WHERE ps.problem_id = ?~, undef,
         $problem_id);
 
     warn $problem_de_version
