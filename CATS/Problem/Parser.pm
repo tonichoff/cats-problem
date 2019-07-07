@@ -127,7 +127,7 @@ sub get_imported_id {
     (my CATS::Problem::Parser $self, my $name) = @_;
 
     for (@{$self->{problem}{imports}}) {
-        return $_->{src_id} if $name eq ($_->{name} || '');
+        return $_->{id} if $name eq ($_->{name} || '');
     }
     undef;
 }
@@ -562,6 +562,7 @@ sub import_one_source {
         $self->checker_added
             if defined $cats::source_modules{$stype} && $cats::source_modules{$stype} == $cats::checker_module;
         $import->{src_id} = $src_id;
+        $import->{id} = $self->{id_gen}->($self, $name);
         $self->note("Imported source from guid='$guid'");
     }
     else {
