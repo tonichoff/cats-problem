@@ -17,7 +17,7 @@ sub get_guids {
     $guid =~ s/%/\\%/g;
     $guid =~ s/\*/%/g;
     @{$dbh->selectcol_arrayref(q~
-        SELECT guid FROM problem_sources WHERE guid LIKE ? ESCAPE '\\'~, undef,
+        SELECT guid FROM problem_sources_local WHERE guid LIKE ? ESCAPE '\\'~, undef,
         $guid)};
 }
 
@@ -26,7 +26,7 @@ sub get_sources_info {
     $sources and @$sources or return ();
 
     my $param_str = '?' . ', ?' x scalar @$sources - 1;
-    @{$dbh->selectall_arrayref(q~
+    @{$dbh->selectall_arrayref(qq~
         SELECT DISTINCT psl.*, dd.code FROM problem_sources_local psl
             INNER JOIN default_de dd ON dd.id = psl.de_id
         WHERE psl.guid IN ($param_str)~, { Slice => {} },
