@@ -48,4 +48,6 @@ sub cats_dir() {
 
 our $repos_dir = cats_dir() . 'repos/';
 
+our $DOWN = 0;
+
 1;
