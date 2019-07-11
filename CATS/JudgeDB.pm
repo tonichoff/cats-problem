@@ -504,6 +504,8 @@ sub select_request {
         $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
     update_judge_de_bitmap($p, $dev_env);
     $dbh->commit;
+    $dbh->selectrow_array(q~
+        SELECT 1 FROM jobs_queue ROWS 1~, undef) or return;
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
