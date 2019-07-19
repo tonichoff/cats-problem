@@ -877,6 +877,11 @@ sub find_files {
     return grep /$regexp/, @files;
 }
 
+sub is_file_exist {
+    my ($self, $file_name) = @_;
+    $self->git("ls-files $file_name");
+}
+
 sub log {
     my ($self, %opts) = @_;
     my $sha = $opts{sha} // '';
