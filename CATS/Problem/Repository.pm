@@ -952,6 +952,12 @@ sub rm {
     return $self;
 }
 
+sub mv {
+    my ($self, @args) = @_;
+    $self->git('mv ' . join(' ', @args));
+    return $self;
+}
+
 sub add {
     my $self = shift;
     $self->git('add -A');
