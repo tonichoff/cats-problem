@@ -12,6 +12,7 @@ our @EXPORT = qw(
     date_to_rfc822
     encodings
     escape_xml
+    external_url_function
     file_type
     file_type_long
     group_digits
@@ -349,6 +350,11 @@ sub gen_url_params {
 sub redirect_url_function {
     my ($u, %p) = @_;
     "$u?" . join ';', gen_url_params(%p);
+}
+
+sub external_url_function {
+    my ($u, %p) = @_;
+    "$u?" . join '&', gen_url_params(%p);
 }
 
 sub url_function {
