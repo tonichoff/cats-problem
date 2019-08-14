@@ -3,6 +3,7 @@ package CATS::JudgeDB;
 use strict;
 use warnings;
 
+use CATS::Config;
 use CATS::Constants;
 use CATS::DB;
 use CATS::DevEnv;
@@ -474,6 +475,13 @@ sub dev_envs_condition {
     ($des_condition, map $_ // '', ($de_version, extract_de_bitmap($p)));
 }
 
+sub can_split {
+    my $queue_size = $dbh->selectrow_array(q~
+        SELECT COUNT(*) FROM jobs_queue~
+    );
+    $queue_size < $CATS::Config::split->{queue_size_limit};
+}
+
 sub take_job {
     my ($judge_id, $job_id) = @_;
 
@@ -692,6 +700,12 @@ sub select_request {
 
         return 1;
     };
+
+    # Copypasted this code here, because one day it should become more complitcated.
+    $sel_req->{judges_alive} = $dbh->selectrow_array(qq~
+        SELECT SUM(CASE WHEN CURRENT_TIMESTAMP - J.alive_date < ? THEN 1 ELSE 0 END), COUNT(*)
+            FROM judges J WHERE J.pin_mode > ?~, undef,
+        3 * $CATS::Config::judge_alive_interval / 24, $CATS::Config::judge_alive_interval);
 
     my $set_state = sub {
         take_job($p->{jid}, $sel_req->{job_id}) or return;
