@@ -1003,6 +1003,12 @@ sub reset {
     return $self;
 }
 
+sub clean {
+    my ($self, $arg) = @_;
+    $self->git("clean $arg");
+    return $self;
+}
+
 sub checkout {
     my ($self, $what) = @_;
     $what //= '.';
