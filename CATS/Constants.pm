@@ -140,4 +140,10 @@ $de_req_bitfield_size = 62;
 # WebApi error strings
 $es_old_de_version = 'old de version';
 
+# Split strategy related constants
+$split_none = 'none';
+$split_subtasks = 'subtasks';
+$split_explicit = 'explicit';
+$split_default = 'default';
+
 1;
