@@ -50,13 +50,12 @@ our $repos_dir = cats_dir() . 'repos/';
 
 our $DOWN = 0;
 
-
 our $split = {
     default_cnt => 4,
     min_tests_per_job => 5,
 
     # Don't split solutions when jobs_queue size >
     queue_size_limit => 10,
-}
+};
 
 1;

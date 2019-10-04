@@ -701,7 +701,7 @@ sub select_request {
         return 1;
     };
 
-    # Copypasted this code here, because one day it should become more complitcated.
+    # Copypasted this code here, because one day it should become more complicated.
     $sel_req->{judges_alive} = $dbh->selectrow_array(qq~
         SELECT SUM(CASE WHEN CURRENT_TIMESTAMP - J.alive_date < ? THEN 1 ELSE 0 END), COUNT(*)
             FROM judges J WHERE J.pin_mode > ?~, undef,
