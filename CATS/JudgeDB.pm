@@ -3,6 +3,7 @@ package CATS::JudgeDB;
 use strict;
 use warnings;
 
+use CATS::DeBitmaps;
 use CATS::Config;
 use CATS::Constants;
 use CATS::DB;
@@ -225,7 +226,7 @@ sub ensure_request_de_bitmap_cache {
         fields => [
             'S.de_id',
             'RDEBC.version AS de_version',
-            de_bitmap_str('RDEBC'),
+            CATS::DeBitmaps::de_bitmap_str('RDEBC'),
         ],
         tables => [
             'LEFT JOIN req_de_bitmap_cache RDEBC ON RDEBC.req_id = R.id',
@@ -256,18 +257,18 @@ sub ensure_request_de_bitmap_cache {
                 #warn "ensure_request_de_bitmap_cache. req $req->{id} needs update";
                 @bitmap = $dev_env->bitmap_by_ids($req->{de_id});
             }
-            my %de_bitfields_hash = get_de_bitfields_hash(@bitmap);
+            my %de_bitfields_hash = CATS::DeBitmaps::get_de_bitfields_hash(@bitmap);
             $req->{$_} = $de_bitfields_hash{$_} for keys %de_bitfields_hash;
             push @needed_update_reqs, $req;
         }
         else {
             #warn "ensure_request_de_bitmap_cache. req $req->{id} is up to date";
-            @bitmap = extract_de_bitmap($req);
+            @bitmap = CATS::DeBitmaps::extract_de_bitmap($req);
         }
 
         $req->{bitmap} = [ @bitmap ];
         $req->{de_version} = $dev_env->version;
-        my %bitfields_hash = get_de_bitfields_hash(@bitmap);
+        my %bitfields_hash = CATS::DeBitmaps::get_de_bitfields_hash(@bitmap);
         $req->{$_} = $bitfields_hash{$_} for keys %bitfields_hash;
         @bitmap;
     };
@@ -299,21 +300,6 @@ sub ensure_request_de_bitmap_cache {
     }
 
     $req_tree;
-}
-
-sub extract_de_bitmap {
-    map $_[0]->{"de_bits$_"}, 1..$cats::de_req_bitfields_count;
-}
-
-sub de_bitmap_str {
-    my ($table) = @_;
-    join ', ', map { join '.', $table, "de_bits$_" } 1..$cats::de_req_bitfields_count;
-}
-
-sub get_de_bitfields_hash {
-    my @bitfields = @_;
-
-    map { +"de_bits$_" => $bitfields[$_ - 1] || 0 } 1..$cats::de_req_bitfields_count;
 }
 
 sub current_de_version {
@@ -472,7 +458,7 @@ sub dev_envs_condition {
         END) = 1~;
     };
     my $des_condition = $des_cond_fmt->($table);
-    ($des_condition, map $_ // '', ($de_version, extract_de_bitmap($p)));
+    ($des_condition, map $_ // '', ($de_version, CATS::DeBitmaps::extract_de_bitmap($p)));
 }
 
 sub can_split {
@@ -622,7 +608,7 @@ sub select_request {
         return if $sel_req->{problem_de_version} && $sel_req->{problem_de_version} > $dev_env->version;
         warn "update problem de cache: $sel_req->{id}";
         my $updated_de = ensure_problem_de_bitmap_cache($sel_req->{problem_id}, $dev_env, 1);
-        if (!CATS::DevEnv::check_supported($updated_de, [ extract_de_bitmap($p) ])) {
+        if (!CATS::DevEnv::check_supported($updated_de, [ CATS::DeBitmaps::extract_de_bitmap($p) ])) {
             warn "can't check this problem";
             return;
         }
@@ -636,7 +622,7 @@ sub select_request {
         warn "update request de cache: $sel_req->{id}";
         $req_tree = ensure_request_de_bitmap_cache($sel_req->{id}, $dev_env);
         my $updated_de = $req_tree->{$sel_req->{id}}->{bitmap};
-        if (!CATS::DevEnv::check_supported($updated_de, [ extract_de_bitmap($p) ])) {
+        if (!CATS::DevEnv::check_supported($updated_de, [ CATS::DeBitmaps::extract_de_bitmap($p) ])) {
             warn "can't check this request";
             return;
         }
