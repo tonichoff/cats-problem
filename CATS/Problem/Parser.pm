@@ -350,12 +350,13 @@ sub parse_memory_unit {
     my ($atts, $attrib_name, $convert_to, $on_error) = @_;
 
     $atts->{$attrib_name} or return undef;
-    $atts->{$attrib_name} =~ m/^(\d+)(M|K|B)?$/ or $on_error->("Bad value of '$attrib_name'");
+    $atts->{$attrib_name} =~ m/^(\d+)([BKMG])?$/ or $on_error->("Bad value of '$attrib_name'");
 
     my %m = (
         B => 1,
         K => 1 << 10,
         M => 1 << 20,
+        G => 1 << 30,
     );
 
     my $bytes = $1 * $m{$2 || 'M'};

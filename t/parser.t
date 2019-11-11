@@ -911,7 +911,7 @@ subtest 'memory unit suffix', sub {
 };
 
 subtest 'sources limit params', sub {
-    plan tests => 60;
+    plan tests => 70;
 
     my $test = sub {
         my ($tag, $getter) = @_;
@@ -933,6 +933,7 @@ subtest 'sources limit params', sub {
         is $getter->($parse->(q/memoryLimit="1024K"/))->{memory_limit}, 1, "memoryLimit 1024K: $tag";
         is $getter->($parse->(q/memoryLimit="1M"/))->{memory_limit}, 1, "memoryLimit 1M: $tag";
         is $getter->($parse->(q/memoryLimit="1"/))->{memory_limit}, 1, "memoryLimit 1: $tag";
+        is $getter->($parse->(q/memoryLimit="1G"/))->{memory_limit}, 1024, "memoryLimit 1G: $tag";
 
         throws_ok { $parse->(q/writeLimit="asd"/) } qr/Bad value of 'writeLimit'/, "bad writeLimit asd: $tag";
         throws_ok { $parse->(q/writeLimit="K"/) } qr/Bad value of 'writeLimit'/, "bad writeLimit K: $tag";
@@ -940,6 +941,7 @@ subtest 'sources limit params', sub {
         is $getter->($parse->(q/writeLimit="2K"/))->{write_limit}, 2048, "writeLimit 2K: $tag";
         is $getter->($parse->(q/writeLimit="1M"/))->{write_limit}, 1048576, "writeLimit 1M: $tag";
         is $getter->($parse->(q/writeLimit="1"/))->{write_limit}, 1048576, "writeLimit 1: $tag";
+        is $getter->($parse->(q/writeLimit="1G"/))->{write_limit}, 1024 * 1048576, "writeLimit 1G: $tag";
     };
 
     $test->('Generator', sub { $_[0]->{generators}[0] });
