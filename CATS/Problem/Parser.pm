@@ -197,6 +197,8 @@ sub validate {
     my $problem = $self->{problem};
     $self->apply_test_defaults;
     my @t = $check_order->($problem->{tests}, 'test');
+    (@t > 1 && defined $self->{has_quizzes})
+        and return $self->error("Quiz problem have more than one tests");
     for (@t) {
         my $error = validate_test($_) or next;
         $self->error("$error for test $_->{rank}");
@@ -249,6 +251,10 @@ sub on_start_tag {
             $$stml .= Encode::decode(
                 $self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'"));
             return;
+        }
+        elsif ($el eq 'Quiz') {
+            $self->{max_points_quiz} = ($self->{max_points_quiz} // 0) + $atts{points};
+            $self->{has_quizzes} = 1;
         }
         $$stml .=
             "<$el" . join ('', map qq~ $_="$atts{$_}"~, keys %atts) . '>';
@@ -669,7 +675,7 @@ sub start_tag_Run {
     $self->{problem}{run_method} == $cats::rm_competitive && !defined $atts->{players_count}
         and $self->error("Player count limit must be defined for competitive run method");
 
-     $self->{problem}{run_method} != $cats::rm_competitive && defined $atts->{players_count}
+    $self->{problem}{run_method} != $cats::rm_competitive && defined $atts->{players_count}
         and $self->warning("Player count limit defined when run method is not competitive");
 
     $self->{problem}{players_count} = CATS::Testset::parse_simple_rank($atts->{players_count}, sub { $self->error(@_) })
