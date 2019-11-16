@@ -64,7 +64,11 @@ subtest 'header', sub {
 };
 
 subtest 'missing', sub {
-    plan tests => 5;
+    plan tests => 6;
+    throws_ok { parse({
+        'test.xml' => wrap_xml(q~
+<Problem title="" lang="en" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt"/>~),
+    }) } qr/title/, 'empty title';
     throws_ok { parse({
         'test.xml' => wrap_xml(q~
 <Problem title="Title" tlimit="5" mlimit="6" inputFile="input.txt" outputFile="output.txt"/>~),
