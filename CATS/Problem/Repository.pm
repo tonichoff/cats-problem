@@ -21,7 +21,7 @@ use warnings;
 
 use Encode;
 use Fcntl ':mode';
-use File::Copy::Recursive qw(dircopy);
+use File::Copy::Recursive qw(dircopy pathmk);
 use File::Path;
 use File::Spec;
 use File::Temp qw(tempdir tempfile);
@@ -954,6 +954,8 @@ sub rm {
 
 sub mv {
     my ($self, @args) = @_;
+    my ($volume, $file_dir, $file_name) = File::Spec->splitpath($args[1]);
+    pathmk($self->{dir} . $file_dir) if $file_dir;
     $self->git('mv ' . join(' ', @args));
     return $self;
 }
@@ -966,7 +968,9 @@ sub add {
 
 sub replace_file_content {
     my ($self, $file, $content) = @_;
-    CATS::BinaryFile::save(File::Spec->catfile($self->{dir}, $file), $content);
+    my ($volume, $file_dir, $file_name) = File::Spec->splitpath($file);
+    pathmk($self->{dir} . $file_dir) if $file_dir;
+    CATS::BinaryFile::save($self->{dir} . $file_dir . $file_name, $content);
 }
 
 sub move_history {
