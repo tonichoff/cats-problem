@@ -189,7 +189,7 @@ sub get_req_tree {
         WHERE RG.group_id IN ($req_ids_to_next_level_list)~, { Slice => {} });
 
     for my $req_element (@$req_elements) {
-        warn "get_req_tree. link: $req_element->{group_id}->$req_element->{element_id}";
+        #warn "get_req_tree. link: $req_element->{group_id}->$req_element->{element_id}";
         $req_tree->{$req_element->{element_id}} //= {};
         #push @{$req_tree->{$req_element->{element_id}}->{parents} //= []}, $req_tree->{$req_element->{group_id}};
         push @{$req_tree->{$req_element->{group_id}}->{elements} //= []}, $req_tree->{$req_element->{element_id}};
@@ -606,7 +606,7 @@ sub select_request {
     if (!$dev_env->is_good_version($sel_req->{problem_de_version})) {
         # Our cache is behind judge's -- postpone until next API call.
         return if $sel_req->{problem_de_version} && $sel_req->{problem_de_version} > $dev_env->version;
-        warn "update problem de cache: $sel_req->{id}";
+        #warn "update problem de cache: $sel_req->{id}";
         my $updated_de = ensure_problem_de_bitmap_cache($sel_req->{problem_id}, $dev_env, 1);
         if (!CATS::DevEnv::check_supported($updated_de, [ CATS::DeBitmaps::extract_de_bitmap($p) ])) {
             warn "can't check this problem";
@@ -619,7 +619,7 @@ sub select_request {
     if (!$dev_env->is_good_version($sel_req->{request_de_version})) {
         # Our cache is behind judge's -- postpone until next API call.
         return if $sel_req->{request_de_version} && $sel_req->{request_de_version} > $dev_env->version;
-        warn "update request de cache: $sel_req->{id}";
+        #warn "update request de cache: $sel_req->{id}";
         $req_tree = ensure_request_de_bitmap_cache($sel_req->{id}, $dev_env);
         my $updated_de = $req_tree->{$sel_req->{id}}->{bitmap};
         if (!CATS::DevEnv::check_supported($updated_de, [ CATS::DeBitmaps::extract_de_bitmap($p) ])) {
