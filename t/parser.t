@@ -24,6 +24,9 @@ $_[0]
 ~)
 }
 
+# Work around older Test::More.
+if (!*subtest) { sub subtest { $_[1]->(); } sub plan {} }
+
 subtest 'trivial errors', sub {
     plan tests => 5;
     throws_ok { parse({ 'text.x' => 'zzz' }); } qr/xml not found/, 'no xml';
@@ -740,18 +743,25 @@ subtest 'testest', sub {
 };
 
 subtest 'validator', sub {
-    plan tests => 8;
+    plan tests => 10;
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Validator/>~),
     }) } qr/Validator.src/, 'Validator without source';
     throws_ok { parse({
         'test.xml' => wrap_problem(q~<Validator src="t"/>~),
     }) } qr/Validator.name/, 'Validator without name';
+    throws_ok { parse({
+        'test.xml' => wrap_problem(q~
+<Checker src="t.pp"/>
+<Test rank="1"><In src="t" validateParam="1"/><Out src="t"/></Test>~),
+        't.pp' => 'q',
+        't' => 'w',
+    }) } qr/validateParam.+1/, 'validateParam without validate';
     my $p = parse({
         'test.xml' => wrap_problem(q~
 <Validator name="val" src="t.pp" inputFile="*STDIN"/>
 <Checker src="t.pp"/>
-<Test rank="1"><In src="t" validate="val"/><Out src="t"/></Test>~),
+<Test rank="1"><In src="t" validate="val" validateParam="99"/><Out src="t"/></Test>~),
         't.pp' => 'q',
         't' => 'w',
     });
@@ -762,6 +772,7 @@ subtest 'validator', sub {
     is $v->{inputFile}, '*STDIN', 'validator inputFile';
     is keys(%{$p->{tests}}), 1, 'validator test count';
     is $p->{tests}->{1}->{input_validator_id}, 't.pp', 'validator test validate';
+    is $p->{tests}->{1}->{input_validator_param}, '99', 'validator test validate param';
 };
 
 subtest 'interactor', sub {

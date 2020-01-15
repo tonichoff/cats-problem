@@ -145,6 +145,15 @@ sub start_tag_In {
                 $self->get_imported_id($validate) || $self->get_named_object($validate)->{id});
         }
     }
+    if (defined $atts->{validateParam}) {
+        $atts->{validate} or return $self->error(sprintf
+            "Attribute 'validateParam' without 'validate' for tests #%s",
+            join ',', map $_->{rank}, sort { $a <=> $b } @t);
+        for (@t) {
+            my $validate_param = apply_test_rank($atts->{validateParam}, $_->{rank});
+            $self->set_test_attr($_, 'input_validator_param', $validate_param);
+        }
+    }
     $self->{stml} = \($self->{current_test_data}->{in_file} = '');
 }
 
