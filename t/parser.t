@@ -1,3 +1,5 @@
+package main;
+
 use strict;
 use warnings;
 
@@ -25,7 +27,7 @@ $_[0]
 }
 
 # Work around older Test::More.
-if (!*subtest) { sub subtest { $_[1]->(); } sub plan {} }
+BEGIN { if (!main->can('subtest')) { *subtest = sub ($&) { $_[1]->(); }; *plan = sub {}; } }
 
 subtest 'trivial errors', sub {
     plan tests => 5;
