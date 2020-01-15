@@ -3,7 +3,7 @@ use warnings;
 
 use File::Spec;
 use FindBin;
-use Test::More tests => 15;
+use Test::More tests => 18;
 use Test::Exception;
 
 use lib File::Spec->catdir($FindBin::Bin, '..');
@@ -43,4 +43,11 @@ is sfn('пример 1'), 'xxxxxxxxxxxxx1', 'sanitize_file_name 2';
 {
 is external_url_function('google.com', q => 'abc', a => 11), 'google.com?a=11&q=abc', 'url';
 is external_url_function('t', qq => 'a?= %;&+1'), 't?qq=a%3F%3D%20%25%3B%26%2B1', 'url quoting';
+}
+
+{
+    *h = *CATS::Utils::hex_dump;
+    is h('A'), '41', 'hex_dump 1';
+    is h('AB'), '41 42', 'hex_dump 2';
+    is h('AB', 1), "41\n42", 'hex_dump line';
 }

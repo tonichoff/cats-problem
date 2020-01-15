@@ -411,6 +411,14 @@ sub source_encodings {
     [ map {{ enc => $_, selected => $_ eq $_[0] }} sort keys %{encodings()} ];
 }
 
+sub hex_dump {
+    my ($str, $line_length) = @_;
+    my $f = $line_length ? sprintf('(H%d)*', $line_length * 2) : 'H*';
+    my @lines = map pack('(AA2)*', split //), unpack $f, $str;
+    chop @lines;
+    join "\n", @lines;
+}
+
 sub group_digits {
     my ($num, $sep) = @_;
     my $len = length $_[0];
