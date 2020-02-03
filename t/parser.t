@@ -5,7 +5,7 @@ use warnings;
 
 use File::Spec;
 use FindBin;
-use Test::More tests => 19;
+use Test::More tests => 20;
 use Test::Exception;
 
 use lib File::Spec->catdir($FindBin::Bin, '..');
@@ -986,4 +986,30 @@ subtest 'linter', sub {
     throws_ok { $parse->('') } qr/Linter\.stage/, 'no stage';
     throws_ok { $parse->('stage="qqq"') } qr/'qqq'/, 'bad stage';
     is $parse->(q/stage="before"/)->{linters}->[0]->{stage}, 'before', 'before';
+};
+
+subtest 'quiz', sub {
+    plan tests => 2;
+
+    my $p = parse({
+        'test.xml' => wrap_xml(qq~
+<Problem title="quizz" lang="en" tlimit="5" inputFile="asd" outputFile="asd">
+<ProblemStatement><Quiz points="3"></Quiz><Quiz></Quiz></ProblemStatement>
+<Checker src="checker.pp"/>
+<Test rank="1"><In>2</In><Out>2</Out></Test>
+</Problem>~),
+        'checker.pp' => 'begin end.',
+    });
+    is $p->{tests}->{1}->{points}, 4, 'Quiz max_points';
+
+    throws_ok { parse({
+        'test.xml' => wrap_xml(qq~
+<Problem title="quizz" lang="en" tlimit="5" inputFile="asd" outputFile="asd">
+<ProblemStatement><Quiz></Quiz><Quiz></Quiz></ProblemStatement>
+<Checker src="checker.pp"/>
+<Test rank="1"><In>11</In><Out>11</Out></Test>
+<Test rank="2"><In>12</In><Out>12</Out></Test>
+</Problem>~),
+        'checker.pp' => 'begin end.',
+    }) } qr/Quiz/, 'Quiz with 2 tests';
 };

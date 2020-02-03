@@ -196,8 +196,8 @@ sub validate {
     my $problem = $self->{problem};
     $self->apply_test_defaults;
     my @t = $check_order->($problem->{tests}, 'test');
-    (@t > 1 && defined $self->{has_quizzes})
-        and return $self->error("Quiz problem have more than one tests");
+    @t > 1 && $self->{has_quizzes}
+        and return $self->error('Quiz problem have more than one test');
     for (@t) {
         my $error = validate_test($_) or next;
         $self->error("$error for test $_->{rank}");
@@ -252,7 +252,7 @@ sub on_start_tag {
             return;
         }
         elsif ($el eq 'Quiz') {
-            $self->{max_points_quiz} = ($self->{max_points_quiz} // 0) + $atts{points};
+            $self->{max_points_quiz} = ($self->{max_points_quiz} // 0) + ($atts{points} // 1);
             $self->{has_quizzes} = 1;
         }
         $$stml .=

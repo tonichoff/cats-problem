@@ -36,9 +36,7 @@ sub validate_test {
 sub set_test_attr {
     my CATS::Problem::Parser $self = shift;
     my ($test, $attr, $value) = @_;
-    if (!defined $value and defined $self->{max_points_quiz}) {
-        $value = $self->{max_points_quiz};
-    }
+    $value //= $self->{max_points_quiz};
     defined $value or return;
     defined $test->{$attr}
         and return $self->error("Redefined attribute '$attr' for test #$test->{rank}");
