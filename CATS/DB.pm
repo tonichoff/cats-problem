@@ -5,14 +5,21 @@ use warnings;
 
 use Exporter qw(import);
 our @EXPORT = qw($dbh $sql new_id _u);
-our @EXPORT_OK = qw(current_sequence_value next_sequence_value);
+our @EXPORT_OK = qw(
+    $BLOB_TYPE 
+    current_sequence_value
+    $FROM_DUMMY
+    $KW_LIMIT
+    next_sequence_value
+    $TEXT_TYPE
+);
 
 use Carp;
 use DBI;
 
 use CATS::Config;
 
-our ($dbh, $sql);
+our ($dbh, $sql, $KW_LIMIT, $TEXT_TYPE, $BLOB_TYPE, $FROM_DUMMY);
 
 sub _u { splice(@_, 1, 0, { Slice => {} }); @_; }
 
@@ -66,6 +73,21 @@ sub new_id {
 
 sub sql_connect {
     my ($db_options) = @_;
+
+    if ($CATS::Config::db_dsn =~ /Firebird/) {
+        $KW_LIMIT = 'ROWS';
+        $FROM_DUMMY = 'FROM RDB$DATABASE';
+        $BLOB_TYPE = 'BLOB';
+        $TEXT_TYPE = 'BLOB SUB_TYPE TEXT';
+    } elsif ($CATS::Config::db_dsn =~ /Pg/) {
+        $KW_LIMIT = 'LIMIT';
+        $FROM_DUMMY = '';
+        $BLOB_TYPE = 'BYTEA';
+        $TEXT_TYPE = 'TEXT';
+    } else {
+        die 'Error in sql_connect';
+    }
+
     $dbh ||= DBI->connect(
         $CATS::Config::db_dsn, $CATS::Config::db_user, $CATS::Config::db_password,
         {
