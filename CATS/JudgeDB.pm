@@ -6,7 +6,7 @@ use warnings;
 use CATS::DeBitmaps;
 use CATS::Config;
 use CATS::Constants;
-use CATS::DB;
+use CATS::DB qw(:DEFAULT current_sequence_value next_sequence_value);
 use CATS::DevEnv;
 use CATS::Job;
 
@@ -304,8 +304,7 @@ sub ensure_request_de_bitmap_cache {
 }
 
 sub current_de_version {
-    $dbh->selectrow_array(q~
-        SELECT GEN_ID(de_bitmap_cache_seq, 0) FROM RDB$DATABASE~);
+    current_sequence_value('de_bitmap_cache_seq');
 }
 
 sub ensure_problem_de_bitmap_cache {
@@ -363,8 +362,7 @@ sub invalidate_de_bitmap_cache {
         DELETE FROM req_de_bitmap_cache~);
     $dbh->do(q~
         DELETE FROM problem_de_bitmap_cache~);
-    $dbh->selectrow_array(q~
-        SELECT NEXT VALUE FOR de_bitmap_cache_seq FROM RDB$DATABASE~);
+    next_sequence_value('de_bitmap_cache_seq');
     $dbh->commit;
 }
 
