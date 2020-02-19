@@ -3,7 +3,7 @@ use warnings;
 
 use File::Spec;
 use FindBin;
-use Test::More tests => 18;
+use Test::More tests => 19;
 use Test::Exception;
 
 use lib File::Spec->catdir($FindBin::Bin, '..');
@@ -31,6 +31,7 @@ is group_digits(234567890, '_'), '234_567_890', 'group_digits sep 234567890';
 
 {
 is date_to_iso('10.11.1991 12:33'), '19911110T123300', 'date_to_iso';
+is date_to_iso(undef), undef, 'date_to_iso undef';
 is date_to_rfc822('10.11.1991 12:33'), '10 Nov 1991 12:33 +1000', 'date_to_rfc822';
 }
 

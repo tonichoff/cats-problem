@@ -393,6 +393,7 @@ sub source_hash {
 }
 
 sub date_to_iso {
+    $_[0] or return undef;
     $_[0] =~ /^\s*(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)\s*$/;
     "$3$2$1T$4${5}00";
 }
