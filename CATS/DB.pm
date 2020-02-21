@@ -64,7 +64,7 @@ sub current_sequence_value {
     else {
         die 'Error in current_sequence_value';
     }
-    }
+}
 
 sub new_id {
     return Digest::MD5::md5_hex(Encode::encode_utf8($_[1] // die)) unless $dbh;
