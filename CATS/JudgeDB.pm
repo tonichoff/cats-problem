@@ -688,8 +688,10 @@ sub select_request {
 
     # Copypasted this code here, because one day it should become more complicated.
     $sel_req->{judges_alive} = $dbh->selectrow_array(qq~
-        SELECT SUM(CASE WHEN CURRENT_TIMESTAMP - J.alive_date < ? THEN 1 ELSE 0 END), COUNT(*)
-            FROM judges J WHERE J.pin_mode > ?~, undef,
+        SELECT
+            SUM(CASE WHEN CAST(CURRENT_TIMESTAMP - J.alive_date AS DOUBLE PRECISION) < ? THEN 1 ELSE 0 END),
+            COUNT(*)
+        FROM judges J WHERE J.pin_mode > ?~, undef,
         3 * $CATS::Config::judge_alive_interval / 24, $CATS::Config::judge_alive_interval);
 
     my $set_state = sub {
