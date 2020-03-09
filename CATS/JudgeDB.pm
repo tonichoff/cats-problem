@@ -6,7 +6,7 @@ use warnings;
 use CATS::DeBitmaps;
 use CATS::Config;
 use CATS::Constants;
-use CATS::DB qw(:DEFAULT current_sequence_value next_sequence_value);
+use CATS::DB qw(:DEFAULT current_sequence_value $KW_LIMIT next_sequence_value);
 use CATS::DevEnv;
 use CATS::Job;
 
@@ -497,8 +497,8 @@ sub select_request {
         $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
     update_judge_de_bitmap($p, $dev_env);
     $dbh->commit;
-    $dbh->selectrow_array(q~
-        SELECT 1 FROM jobs_queue ROWS 1~, undef) or return;
+    $dbh->selectrow_array(qq~
+        SELECT 1 FROM jobs_queue $KW_LIMIT 1~, undef) or return;
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
@@ -590,7 +590,7 @@ sub select_request {
             WHEN $cats::job_type_submission THEN 5
             ELSE 6
         END
-        ROWS 1~, undef,
+        $KW_LIMIT 1~, undef,
         @params) or return;
 
     if (grep $sel_req->{type} == $_,
