@@ -28,16 +28,6 @@ sub select_row {
     $dbh->selectrow_hashref(_u $sql->select(@_));
 }
 
-sub select_object {
-    my ($table, $condition) = @_;
-    select_row($table, '*', $condition);
-}
-
-sub object_by_id {
-    my ($table, $id) = @_;
-    select_object($table, { id => $id });
-}
-
 sub next_sequence_value {
     my ($seq) = @_;
     if ($CATS::Config::db_dsn =~ /Firebird/) {
