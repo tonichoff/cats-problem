@@ -28,6 +28,7 @@ our $smtp = {
 };
 our $health_report_email = '<your-health-report-email>';
 our $absolute_url = '<your-absolute-url>';
+our $relative_url = '';
 
 our $ip_info = 'https://db-ip.com/%s';
 our %ip_aliases = (

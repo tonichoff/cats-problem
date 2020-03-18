@@ -32,6 +32,8 @@ use Digest::MD5;
 use Fcntl ':mode';
 use Text::Balanced qw(extract_tagged extract_bracketed);
 
+use CATS::Config;
+
 use constant {
     S_IFGITLINK => 0160000,
 };
@@ -358,7 +360,7 @@ sub external_url_function {
 }
 
 sub url_function {
-    redirect_url_function('main.pl', f => @_)
+    redirect_url_function($CATS::Config::relative_url, f => @_)
 }
 
 # unused
