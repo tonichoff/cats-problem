@@ -6,7 +6,7 @@ use warnings;
 use CATS::DeBitmaps;
 use CATS::Config;
 use CATS::Constants;
-use CATS::DB qw(:DEFAULT current_sequence_value next_sequence_value);
+use CATS::DB qw(:DEFAULT current_sequence_value $KW_LIMIT next_sequence_value);
 use CATS::DevEnv;
 use CATS::Job;
 
@@ -497,8 +497,8 @@ sub select_request {
         $p->{jid}) if $p->{was_pinged} || $p->{time_since_alive} > $CATS::Config::judge_alive_interval / 24;
     update_judge_de_bitmap($p, $dev_env);
     $dbh->commit;
-    $dbh->selectrow_array(q~
-        SELECT 1 FROM jobs_queue ROWS 1~, undef) or return;
+    $dbh->selectrow_array(qq~
+        SELECT 1 FROM jobs_queue $KW_LIMIT 1~, undef) or return;
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
@@ -590,7 +590,7 @@ sub select_request {
             WHEN $cats::job_type_submission THEN 5
             ELSE 6
         END
-        ROWS 1~, undef,
+        $KW_LIMIT 1~, undef,
         @params) or return;
 
     if (grep $sel_req->{type} == $_,
@@ -688,8 +688,10 @@ sub select_request {
 
     # Copypasted this code here, because one day it should become more complicated.
     $sel_req->{judges_alive} = $dbh->selectrow_array(qq~
-        SELECT SUM(CASE WHEN CURRENT_TIMESTAMP - J.alive_date < ? THEN 1 ELSE 0 END), COUNT(*)
-            FROM judges J WHERE J.pin_mode > ?~, undef,
+        SELECT
+            SUM(CASE WHEN CAST(CURRENT_TIMESTAMP - J.alive_date AS DOUBLE PRECISION) < ? THEN 1 ELSE 0 END),
+            COUNT(*)
+        FROM judges J WHERE J.pin_mode > ?~, undef,
         3 * $CATS::Config::judge_alive_interval / 24, $CATS::Config::judge_alive_interval);
 
     my $set_state = sub {

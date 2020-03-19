@@ -10,6 +10,7 @@ our @EXPORT_OK = qw(
     current_sequence_value
     $FROM_DUMMY
     $KW_LIMIT
+    last_ip_query
     next_sequence_value
     $TEXT_TYPE
 );
@@ -25,16 +26,6 @@ sub _u { splice(@_, 1, 0, { Slice => {} }); @_; }
 
 sub select_row {
     $dbh->selectrow_hashref(_u $sql->select(@_));
-}
-
-sub select_object {
-    my ($table, $condition) = @_;
-    select_row($table, '*', $condition);
-}
-
-sub object_by_id {
-    my ($table, $id) = @_;
-    select_object($table, { id => $id });
 }
 
 sub next_sequence_value {
@@ -69,6 +60,19 @@ sub current_sequence_value {
 sub new_id {
     return Digest::MD5::md5_hex(Encode::encode_utf8($_[1] // die)) unless $dbh;
     next_sequence_value('key_seq');
+}
+
+sub last_ip_query {
+    if ($CATS::Config::db_dsn =~ /Firebird/) {
+        q~SELECT mon$remote_address FROM mon$attachments M
+          WHERE M.mon$attachment_id = CURRENT_CONNECTION~;
+    }
+    elsif ($CATS::Config::db_dsn =~ /Pg/) {
+        q~SELECT CAST(INET_CLIENT_ADDR() AS TEXT)~;
+    }
+    else {
+        die 'Error in last_ip_query';
+    }
 }
 
 sub sql_connect {
