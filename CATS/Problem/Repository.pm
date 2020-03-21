@@ -1048,4 +1048,9 @@ sub pull {
     $self->git('merge origin/master');
 }
 
+sub bundle {
+    my ($self, $file_name) = @_;
+    $self->git("bundle create $file_name master");
+}
+
 1;
