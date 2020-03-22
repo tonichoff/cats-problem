@@ -61,7 +61,7 @@ sub finish {
             $job_state, $job_id) // 0) > 0;
         $dbh->commit if $finished;
         1;
-    } or return CATS::DB::catch_deadlock_error('finish_job');
+    } or return $CATS::DB::db->catch_deadlock_error('finish_job');
     $finished;
 }
 
