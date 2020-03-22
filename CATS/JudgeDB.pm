@@ -6,7 +6,7 @@ use warnings;
 use CATS::DeBitmaps;
 use CATS::Config;
 use CATS::Constants;
-use CATS::DB qw(:DEFAULT current_sequence_value $KW_LIMIT next_sequence_value);
+use CATS::DB qw(:DEFAULT $db);
 use CATS::DevEnv;
 use CATS::Job;
 
@@ -304,7 +304,7 @@ sub ensure_request_de_bitmap_cache {
 }
 
 sub current_de_version {
-    current_sequence_value('de_bitmap_cache_seq');
+    $db->current_sequence_value('de_bitmap_cache_seq');
 }
 
 sub ensure_problem_de_bitmap_cache {
@@ -362,7 +362,7 @@ sub invalidate_de_bitmap_cache {
         DELETE FROM req_de_bitmap_cache~);
     $dbh->do(q~
         DELETE FROM problem_de_bitmap_cache~);
-    next_sequence_value('de_bitmap_cache_seq');
+    $db->next_sequence_value('de_bitmap_cache_seq');
     $dbh->commit;
 }
 
@@ -419,7 +419,7 @@ sub is_set_req_state_allowed {
                 $parent_id);
             $dbh->commit;
             1;
-        } or return CATS::DB::catch_deadlock_error('is_set_req_state_allowed');
+        } or return $db->catch_deadlock_error('is_set_req_state_allowed');
     }
     return ($parent_id, $allow_set_req_state);
 }
@@ -484,7 +484,7 @@ sub take_job {
         $dbh->commit;
         1;
     # Another judge has probably acquired this problem concurrently.
-    } or return CATS::DB::catch_deadlock_error('select_request');
+    } or return $db->catch_deadlock_error('select_request');
     $result;
 }
 
@@ -498,7 +498,7 @@ sub select_request {
     update_judge_de_bitmap($p, $dev_env);
     $dbh->commit;
     $dbh->selectrow_array(qq~
-        SELECT 1 FROM jobs_queue $KW_LIMIT 1~, undef) or return;
+        SELECT 1 FROM jobs_queue $db->{LIMIT} 1~, undef) or return;
 
     return if $p->{pin_mode} == $cats::judge_pin_locked;
 
@@ -590,7 +590,7 @@ sub select_request {
             WHEN $cats::job_type_submission THEN 5
             ELSE 6
         END
-        $KW_LIMIT 1~, undef,
+        $db->{LIMIT} 1~, undef,
         @params) or return;
 
     if (grep $sel_req->{type} == $_,
@@ -702,7 +702,7 @@ sub select_request {
                     UPDATE reqs SET state = ?, judge_id = ?, test_time = CURRENT_TIMESTAMP WHERE id = ?~);
                 $c->execute_array(undef, $_[0], $p->{jid}, \@testing_req_ids);
                 1;
-            } or return CATS::DB::catch_deadlock_error('select_request');
+            } or return $db->catch_deadlock_error('select_request');
         }
         1;
     };
@@ -791,7 +791,7 @@ sub save_input_test_data {
 
         $dbh->commit;
         1;
-    } or CATS::DB::catch_deadlock_error('save_input_test_data');
+    } or $db->catch_deadlock_error('save_input_test_data');
 }
 
 sub save_answer_test_data {
@@ -805,7 +805,7 @@ sub save_answer_test_data {
 
         $dbh->commit;
         1;
-    } or CATS::DB::catch_deadlock_error('save_answer_test_data');
+    } or $db->catch_deadlock_error('save_answer_test_data');
 }
 
 sub save_problem_snippet {
@@ -819,6 +819,6 @@ sub save_problem_snippet {
 
         $dbh->commit;
         1;
-    } or CATS::DB::catch_deadlock_error('save_problem_snippet');
+    } or $db->catch_deadlock_error('save_problem_snippet');
 }
 1;
