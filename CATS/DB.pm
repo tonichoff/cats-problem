@@ -50,6 +50,17 @@ sub foreign_key_violation {
     $_[0] =~ /violation of FOREIGN KEY constraint "\w+" on table "(\w+)"/ && $1;
 }
 
+sub format_date { 
+    $_[1] or return undef;
+    $_[1] =~ s/\s*$//;
+    $_[1];
+}
+
+sub parse_date {
+    $_[1] or return undef;
+    $_[1];
+}
+
 package CATS::DB::Postgres;
 
 use Encode;
@@ -98,6 +109,18 @@ sub catch_deadlock_error {
 
 sub foreign_key_violation {
     $_[0] =~ /insert or update on table "(\w+)" violates foreign key constraint "\w+"/ && $1;
+}
+
+sub format_date {
+    $_[1] or return undef;
+    $_[1] =~ /\s*(\d+)-(\d+)-(\d+)\s*(\d+:\d+)?/;
+    $4 ? "$3.$2.$1 $4" : "$3.$2.$1";
+}
+
+sub parse_date {
+    $_[1] or return undef;
+    $_[1] =~ /\s*(\d+)\.(\d+)\.(\d+)\s*(\d+:\d+)/;
+    "$3-$2-$1 $4";
 }
 
 package CATS::DB;
