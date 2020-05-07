@@ -51,14 +51,13 @@ sub foreign_key_violation {
 }
 
 sub format_date { 
-    $_[1] or return undef;
+    $_[1] or return;
     $_[1] =~ s/\s*$//;
     $_[1];
 }
 
 sub parse_date {
-    $_[1] or return undef;
-    $_[1];
+    $_[1] || undef;
 }
 
 package CATS::DB::Postgres;
@@ -112,14 +111,14 @@ sub foreign_key_violation {
 }
 
 sub format_date {
-    $_[1] or return undef;
-    $_[1] =~ /\s*(\d+)-(\d+)-(\d+)\s*(\d+:\d+)?/;
+    $_[1] or return;
+    $_[1] =~ /^\s*(\d+)-(\d+)-(\d+)\s*(\d+:\d+)?/; # Ignore milliseconds and time zone at the end.
     $4 ? "$3.$2.$1 $4" : "$3.$2.$1";
 }
 
 sub parse_date {
-    $_[1] or return undef;
-    $_[1] =~ /\s*(\d+)\.(\d+)\.(\d+)\s*(\d+:\d+)/;
+    $_[1] or return;
+    $_[1] =~ /^\s*(\d+)\.(\d+)\.(\d+)\s*(\d+:\d+)$/;
     "$3-$2-$1 $4";
 }
 
