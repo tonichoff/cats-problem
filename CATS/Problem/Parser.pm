@@ -36,7 +36,7 @@ sub error {
 
 sub error_stack {
     (my CATS::Problem::Parser $self, my $msg) = @_;
-    $self->error("$msg in " . join '/', @{$self->{tag_stack}});
+    $self->error("$msg in " . join '/', map $_->{el}, @{$self->{tag_stack}});
 }
 
 sub note {
@@ -143,8 +143,7 @@ sub read_member_named {
 
 sub check_top_tag {
     (my CATS::Problem::Parser $self, my $allowed_tags) = @_;
-    my $top_tag;
-    $top_tag = @$_ ? $_->[$#$_] : '' for $self->{tag_stack};
+    my $top_tag = @{$self->{tag_stack}} ? @{$self->{tag_stack}}[-1]->{el} : '';
     return grep $top_tag eq $_, @$allowed_tags;
 }
 
@@ -196,8 +195,8 @@ sub validate {
     my $problem = $self->{problem};
     $self->apply_test_defaults;
     my @t = $check_order->($problem->{tests}, 'test');
-    @t > 1 && $self->{has_quizzes}
-        and return $self->error('Quiz problem have more than one test');
+    #@t > 1 && $self->{has_quizzes}
+    #    and return $self->error('Quiz problem have more than one test');
     for (@t) {
         my $error = validate_test($_) or next;
         $self->error("$error for test $_->{rank}");
@@ -243,7 +242,7 @@ sub on_start_tag {
 
     my $h = tag_handlers()->{$el};
     if (my $stml = $self->{stml}) {
-        $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->current_tag);
+        $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->current_tag->{el});
         if ($el eq 'include') {
             my $name = $atts{src} or
                 return $self->error(q~Missing required 'src' attribute of 'include' tag~);
@@ -271,7 +270,7 @@ sub on_start_tag {
     !@$in || $self->check_top_tag($in)
         or $self->error_stack("Tag '$el' must be inside of " . join(' or ', @$in));
     $self->required_attributes($el, \%atts, $h->{r}) if $h->{r};
-    push @{$self->{tag_stack}}, $el;
+    push @{$self->{tag_stack}}, { el => $el };
     $h->{s}->($self, \%atts, $el);
 }
 
@@ -286,7 +285,8 @@ sub on_end_tag {
         return;
     }
     $h or $self->error("Unknown tag $el");
-    $el eq pop @{$self->{tag_stack}} or $self->error("Mismatched closing tag $el");
+    my $top_tag = pop @{$self->{tag_stack}};
+    $el eq $top_tag->{el} or $self->error("Mismatched closing tag $el");
 }
 
 sub start_stml {
@@ -373,7 +373,6 @@ sub start_tag_Problem {
     (my CATS::Problem::Parser $self, my $atts) = @_;
 
     my $problem = $self->{problem};
-
     $problem->{description} = {
         title => $atts->{title},
         lang => $atts->{lang},
@@ -615,7 +614,7 @@ sub end_tag_Sample {
 sub sample_inout_file {
     (my CATS::Problem::Parser $self, my $rank, my $in_out) = @_;
     my $f = \$self->{problem}->{samples}->{$rank}->{$in_out};
-    defined $$f and $self->error(sprintf "Redefined source for %s %d", $self->current_tag, $rank);
+    defined $$f and $self->error(sprintf "Redefined source for %s %d", $self->current_tag->{el}, $rank);
     $f;
 }
 
