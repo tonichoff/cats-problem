@@ -143,8 +143,8 @@ sub read_member_named {
 
 sub check_top_tag {
     (my CATS::Problem::Parser $self, my $allowed_tags) = @_;
-    my $top_tag = @{$self->{tag_stack}} ? @{$self->{tag_stack}}[-1]->{el} : '';
-    return grep $top_tag eq $_, @$allowed_tags;
+    my $top_tag_el = @{$self->{tag_stack}} ? @{$self->{tag_stack}}[-1]->{el} : '';
+    return grep $top_tag_el eq $_, @$allowed_tags;
 }
 
 sub checker_added {
@@ -241,7 +241,8 @@ sub on_start_tag {
     my ($p, $el, %atts) = @_;
 
     my $h = tag_handlers()->{$el};
-    if (my $stml = $self->{stml}) {
+    my $top_tag = $self->current_tag;
+    if (my $stml = $top_tag ? $top_tag->{stml} : undef) {
         $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->current_tag->{el});
         if ($el eq 'include') {
             my $name = $atts{src} or
@@ -270,7 +271,7 @@ sub on_start_tag {
     !@$in || $self->check_top_tag($in)
         or $self->error_stack("Tag '$el' must be inside of " . join(' or ', @$in));
     $self->required_attributes($el, \%atts, $h->{r}) if $h->{r};
-    push @{$self->{tag_stack}}, { el => $el };
+    push @{$self->{tag_stack}}, { el => $el, stml => undef };
     $h->{s}->($self, \%atts, $el);
 }
 
@@ -280,8 +281,8 @@ sub on_end_tag {
 
     my $h = tag_handlers()->{$el};
     $h->{e}->($self, \%atts, $el) if $h && $h->{e};
-    if ($self->{stml}) {
-        ${$self->{stml}} .= "</$el>" if $el ne 'include';
+    if (my $stml = $self->current_tag->{stml}) {
+        $$stml .= "</$el>" if $el ne 'include';
         return;
     }
     $h or $self->error("Unknown tag $el");
@@ -291,10 +292,10 @@ sub on_end_tag {
 
 sub start_stml {
     my ($v) = @_;
-    sub { $_[0]->{stml} = \$_[0]->{problem}->{$v} };
+    sub { $_[0]->current_tag->{stml} = \$_[0]->{problem}->{$v} };
 }
 
-sub end_stml { undef $_[0]->{stml} }
+sub end_stml { undef $_[0]->current_tag->{stml} }
 
 sub stml_handlers { return (s => start_stml(@_), e => \&end_stml); }
 
@@ -325,7 +326,7 @@ sub stml_src_handlers {
 sub end_tag_FormalInput {
     (my CATS::Problem::Parser $self, my $atts) = @_;
     $has_formal_input or return $self->warning('Parsing FormalInput tag requires FormalInput module');
-    my $parser_err = FormalInput::parserValidate(${$self->{stml}});
+    my $parser_err = FormalInput::parserValidate(${$self->current_tag->{stml}});
     if ($parser_err) {
         my $s = FormalInput::errorMessageByCode(FormalInput::getErrCode($parser_err));
         my $l = FormalInput::getErrLine($parser_err);
@@ -340,8 +341,8 @@ sub end_tag_FormalInput {
 
 sub end_tag_JsonData {
     (my CATS::Problem::Parser $self, my $atts) = @_;
-    ${$self->{stml}} = Encode::encode_utf8(${$self->{stml}});
-    eval { decode_json(${$self->{stml}}) };
+    ${$self->current_tag->{stml}} = Encode::encode_utf8(${$self->current_tag->{stml}});
+    eval { decode_json(${$self->current_tag->{stml}}) };
     if ($@) {
         $self->error("JsonData: $@");
     }
@@ -628,7 +629,7 @@ sub start_sample_in_out {
             $$f = $self->{source}->read_member($src, "Invalid sample $in_out reference: '$src'");
         }
     }
-    $self->{stml} = \($self->{current_sample_data}->{$in_out} = '');
+    $self->current_tag->{stml} = \($self->{current_sample_data}->{$in_out} = '');
 }
 
 sub end_sample_in_out {
@@ -690,7 +691,7 @@ sub parse_xml {
     $xml_parser->setHandlers(
         Start => sub { $self->on_start_tag(@_) },
         End => sub { $self->on_end_tag(@_) },
-        Char => sub { ${$self->{stml}} .= escape_xml($_[1]) if $self->{stml} },
+        Char => sub { ${$self->current_tag->{stml}} .= escape_xml($_[1]) if $self->current_tag->{stml} },
         XMLDecl => sub { $self->{problem}{encoding} = $_[2] },
     );
     $xml_parser->parse($self->{source}->read_member($xml_file));
