@@ -34,6 +34,8 @@ our $ip_info = 'https://db-ip.com/%s';
 our %ip_aliases = (
     localhost => qr/^127\.0\.0\.1$/,
 );
+our @ip_blocked_regexps = (
+);
 
 our $timeanddate_url = 'https://www.timeanddate.com/worldclock/fixedtime.html';
 our %timeanddate_tz = (p1 => 261);
