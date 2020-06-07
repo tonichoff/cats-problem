@@ -53,6 +53,11 @@ sub get_zip {
     $_[0]->{source}->get_zip;
 }
 
+sub build_tag {
+    (my CATS::Problem::Parser $self, my $el, my $atts) = @_;
+    "<$el" . join ('', map qq~ $_="${$atts}{$_}"~, sort keys %{$atts}) . '>';
+}
+
 sub tag_handlers() {{
     CATS => { s => sub {}, r => ['version'], in => [] },
     ProblemStatement => { stml_src_handlers('statement') },
@@ -90,6 +95,17 @@ sub tag_handlers() {{
     Keyword => { s => \&start_tag_Keyword, r => ['code'] },
     Testset => { s => \&start_tag_Testset, r => ['name', 'tests'] },
     Run => { s => \&start_tag_Run, r => ['method'] },
+    Quiz => {
+        s => \&start_tag_Quiz, e => \&end_nested_in_stml_tag,
+        r => ['type'], in => ['ProblemStatement'], in_stml => 1 },
+    include => {
+        s => \&start_tag_include, e => \&end_tag_include, r => ['src'], in_stml => 1 },
+    img => {
+        s => \&start_tag_img_a_object, e => \&end_nested_in_stml_tag, r => ['picture'], in_stml => 1 },
+    a => {
+        s => \&start_tag_img_a_object, e => \&end_nested_in_stml_tag, r => ['attachment'], in_stml => 1 },
+    object => {
+        s => \&start_tag_img_a_object, e => \&end_nested_in_stml_tag, r => ['attachment'], in_stml => 1 },
 }}
 
 sub current_tag { $_[0]->{tag_stack}->[-1] }
@@ -143,8 +159,8 @@ sub read_member_named {
 
 sub check_top_tag {
     (my CATS::Problem::Parser $self, my $allowed_tags) = @_;
-    my $top_tag_el = @{$self->{tag_stack}} ? @{$self->{tag_stack}}[-1]->{el} : '';
-    return grep $top_tag_el eq $_, @$allowed_tags;
+    my $top_tag = @{$self->{tag_stack}} ? @{$self->{tag_stack}}[-1]->{el} : '';
+    return grep $top_tag eq $_, @$allowed_tags;
 }
 
 sub checker_added {
@@ -195,8 +211,6 @@ sub validate {
     my $problem = $self->{problem};
     $self->apply_test_defaults;
     my @t = $check_order->($problem->{tests}, 'test');
-    #@t > 1 && $self->{has_quizzes}
-    #    and return $self->error('Quiz problem have more than one test');
     for (@t) {
         my $error = validate_test($_) or next;
         $self->error("$error for test $_->{rank}");
@@ -239,37 +253,17 @@ sub inc_object_ref_count {
 sub on_start_tag {
     my CATS::Problem::Parser $self = shift;
     my ($p, $el, %atts) = @_;
-
     my $h = tag_handlers()->{$el};
     my $top_tag = $self->current_tag;
-    if (my $stml = $top_tag ? $top_tag->{stml} : undef) {
-        $h and $self->error("Unexpected top-level tag $el inside stml of " . $self->current_tag->{el});
-        if ($el eq 'include') {
-            my $name = $atts{src} or
-                return $self->error(q~Missing required 'src' attribute of 'include' tag~);
-            $$stml .= Encode::decode(
-                $self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'"));
-            return;
-        }
-        elsif ($el eq 'Quiz') {
-            $self->{max_points_quiz} = ($self->{max_points_quiz} // 0) + ($atts{points} // 1);
-            $self->{has_quizzes} = 1;
-        }
-        $$stml .=
-            "<$el" . join ('', map qq~ $_="$atts{$_}"~, keys %atts) . '>';
-
-        $el ne 'img' || $atts{picture} or
-            $self->error('Picture not defined in img element');
-
-        my $attr = { img => 'picture', a => 'attachment', object => 'attachment' }->{$el};
-        $self->inc_object_ref_count($atts{$attr}, $attr) if $attr;
-        return;
-    }
-
+    my $stml = $top_tag && $top_tag->{stml};
+    $stml && $h && !$h->{in_stml} and
+        $self->error("Unexpected top-level tag '$el' inside stml of " . $top_tag->{el});
+    $stml && !$h && return $$stml .= $self->build_tag($el, \%atts);
     $h or $self->error("Unknown tag $el");
     my $in = $h->{in} // ['Problem'];
-    !@$in || $self->check_top_tag($in)
+    !@$in || $h->{in_stml} || $self->check_top_tag($in)
         or $self->error_stack("Tag '$el' must be inside of " . join(' or ', @$in));
+    !$stml && $h->{in_stml} and $self->error("Unexpected stml tag '$el' at top-level");
     $self->required_attributes($el, \%atts, $h->{r}) if $h->{r};
     push @{$self->{tag_stack}}, { el => $el, stml => undef };
     $h->{s}->($self, \%atts, $el);
@@ -282,7 +276,7 @@ sub on_end_tag {
     my $h = tag_handlers()->{$el};
     $h->{e}->($self, \%atts, $el) if $h && $h->{e};
     if (my $stml = $self->current_tag->{stml}) {
-        $$stml .= "</$el>" if $el ne 'include';
+        $$stml .= "</$el>";
         return;
     }
     $h or $self->error("Unknown tag $el");
@@ -681,6 +675,40 @@ sub start_tag_Run {
         if $self->{problem}{run_method} == $cats::rm_competitive;
 
     $self->note("Run method set to '$m'");
+}
+
+sub end_nested_in_stml_tag {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    ${$self->{tag_stack}->[-2]->{stml}} .= ${$self->current_tag->{stml}} . "</$el>";
+    undef $self->current_tag->{stml};
+}
+
+sub start_tag_Quiz {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    $self->{max_points_quiz} = ($self->{max_points_quiz} // 0) + ($atts->{points} // 1);
+    $self->{has_quizzes} = 1;
+    ${$self->current_tag->{stml}} = $self->build_tag($el, $atts);
+}
+
+sub start_tag_include {
+    (my CATS::Problem::Parser $self, my $atts) = @_;
+    my $name = $atts->{src};
+    ${$self->current_tag->{stml}} .= Encode::decode(
+        $self->{problem}{encoding}, $self->{source}->read_member($name, "Invalid 'include' reference: '$name'")
+    );
+}
+
+sub end_tag_include {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    ${$self->{tag_stack}->[-2]->{stml}} .= ${$self->current_tag->{stml}};
+    undef $self->current_tag->{stml};
+}
+
+sub start_tag_img_a_object {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    ${$self->current_tag->{stml}} .= $self->build_tag($el, $atts);
+    my $attr = { img => 'picture', a => 'attachment', object => 'attachment' }->{$el};
+    $self->inc_object_ref_count($atts->{$attr}, $attr) if $attr;
 }
 
 sub parse_xml {
