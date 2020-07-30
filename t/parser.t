@@ -1012,16 +1012,24 @@ subtest 'linter', sub {
 };
 
 subtest 'quiz', sub {
-    plan tests => 1;
+    plan tests => 3;
 
     my $p = parse({
         'test.xml' => wrap_xml(qq~
 <Problem title="quizz" lang="en" tlimit="5" inputFile="asd" outputFile="asd">
-<ProblemStatement><Quiz type="text" points="3"></Quiz><Quiz type="text"></Quiz></ProblemStatement>
+<ProblemStatement>
+<Quiz type="text" points="3"><Answer>a</Answer></Quiz>
+<Quiz type="text"><Answer>a</Answer></Quiz></ProblemStatement>
 <Checker src="checker.pp"/>
-<Test rank="1"><In>2</In><Out>2</Out></Test>
 </Problem>~),
         'checker.pp' => 'begin end.',
     });
     is $p->{tests}->{1}->{points}, 4, 'Quiz max_points';
+
+    my $p = parse({'text.xml' => wrap_problem(qq~<Quiz type="text"><Answer>answer</Answer></Quiz>~)});
+    is $p->{quizzes}->[-1]->{answer}, 'answer', 'Answer tag';
+
+    throws_ok { parse({
+        'text.xml' => wrap_problem(qq~<Quiz type="text"></Quiz>~)
+    }); } qr/answer/, 'Text Quiz without answer';
 };

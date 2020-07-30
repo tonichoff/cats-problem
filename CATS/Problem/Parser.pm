@@ -96,8 +96,13 @@ sub tag_handlers() {{
     Testset => { s => \&start_tag_Testset, r => ['name', 'tests'] },
     Run => { s => \&start_tag_Run, r => ['method'] },
     Quiz => {
-        s => \&start_tag_Quiz, e => \&end_nested_in_stml_tag,
+        s => \&start_tag_Quiz, e => \&end_tag_Quiz,
         r => ['type'], in => ['ProblemStatement'], in_stml => 1 },
+    Answer => { s => \&start_tag_Answer, e => \&end_tag_Answer, in => ['Quiz'], in_stml => 1 },
+    Choice => { s => \&start_tag_Choice, e => \&end_nested_in_stml_tag, in => ['Quiz'], in_stml => 1 },
+    Row => {
+        s => \&start_tag_Row, e => \&end_nested_in_stml_tag, 
+        r => ['correct'], in => ['Matrix'], in_stml => 1 },
     include => {
         s => \&start_tag_include, e => \&end_tag_include, r => ['src'], in_stml => 1 },
     img => {
@@ -687,7 +692,58 @@ sub start_tag_Quiz {
     (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
     $self->{max_points_quiz} = ($self->{max_points_quiz} // 0) + ($atts->{points} // 1);
     $self->{has_quizzes} = 1;
+    push @{$self->{problem}->{quizzes}}, { type => $atts->{type} };
+    $self->add_test($atts, scalar(@{$self->{problem}{quizzes}}));
     ${$self->current_tag->{stml}} = $self->build_tag($el, $atts);
+}
+
+sub end_tag_Quiz {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    my $quiz = \$self->{problem}->{quizzes}->[-1];
+    !${$quiz}->{answer} and $self->error("Quiz doesn't have answer");
+    chop ${$quiz}->{answer} if (${$quiz}->{type} eq 'checkbox' || ${$quiz}->{type} eq 'matrix');
+    print STDERR ${$quiz}->{answer} if ${$quiz}->{type} eq 'matrix';
+    $self->set_test_attr($self->{current_tests}->[-1], 'in_file', 'quiz_stub');
+    $self->set_test_attr($self->{current_tests}->[-1], 'out_file', ${$quiz}->{answer});
+    delete $self->{current_tests};
+    end_nested_in_stml_tag($self, $atts, $el);
+}
+
+sub start_tag_Answer {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    my $quiz = \$self->{problem}->{quizzes}->[-1];
+    $self->error('Duplicate answer of quiz') if ${$quiz}->{answer};
+    #$self->error('Using tag Answer instead Choice') if ${$quiz}->{type} ne 'text';
+    $self->current_tag->{stml} = \($self->{current_test_data}->{out_file} = '');
+}
+
+sub end_tag_Answer {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    my $stml = ${$self->current_tag->{stml}};
+    $stml =~ s/[\n\r]//g;
+    return if $stml eq '';
+    $self->{problem}->{quizzes}->[-1]->{answer} = $stml;
+    undef $self->current_tag->{stml};
+}
+
+sub start_tag_Choice {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    my $quiz = \$self->{problem}->{quizzes}->[-1];
+    $self->error('Using tag Choice instead Answer') if ${$quiz}->{type} eq 'text';
+    ${$self->current_tag->{stml}} = "<$el>";
+    ${$quiz}->{choice_count} += 1;
+    ${$quiz}->{answer} && $atts->{correct} && ${$quiz}->{type} eq 'radiogroup' and
+        $self->error("Several correct answers in Quiz");
+    ${$quiz}->{answer} .= "${$quiz}->{choice_count}" if $atts->{correct};
+    ${$quiz}->{answer} .= " " if $atts->{correct} && ${$quiz}->{type} eq 'checkbox';
+}
+
+sub start_tag_Row {
+    (my CATS::Problem::Parser $self, my $atts, my $el) = @_;
+    my $quiz = \$self->{problem}->{quizzes}->[-1];
+    ${$self->current_tag->{stml}} = "<$el>";
+    ${$quiz}->{choice_count} += 1;
+    ${$quiz}->{answer} .= "${$quiz}->{choice_count}" . ":" . $atts->{correct} . " ";
 }
 
 sub start_tag_include {
